@@ -1,0 +1,91 @@
+#!/bin/bash
+
+BUILDER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TESORO_DIR=$(dirname $BUILDER_DIR)
+
+if [ -z ${BUILD_TYPE} ]; then
+	export BUILD_TYPE=release
+fi
+
+if [ -z ${STATIC} ]; then
+	export STATIC=OFF
+fi
+
+if [ -z ${THREAD_COUNT} ]; then
+	export THREAD_COUNT=8
+fi
+
+function detectos()
+{
+	if [ "$(uname)" == "Linux" ]; then
+		if [[ -z "${TESORO_BUILD_DISTRO}" ]]; then
+			local os_distro="unknown"
+
+			if [ -f /etc/os-release ]; then
+				source /etc/os-release
+				os_distro=$ID
+			elif [ -f /etc/lsb-release ]; then
+				source /etc/lsb-release
+				os_distro=$DISTRIB_ID
+			fi
+		fi
+		export TESORO_BUILD_OS="linux"
+		export TESORO_BUILD_DISTRO=${os_distro}
+	elif [ "$(uname)" == "Darwin" ]; then
+		export TESORO_BUILD_OS="osx"
+	elif [ "$(expr substr $(uname -s) 1 7)" == "MSYS_NT" ] || [ "$(expr substr $(uname -s) 1 7)" == "MINGW64" ]; then
+		export TESORO_BUILD_OS="windows"
+	else
+		echo "Unsupported OS"
+		exit 0
+	fi
+
+	echo OS detected ${TESORO_BUILD_OS} ${TESORO_BUILD_DISTRO}
+}
+
+function detectversion()
+{
+    ver=$(awk '/#define DEF_MONERO_VERSION /{ print $3 }' < ${TESORO_DIR}/src/version.cpp.in)
+    name=$(awk '/#define DEF_MONERO_RELEASE_NAME /{ print $3 }' < ${TESORO_DIR}/src/version.cpp.in)
+    export TESORO_VERSION=$(echo ${ver} | tr -d '"')
+    export TESORO_CODENAME=$(echo ${name} | tr -d '"')
+    echo Version detected as ${TESORO_VERSION}: ${TESORO_CODENAME}
+}
+
+function cmake_cmd()
+{
+	no_aes=OFF
+	build_extras=OFF
+
+	if [ "$1" == "aes" ]; then
+		no_aes=OFF
+		build_extras=ON
+	elif [ "$1" == "noaes" ]; then
+		no_aes=ON
+		build_extras=OFF
+	else
+		echo "Unsupported configuration" $1
+		exit 1
+	fi
+	
+	if [ ${TESORO_BUILD_OS} == "linux" ]; then
+		cmake -D CMAKE_BUILD_TYPE=${BUILD_TYPE} -D STATIC=${STATIC} -D NO_AES=${no_aes} -D BUILD_TAG=${TESORO_BUILD_OS} -D BUILD_EXTRAS=${build_extras} ../../../..
+	elif [ ${TESORO_BUILD_OS} == "osx" ]; then
+		cmake -D CMAKE_BUILD_TYPE=${BUILD_TYPE} -D STATIC=ON -D NO_AES=${no_aes} -D BUILD_TAG=${TESORO_BUILD_OS} -D BUILD_EXTRAS=${build_extras} ../../../..
+	elif [ ${TESORO_BUILD_OS} == "windows" ]; then
+		cmake -D CMAKE_BUILD_TYPE=${BUILD_TYPE} -D STATIC=ON -D NO_AES=${no_aes} -D BUILD_TAG=${TESORO_BUILD_OS} -D BUILD_EXTRAS=${build_extras} -D ARCH="x86-64" -G "MSYS Makefiles" ../../../..
+	else
+		echo "Unsupported build platform"
+		exit 1
+	fi
+}
+
+function print_env()
+{
+	stat="static"
+	if [ -z ${STATIC} ] || [ ${STATIC} == "OFF" ]; then
+		stat="dynamic"
+	fi
+
+	echo Build args: ${BUILD_TYPE} -j${THREAD_COUNT} ${stat}
+}

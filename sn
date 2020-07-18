@@ -1,0 +1,52 @@
+#!/bin/bash
+
+dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+datadir=${dir}/db
+bindir=${dir}/builder/output/linux/release-aes/bin
+
+function prep()
+{
+	${bindir}/xolentum-wallet-cli --stagenet --daemon-address 127.0.0.1:28081
+	${bindir}/xolentum-wallet-cli --stagenet --daemon-address 127.0.0.1:28081
+}
+
+function w1()
+{
+	${bindir}/xolentum-wallet-cli --stagenet --daemon-address 127.0.0.1:28081  --wallet-file ${datadir}/t1 --password ""
+}
+
+function w2()
+{
+	${bindir}/xolentum-wallet-cli --stagenet --daemon-address 127.0.0.1:38081 --wallet-file ${datadir}/t2 --password ""
+}
+
+function n1()
+{
+	${bindir}/xolentumd --stagenet --data-dir ${datadir}/n1 --p2p-bind-port 28080 --rpc-bind-port 28081 --zmq-rpc-bind-port 28082 \
+	--add-exclusive-node 127.0.0.1:58080 --add-exclusive-node 127.0.0.1:48080 --add-exclusive-node 127.0.0.1:38080 \
+    --block-sync-size 10 --fixed-difficulty 5000
+}
+
+function n2()
+{
+	${bindir}/xolentumd --stagenet --data-dir ${datadir}/n2 --p2p-bind-port 38080 --rpc-bind-port 38081 --zmq-rpc-bind-port 38082 --rpc-restricted-bind-port 38083 \
+	--add-exclusive-node 127.0.0.1:58080 --add-exclusive-node 127.0.0.1:48080 --add-exclusive-node 127.0.0.1:28080 \
+    --block-sync-size 10 --fixed-difficulty 5000
+}
+
+function n3()
+{
+	${bindir}/xolentumd --stagenet --data-dir ${datadir}/n3 --p2p-bind-port 48080 --rpc-bind-port 48081 --zmq-rpc-bind-port 48082 --rpc-restricted-bind-port 48083 \
+	--add-exclusive-node 127.0.0.1:58080 --add-exclusive-node 127.0.0.1:38080 --add-exclusive-node 127.0.0.1:28080 \
+    --block-sync-size 10 --fixed-difficulty 5000
+}
+
+function n4()
+{
+	${bindir}/xolentumd --stagenet --data-dir ${datadir}/n4 --p2p-bind-port 58080 --rpc-bind-port 58081 --zmq-rpc-bind-port 58082 --rpc-restricted-bind-port 58083 \
+	--add-exclusive-node 127.0.0.1:48080 --add-exclusive-node 127.0.0.1:38080 --add-exclusive-node 127.0.0.1:28080 \
+    --block-sync-size 10 --fixed-difficulty 5000
+}
+
+$1

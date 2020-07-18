@@ -1,0 +1,32 @@
+#!/bin/bash
+
+BUILDER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TESORO_DIR=$(dirname $BUILDER_DIR)
+source ${BUILDER_DIR}/environment
+
+detectos
+detectversion
+
+function build()
+{
+	aes=$1
+
+	build_dir=${BUILDER_DIR}/output/${TESORO_BUILD_OS}/${BUILD_TYPE}-${aes}
+
+	mkdir -p ${build_dir}
+	cd ${build_dir}
+	cmake_cmd ${aes}
+	make -j${THREAD_COUNT}
+}
+
+print_env
+
+build aes
+
+build_dir=${BUILDER_DIR}/output/${TESORO_BUILD_OS}/${BUILD_TYPE}
+
+ext=""
+
+if [ ${TESORO_BUILD_OS} == "windows" ]; then
+	ext=".exe"
+fi
