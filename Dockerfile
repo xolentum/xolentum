@@ -190,23 +190,23 @@ COPY --from=builder /src/build/release/bin /usr/local/bin/
 
 # Create xolentum user
 RUN adduser --system --group --disabled-password xolentum && \
-	mkdir -p /wallet /home/xolentum/.bitmonero && \
-	chown -R xolentum:xolentum /home/xolentum/.bitmonero && \
+	mkdir -p /wallet /home/xolentum/.xolentum && \
+	chown -R xolentum:xolentum /home/xolentum/.xolentum && \
 	chown -R xolentum:xolentum /wallet
 
 # Contains the blockchain
-VOLUME /home/xolentum/.bitmonero
+VOLUME /home/xolentum/.xolentum
 
 # Generate your wallet via accessing the container and run:
 # cd /wallet
 # xolentum-wallet-cli
 VOLUME /wallet
 
-EXPOSE 18080
-EXPOSE 18081
+EXPOSE 13579
+EXPOSE 13580
 
 # switch to user xolentum
 USER xolentum
 
-ENTRYPOINT ["monerod", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
+ENTRYPOINT ["xolentumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
 
