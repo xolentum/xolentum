@@ -179,7 +179,7 @@ namespace config
   uint16_t const ZMQ_RPC_DEFAULT_PORT = 55553;
   boost::uuids::uuid const NETWORK_ID = { {
       0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x18, 0x42, 0x00, 0x69, 0x12, 0x12, 0x12, 0x16
-    } }; // Bender's nightmare
+    } }; // Mainnet
   std::string const GENESIS_TX = "013c01ff00018080d194b574026b075395c6f75add27bccd569931fb34e5c412b72244ceb9ab6e9e3be15f476221012f356297367abb093381edbb6bb4c04d430f0a8337e7e1a08a7a6e1abfca298b00";
   uint32_t const GENESIS_NONCE = 1000;
 
@@ -193,7 +193,7 @@ namespace config
     uint16_t const ZMQ_RPC_DEFAULT_PORT = 44443;
     boost::uuids::uuid const NETWORK_ID = { {
         0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x17, 0x31, 0x00, 0x82, 0x12, 0x12, 0x12, 0x16
-      } }; // Bender's daydream
+      } }; // Testnet
     std::string const GENESIS_TX = "013c01ff00018080d194b574026b075395c6f75add27bccd569931fb34e5c412b72244ceb9ab6e9e3be15f476221012f356297367abb093381edbb6bb4c04d430f0a8337e7e1a08a7a6e1abfca298b00";
     uint32_t const GENESIS_NONCE = 10001;
   }
@@ -208,7 +208,7 @@ namespace config
     uint16_t const ZMQ_RPC_DEFAULT_PORT = 33333;
     boost::uuids::uuid const NETWORK_ID = { {
         0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x17, 0x31, 0x00, 0x12, 0x12, 0x12, 0xA1, 0x16
-      } }; // Bender's daydream
+      } }; // Stagenet
     std::string const GENESIS_TX = "013c01ff00018080d194b574026b075395c6f75add27bccd569931fb34e5c412b72244ceb9ab6e9e3be15f476221012f356297367abb093381edbb6bb4c04d430f0a8337e7e1a08a7a6e1abfca298b00";
     uint32_t const GENESIS_NONCE = 10002;
   }
