@@ -6138,15 +6138,15 @@ void simple_wallet::check_for_inactivity_lock(bool user)
 #endif
     tools::clear_screen();
     m_in_command = true;
-    
-    tools::msg_writer() << R"(                                   )";
-    tools::msg_writer() << R"(   ______                          )";
-    tools::msg_writer() << R"(  /_  __/__  _________  _________  )";
-    tools::msg_writer() << R"(   / / / _ \/ ___/ __ \/ ___/ __ \ )";
-    tools::msg_writer() << R"(  / / /  __(__  ) /_/ / /  / /_/ / )";
-    tools::msg_writer() << R"( /_/  \___/____/\____/_/   \____/  )";
-    tools::msg_writer() << R"(        The Xolentum Project         )";
-    tools::msg_writer() << R"(                                   )";     
+   
+    tools::msg_writer() << R"( \ \ / /    | |          | |                   )";
+    tools::msg_writer() << R"(  \ V / ___ | | ___ _ __ | |_ _   _ _ __ ___ )";
+    tools::msg_writer() << R"(   > < / _ \| |/ _ \ '_ \| __| | | | '_ ` _ \  )";
+    tools::msg_writer() << R"(  / . \ (_) | |  __/ | | | |_| |_| | | | | | | )";
+    tools::msg_writer() << R"( /_/ \_\___/|_|\___|_| |_|\__|\__,_|_| |_| |_| )";
+    tools::msg_writer() << R"( )";
+    tools::msg_writer() << R"(                The Xolentum Project           )";
+    tools::msg_writer() << R"( )";     
     tools::msg_writer() << "" << ENDL;
 
     if (!user)

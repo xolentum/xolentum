@@ -1635,16 +1635,22 @@ namespace cryptonote
         main_message = "The daemon will start synchronizing with the network. This may take a long time to complete.";
 
       //ASCII ART
-      
+ 
+  
+  
+ 
+ 
+
+
       MGINFO_GREEN(ENDL 
-        << R"(   )" << ENDL
-        << R"(   )" << ENDL
-        << R"(   )" << ENDL
-        << R"(   )" << ENDL
-        << R"(   )" << ENDL
-        << R"(   )" << ENDL
-        << R"(        The Xolentum Project         )" << ENDL
-        << R"(                                     )" << ENDL);
+        << R"( \ \ / /    | |          | |                     )" << ENDL
+        << R"(  \ V / ___ | | ___ _ __ | |_ _   _ _ __ ___   )" << ENDL
+        << R"(   > < / _ \| |/ _ \ '_ \| __| | | | '_ ` _ \   )" << ENDL
+        << R"(  / . \ (_) | |  __/ | | | |_| |_| | | | | | |  )" << ENDL
+        << R"( /_/ \_\___/|_|\___|_| |_|\__|\__,_|_| |_| |_|  )" << ENDL
+        << R"(                                                )" << ENDL
+        << R"(               The Xolentum Project             )" << ENDL
+        << R"(                                                )" << ENDL);
       
       
       MGINFO_YELLOW(ENDL << "**********************************************************************" << ENDL
