@@ -8,9 +8,9 @@
 ## Xolentum Branches
 
 <p align="center">
-  **Master** - <a href="https://travis-ci.org/xolentum/xolentum" rel="nofollow"><img src="https://travis-ci.org/xolentum/xolentum.svg?branch=master" alt="Build" style="max-width:100%;"></a>
+  <b>Master</b> - <a href="https://travis-ci.org/xolentum/xolentum" rel="nofollow"><img src="https://travis-ci.org/xolentum/xolentum.svg?branch=master" alt="Build" style="max-width:100%;"></a>
   <br>
-  **Development** - <a href="https://travis-ci.org/xolentum/xolentum" rel="nofollow"><img src="https://travis-ci.org/xolentum/xolentum.svg?branch=development" alt="Build" style="max-width:100%;"></a>
+  <b>Development</b> - <a href="https://travis-ci.org/xolentum/xolentum" rel="nofollow"><img src="https://travis-ci.org/xolentum/xolentum.svg?branch=development" alt="Build" style="max-width:100%;"></a>
 </p>
 
 **NOTE:** The `master` branch contains the latest Xolentum release. All changes are made on the `development` branch, hence, please direct all pull requests to that branch.
