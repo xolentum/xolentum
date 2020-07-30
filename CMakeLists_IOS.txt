@@ -1,5 +1,6 @@
+# Portions Copyright (c) 2020, The Xolentum Project
 # Portions Copyright (c) 2017-2019, The Monero Project
-# This file is based off of the https://code.google.com/archive/p/ios-cmake/
+# This file is based off the https://code.google.com/archive/p/ios-cmake/
 # It has been altered for Xolentum iOS development
 #
 #
@@ -11,11 +12,11 @@
 #   SIMULATOR - used to build for the Simulator platforms, which have an x86 arch.
 #
 # CMAKE_IOS_DEVELOPER_ROOT = automatic(default) or /path/to/platform/Developer folder
-#   By default this location is automatcially chosen based on the IOS_PLATFORM value above.
+#   By default this location is automatically chosen based on the IOS_PLATFORM value above.
 #   If set manually, it will override the default location and force the user of a particular Developer Platform
 #
 # CMAKE_IOS_SDK_ROOT = automatic(default) or /path/to/platform/Developer/SDKs/SDK folder
-#   By default this location is automatcially chosen based on the CMAKE_IOS_DEVELOPER_ROOT value.
+#   By default this location is automatically chosen based on the CMAKE_IOS_DEVELOPER_ROOT value.
 #   In this case it will always be the most up-to-date SDK found in the CMAKE_IOS_DEVELOPER_ROOT path.
 #   If set manually, this will force the use of a specific SDK version
 
