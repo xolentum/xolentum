@@ -1237,7 +1237,7 @@ namespace nodetool
       bool is_priority = is_priority_node(na);
       LOG_PRINT_CC_PRIORITY_NODE(is_priority, bool(con), "Connect failed to " << na.str()
         /*<< ", try " << try_count*/);
-      //m_peerlist.set_peer_unreachable(pe);
+      record_addr_failed(na);
       return false;
     }
 
@@ -1252,6 +1252,7 @@ namespace nodetool
         << na.str()
         /*<< ", try " << try_count*/);
       zone.m_net_server.get_config_object().close(con->m_connection_id);
+      record_addr_failed(na);
       return false;
     }
 
@@ -1302,6 +1303,7 @@ namespace nodetool
       bool is_priority = is_priority_node(na);
 
       LOG_PRINT_CC_PRIORITY_NODE(is_priority, p2p_connection_context{}, "Connect failed to " << na.str());
+      record_addr_failed(na);
 
       return false;
     }
@@ -1314,6 +1316,7 @@ namespace nodetool
 
       LOG_PRINT_CC_PRIORITY_NODE(is_priority, *con, "Failed to HANDSHAKE with peer " << na.str());
       zone.m_net_server.get_config_object().close(con->m_connection_id);
+      record_addr_failed(na);
       return false;
     }
 
@@ -1326,6 +1329,13 @@ namespace nodetool
 
 #undef LOG_PRINT_CC_PRIORITY_NODE
 
+  //-----------------------------------------------------------------------------------
+  template<class t_payload_net_handler>
+  void node_server<t_payload_net_handler>::record_addr_failed(const epee::net_utils::network_address& addr)
+  {
+    CRITICAL_REGION_LOCAL(m_conn_fails_cache_lock);
+    m_conn_fails_cache[addr.host_str()] = time(NULL);
+  }
   //-----------------------------------------------------------------------------------
   template<class t_payload_net_handler>
   bool node_server<t_payload_net_handler>::is_addr_recently_failed(const epee::net_utils::network_address& addr)
@@ -1518,6 +1528,7 @@ namespace nodetool
         return true;
 
       size_t try_count = 0;
+      bool is_connected_to_at_least_one_seed_node = false;
       size_t current_index = crypto::rand_idx(m_seed_nodes.size());
       const net_server& server = m_network_zones.at(epee::net_utils::zone::public_).m_net_server;
       while(true)
@@ -1525,21 +1536,25 @@ namespace nodetool
         if(server.is_stop_signal_sent())
           return false;
 
-        if(try_to_connect_and_handshake_with_new_peer(m_seed_nodes[current_index], true))
+        peerlist_entry pe_seed{};
+        pe_seed.adr = m_seed_nodes[current_index];
+        if (is_peer_used(pe_seed))
+          is_connected_to_at_least_one_seed_node = true;
+        else if (try_to_connect_and_handshake_with_new_peer(m_seed_nodes[current_index], true))
           break;
         if(++try_count > m_seed_nodes.size())
         {
           if (!m_fallback_seed_nodes_added)
           {
             MWARNING("Failed to connect to any of seed peers, trying fallback seeds");
-            current_index = m_seed_nodes.size();
+            current_index = m_seed_nodes.size() - 1;
             for (const auto &peer: get_seed_nodes(m_nettype))
             {
               MDEBUG("Fallback seed node: " << peer);
               append_net_address(m_seed_nodes, peer, cryptonote::get_config(m_nettype).P2P_DEFAULT_PORT);
             }
             m_fallback_seed_nodes_added = true;
-            if (current_index == m_seed_nodes.size())
+            if (current_index == m_seed_nodes.size() - 1)
             {
               MWARNING("No fallback seeds, continuing without seeds");
               break;
@@ -1548,7 +1563,8 @@ namespace nodetool
           }
           else
           {
-            MWARNING("Failed to connect to any of seed peers, continuing without seeds");
+            if (!is_connected_to_at_least_one_seed_node)
++              MWARNING("Failed to connect to any of seed peers, continuing without seeds");
             break;
           }
         }
@@ -1887,7 +1903,7 @@ namespace nodetool
 
     LOG_DEBUG_CC(context, "REMOTE PEERLIST: remote peerlist size=" << peerlist_.size());
     LOG_TRACE_CC(context, "REMOTE PEERLIST: " << ENDL << print_peerlist_to_string(peerlist_));
-    return m_network_zones.at(context.m_remote_address.get_zone()).m_peerlist.merge_peerlist(peerlist_);
+    return m_network_zones.at(context.m_remote_address.get_zone()).m_peerlist.merge_peerlist(peerlist_, [this](const peerlist_entry &pe) { return !is_addr_recently_failed(pe.adr); });
   }
   //-----------------------------------------------------------------------------------
   template<class t_payload_net_handler>

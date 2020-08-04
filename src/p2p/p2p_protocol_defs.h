@@ -282,5 +282,29 @@ namespace nodetool
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  /************************************************************************/
+  /*                                                                      */
+  /************************************************************************/
+  struct COMMAND_REQUEST_SUPPORT_FLAGS
+  {
+    const static int ID = P2P_COMMANDS_POOL_BASE + 7;
+
+    struct request_t
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      uint32_t support_flags;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(support_flags)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
 
 }
