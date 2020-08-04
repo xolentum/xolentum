@@ -1163,13 +1163,13 @@ namespace cryptonote
       std::vector<transaction> txs;
       std::vector<crypto::hash> missed_txs;
       uint64_t coinbase_amount = get_outs_money_amount(b.miner_tx);
-      this->get_transactions(b.tx_hashes, txs, missed_txs);      
+      this->get_transactions(b.tx_hashes, txs, missed_txs);
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)
       {
         tx_fee_amount += get_tx_fee(tx);
       }
-      
+
       emission_amount += coinbase_amount - tx_fee_amount;
       total_fee_amount += tx_fee_amount;
       return true;
@@ -1576,7 +1576,7 @@ namespace cryptonote
   bool core::get_pool_transaction(const crypto::hash &id, cryptonote::blobdata& tx, relay_category tx_category) const
   {
     return m_mempool.get_transaction(id, tx, tx_category);
-  }  
+  }
   //-----------------------------------------------------------------------------------------------
   bool core::pool_has_tx(const crypto::hash &id) const
   {
@@ -1635,14 +1635,14 @@ namespace cryptonote
         main_message = "The daemon will start synchronizing with the network. This may take a long time to complete.";
 
       //ASCII ART
- 
-  
-  
- 
- 
 
 
-      MGINFO_GREEN(ENDL 
+
+
+
+
+
+      MGINFO_GREEN(ENDL
         << R"( \ \ / /    | |          | |                     )" << ENDL
         << R"(  \ V / ___ | | ___ _ __ | |_ _   _ _ __ ___   )" << ENDL
         << R"(   > < / _ \| |/ _ \ '_ \| __| | | | '_ ` _ \   )" << ENDL
@@ -1651,8 +1651,8 @@ namespace cryptonote
         << R"(                                                )" << ENDL
         << R"(               The Xolentum Project             )" << ENDL
         << R"(                                                )" << ENDL);
-      
-      
+
+
       MGINFO_YELLOW(ENDL << "**********************************************************************" << ENDL
         << main_message << ENDL
         << ENDL
@@ -1663,7 +1663,7 @@ namespace cryptonote
         << "Use the \"help_advanced\" command to see an advanced list of available commands." << ENDL
         << "Use \"help_advanced <command>\" to see a command's documentation." << ENDL
         << "**********************************************************************" << ENDL);
-       
+
       m_starter_message_showed = true;
     }
 
@@ -1918,6 +1918,10 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
   }
   //-----------------------------------------------------------------------------------------------
+  void core::flush_invalid_blocks()
+  {
+    m_blockchain_storage.flush_invalid_blocks();
+  }
   bool core::update_blockchain_pruning()
   {
     return m_blockchain_storage.update_blockchain_pruning();

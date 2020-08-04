@@ -300,7 +300,7 @@ bool Blockchain::init(BlockchainDB* db, const network_type nettype, bool offline
   m_fixed_difficulty = fixed_difficulty;
   if (m_hardfork == nullptr)
     m_hardfork = new HardFork(*db, 1);
-    
+
   if (m_nettype == FAKECHAIN)
   {
     for (size_t n = 0; test_options->hard_forks[n].first; ++n)
@@ -2476,6 +2476,13 @@ bool Blockchain::add_block_as_invalid(const block_extended_info& bei, const cryp
   CHECK_AND_ASSERT_MES(i_res.second, false, "at insertion invalid by tx returned status existed");
   MINFO("BLOCK ADDED AS INVALID: " << h << std::endl << ", prev_id=" << bei.bl.prev_id << ", m_invalid_blocks count=" << m_invalid_blocks.size());
   return true;
+}
+//------------------------------------------------------------------
+void Blockchain::flush_invalid_blocks()
+{
+  LOG_PRINT_L3("Blockchain::" << __func__);
+  CRITICAL_REGION_LOCAL(m_blockchain_lock);
+  m_invalid_blocks.clear();
 }
 //------------------------------------------------------------------
 bool Blockchain::have_block(const crypto::hash& id) const

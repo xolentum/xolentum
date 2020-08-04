@@ -191,7 +191,7 @@ namespace cryptonote
       * @note see Blockchain::cleanup_handle_incoming_blocks
       */
      bool cleanup_handle_incoming_blocks(bool force_sync = false);
-     	     	
+
      /**
       * @brief check the size of a block against the current maximum
       *
@@ -474,7 +474,7 @@ namespace cryptonote
       * @note see tx_memory_pool::get_txpool_backlog
       */
      bool get_txpool_backlog(std::vector<tx_backlog_entry>& backlog) const;
-     
+
      /**
       * @copydoc tx_memory_pool::get_transactions
       * @param include_sensitive_txes include private transactions
@@ -771,12 +771,12 @@ namespace cryptonote
       * @brief get the sum of coinbase tx amounts for the entire chain
       */
      uint64_t get_generated_coins();
-     
+
      /**
       * @brief get the network type we're on
       *
       * @return which network are we on?
-      */     
+      */
      network_type get_nettype() const { return m_nettype; };
 
      /**
@@ -863,6 +863,11 @@ namespace cryptonote
       * @brief flushes the bad txs cache
       */
      void flush_bad_txs_cache();
+
+     /**
+      * @brief flushes the invalid block cache
+      */
+     void flush_invalid_blocks();
 
    private:
 
