@@ -551,7 +551,7 @@ namespace cryptonote
 
     CHECK_PAYMENT_SAME_TS(req, res, bs.size() * COST_PER_BLOCK);
 
-    size_t pruned_size = 0, ntxes = 0;
+    size_t size = 0, ntxes = 0;
     res.blocks.reserve(bs.size());
     res.output_indices.reserve(bs.size());
     for(auto& bd: bs)
