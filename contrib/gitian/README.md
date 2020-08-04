@@ -62,7 +62,7 @@ echo "%sudo ALL=NOPASSWD: /usr/bin/lxc-execute" >> /etc/sudoers.d/gitian-lxc
 # make /etc/rc.local script that sets up bridge between guest and host
 echo '#!/bin/sh -e' > /etc/rc.local
 echo 'brctl addbr br0' >> /etc/rc.local
-echo 'ip addr add 10.0.3.1/24 broadcast 10.0.3.255 dev br0' >> /etc/rc.local
+echo 'ip addr add 10.0.2.2/24 broadcast 10.0.2.255 dev br0' >> /etc/rc.local
 echo 'ip link set br0 up' >> /etc/rc.local
 echo 'firewall-cmd --zone=trusted --add-interface=br0' >> /etc/rc.local
 echo 'exit 0' >> /etc/rc.local
@@ -70,8 +70,7 @@ chmod +x /etc/rc.local
 # make sure that USE_LXC is always set when logging in as gitianuser,
 # and configure LXC IP addresses
 echo 'export USE_LXC=1' >> /home/gitianuser/.profile
-echo 'export GITIAN_HOST_IP=10.0.3.1' >> /home/gitianuser/.profile
-echo 'export LXC_GUEST_IP=10.0.3.5' >> /home/gitianuser/.profile
+echo 'export LXC_GUEST_IP=10.0.2.5' >> /home/gitianuser/.profile
 reboot
 ```
 
@@ -102,7 +101,7 @@ sudo usermod -aG docker gitianuser
 Manual Building
 -------------------
 
-The instructions below use the automated script [gitian-build.py](gitian-build.py) which only works in Ubuntu. 
+The instructions below use the automated script [gitian-build.py](gitian-build.py) which only works in Ubuntu.
 =======
 The script automatically installs some packages with apt. If you are not running it on a debian-like system, pass `--no-apt` along with the other
 arguments to it. It calls all available .yml descriptors, which in turn pass the build configurations for different platforms to gitian.
@@ -131,7 +130,7 @@ VERSION=v0.15.0.0
 ./gitian-build.py --setup $GH_USER $VERSION
 ```
 
-Where `GH_USER` is your Github user name and `VERSION` is the version tag you want to build. 
+Where `GH_USER` is your Github user name and `VERSION` is the version tag you want to build.
 
 Setup for docker:
 
@@ -140,8 +139,8 @@ Setup for docker:
 ```
 
 While gitian and this build script does provide a way for you to sign the build directly, it is recommended to sign in a separate step. This script is only there for convenience. Separate steps for building can still be taken.
-In order to sign gitian builds on your host machine, which has your PGP key, 
-fork the [gitian.sigs repository](https://github.com/xolentum-project/gitian.sigs) and clone it on your host machine, 
+In order to sign gitian builds on your host machine, which has your PGP key,
+fork the [gitian.sigs repository](https://github.com/xolentum-project/gitian.sigs) and clone it on your host machine,
 or pass the signed assert file back to your build machine.
 
 ```bash
@@ -240,4 +239,3 @@ Local-Only Builds
 If you need to run builds while disconnected from the internet, make sure you have
 local up-to-date repos in advance. Then specify your local repo using the `--url`
 option when building. This will avoid attempts to git pull across a network.
-
