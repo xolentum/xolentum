@@ -376,7 +376,8 @@ namespace epee
       storage_entry* pentry = find_storage_entry(value_name, hparent_section);
       if(!pentry)
       {
-          pentry = insert_new_entry_get_storage_entry(value_name, hparent_section, array_entry(array_entry_t<t_real_value>()));
+        pentry = insert_new_entry_get_storage_entry(value_name, hparent_section, array_entry(array_entry_t<t_real_value>()));
+        if(!pentry)
           return nullptr;
       }
       if(pentry->type() != typeid(array_entry))
@@ -386,7 +387,7 @@ namespace epee
       if(arr.type() != typeid(array_entry_t<t_real_value>))
         arr = array_entry(array_entry_t<t_real_value>());
 
-        array_entry_t<t_real_value>& arr_typed = boost::get<array_entry_t<t_real_value> >(arr);
+      array_entry_t<t_real_value>& arr_typed = boost::get<array_entry_t<t_real_value> >(arr);
       arr_typed.insert_first_val(std::forward<t_value>(target));
       return &arr;
       CATCH_ENTRY("portable_storage::insert_first_value", nullptr);
