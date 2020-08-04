@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2019, The Monero Project
-// 
+//
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification, are
@@ -78,13 +78,14 @@ public:
 
     const auto restricted = command_line::get_arg(vm, cryptonote::core_rpc_server::arg_restricted_rpc);
     const auto main_rpc_port = command_line::get_arg(vm, cryptonote::core_rpc_server::arg_rpc_bind_port);
-    rpcs.emplace_back(new t_rpc{vm, core, p2p, restricted, main_rpc_port, "core"});
+    const auto restricted_rpc_port_arg = cryptonote::core_rpc_server::arg_rpc_restricted_bind_port;
+    const bool has_restricted_rpc_port_arg = !command_line::is_arg_defaulted(vm, restricted_rpc_port_arg);
+    rpcs.emplace_back(new t_rpc{vm, core, p2p, restricted, main_rpc_port, "core", !has_restricted_rpc_port_arg});
 
-    auto restricted_rpc_port_arg = cryptonote::core_rpc_server::arg_rpc_restricted_bind_port;
-    if(!command_line::is_arg_defaulted(vm, restricted_rpc_port_arg))
+    if(has_restricted_rpc_port_arg)
     {
       auto restricted_rpc_port = command_line::get_arg(vm, restricted_rpc_port_arg);
-      rpcs.emplace_back(new t_rpc{vm, core, p2p, true, restricted_rpc_port, "restricted"});
+      rpcs.emplace_back(new t_rpc{vm, core, p2p, true, restricted_rpc_port, "restricted", true});
     }
   }
 };
@@ -202,7 +203,7 @@ bool t_daemon::run(bool interactive)
       MGINFO("Public RPC port " << public_rpc_port << " will be advertised to other peers over P2P");
       mp_internals->p2p.get().set_rpc_port(public_rpc_port);
     }
-    
+
     mp_internals->p2p.run(); // blocks until p2p goes down
 
     if (rpc_commands)
