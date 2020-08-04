@@ -1180,6 +1180,7 @@ wallet2::wallet2(network_type nettype, uint64_t kdf_rounds, bool unattended):
   m_ringdb(),
   m_last_block_reward(0),
   m_encrypt_keys_after_refresh(boost::none),
+  m_decrypt_keys_lockers(0),
   m_unattended(unattended),
   m_devices_registered(false),
   m_device_last_key_image_sync(0),
@@ -3105,6 +3106,7 @@ void wallet2::fast_refresh(uint64_t stop_height, uint64_t &blocks_start_height, 
       MERROR("Blocks start before blockchain offset: " << blocks_start_height << " " << m_blockchain.offset());
       return;
     }
+    current_index = blocks_start_height;
     if (hashes.size() + current_index < stop_height) {
       drop_from_short_history(short_chain_history, 3);
       std::vector<crypto::hash>::iterator right = hashes.end();
@@ -3114,7 +3116,6 @@ void wallet2::fast_refresh(uint64_t stop_height, uint64_t &blocks_start_height, 
         short_chain_history.push_front(*right);
       }
     }
-    current_index = blocks_start_height;
     for(auto& bl_id: hashes)
     {
       if(current_index >= m_blockchain.size())
@@ -4336,12 +4337,18 @@ bool wallet2::verify_password(const std::string& keys_file_name, const epee::wip
 
 void wallet2::encrypt_keys(const crypto::chacha_key &key)
 {
+  boost::lock_guard<boost::mutex> lock(m_decrypt_keys_lock);
+  if (--m_decrypt_keys_lockers) // another lock left ?
+    return;
   m_account.encrypt_keys(key);
   m_account.decrypt_viewkey(key);
 }
 
 void wallet2::decrypt_keys(const crypto::chacha_key &key)
 {
+  boost::lock_guard<boost::mutex> lock(m_decrypt_keys_lock);
+  if (m_decrypt_keys_lockers++) // already unlocked ?
+    return;
   m_account.encrypt_viewkey(key);
   m_account.decrypt_keys(key);
 }

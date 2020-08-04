@@ -1,21 +1,21 @@
 // Copyright (c) 2014-2019, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #pragma once
@@ -57,7 +57,7 @@ namespace nodetool
   }
 
 #pragma pack (push, 1)
-  
+
   struct network_address_old
   {
     uint32_t ip;
@@ -82,8 +82,7 @@ namespace nodetool
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(adr)
       KV_SERIALIZE(id)
-      if (!is_store || this_ref.last_seen != 0)
-        KV_SERIALIZE_OPT(last_seen, (int64_t)0)
+      KV_SERIALIZE_OPT(last_seen, (int64_t)0)
       KV_SERIALIZE_OPT(pruning_seed, (uint32_t)0)
       KV_SERIALIZE_OPT(rpc_port, (uint16_t)0)
       KV_SERIALIZE_OPT(rpc_credits_per_hash, (uint32_t)0)
@@ -123,7 +122,7 @@ namespace nodetool
 
 #pragma pack(pop)
 
-  inline 
+  inline
   std::string print_peerlist_to_string(const std::vector<peerlist_entry>& pl)
   {
     time_t now_time = 0;
@@ -135,7 +134,7 @@ namespace nodetool
       ss << peerid_to_string(pe.id) << "\t" << pe.adr.str()
         << " \trpc port " << (pe.rpc_port > 0 ? std::to_string(pe.rpc_port) : "-")
         << " \trpc credits per hash " << (pe.rpc_credits_per_hash > 0 ? std::to_string(pe.rpc_credits_per_hash) : "-")
-        << " \tpruning seed " << pe.pruning_seed 
+        << " \tpruning seed " << pe.pruning_seed
         << " \tlast_seen: " << (pe.last_seen == 0 ? std::string("never") : epee::misc_utils::get_time_interval_string(now_time - pe.last_seen))
         << std::endl;
     }
@@ -165,8 +164,7 @@ namespace nodetool
 
   struct basic_node_data
   {
-    uuid network_id;                   
-    uint64_t local_time;
+    uuid network_id;
     uint32_t my_port;
     uint16_t rpc_port;
     uint32_t rpc_credits_per_hash;
@@ -175,13 +173,12 @@ namespace nodetool
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE_VAL_POD_AS_BLOB(network_id)
       KV_SERIALIZE(peer_id)
-      KV_SERIALIZE(local_time)
       KV_SERIALIZE(my_port)
       KV_SERIALIZE_OPT(rpc_port, (uint16_t)(0))
       KV_SERIALIZE_OPT(rpc_credits_per_hash, (uint32_t)0)
     END_KV_SERIALIZE_MAP()
   };
-  
+
 
 #define P2P_COMMANDS_POOL_BASE 1000
 
@@ -214,35 +211,7 @@ namespace nodetool
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(node_data)
         KV_SERIALIZE(payload_data)
-        if (is_store)
-        {
-          // saving: save both, so old and new peers can understand it
-          KV_SERIALIZE(local_peerlist_new)
-          std::vector<peerlist_entry_base<network_address_old>> local_peerlist;
-          for (const auto &p: this_ref.local_peerlist_new)
-          {
-            if (p.adr.get_type_id() == epee::net_utils::ipv4_network_address::get_type_id())
-            {
-              const epee::net_utils::network_address  &na = p.adr;
-              const epee::net_utils::ipv4_network_address &ipv4 = na.as<const epee::net_utils::ipv4_network_address>();
-              local_peerlist.push_back(peerlist_entry_base<network_address_old>({{ipv4.ip(), ipv4.port()}, p.id, p.last_seen, p.pruning_seed, p.rpc_port, p.rpc_credits_per_hash}));
-            }
-            else
-              MDEBUG("Not including in legacy peer list: " << p.adr.str());
-          }
-          epee::serialization::selector<is_store>::serialize_stl_container_pod_val_as_blob(local_peerlist, stg, hparent_section, "local_peerlist");
-        }
-        else
-        {
-          // loading: load old list only if there is no new one
-          if (!epee::serialization::selector<is_store>::serialize(this_ref.local_peerlist_new, stg, hparent_section, "local_peerlist_new"))
-          {
-            std::vector<peerlist_entry_base<network_address_old>> local_peerlist;
-            epee::serialization::selector<is_store>::serialize_stl_container_pod_val_as_blob(local_peerlist, stg, hparent_section, "local_peerlist");
-            for (const auto &p: local_peerlist)
-              ((response&)this_ref).local_peerlist_new.push_back(peerlist_entry({epee::net_utils::ipv4_network_address(p.adr.ip, p.adr.port), p.id, p.last_seen, p.pruning_seed, p.rpc_port, p.rpc_credits_per_hash}));
-          }
-        }
+        KV_SERIALIZE(local_peerlist_new)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
@@ -268,42 +237,12 @@ namespace nodetool
 
     struct response_t
     {
-      uint64_t local_time;
       t_playload_type payload_data;
       std::vector<peerlist_entry> local_peerlist_new;
 
       BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE(local_time)
         KV_SERIALIZE(payload_data)
-        if (is_store)
-        {
-          // saving: save both, so old and new peers can understand it
-          KV_SERIALIZE(local_peerlist_new)
-          std::vector<peerlist_entry_base<network_address_old>> local_peerlist;
-          for (const auto &p: this_ref.local_peerlist_new)
-          {
-            if (p.adr.get_type_id() == epee::net_utils::ipv4_network_address::get_type_id())
-            {
-              const epee::net_utils::network_address  &na = p.adr;
-              const epee::net_utils::ipv4_network_address &ipv4 = na.as<const epee::net_utils::ipv4_network_address>();
-              local_peerlist.push_back(peerlist_entry_base<network_address_old>({{ipv4.ip(), ipv4.port()}, p.id, p.last_seen}));
-            }
-            else
-              MDEBUG("Not including in legacy peer list: " << p.adr.str());
-          }
-          epee::serialization::selector<is_store>::serialize_stl_container_pod_val_as_blob(local_peerlist, stg, hparent_section, "local_peerlist");
-        }
-        else
-        {
-          // loading: load old list only if there is no new one
-          if (!epee::serialization::selector<is_store>::serialize(this_ref.local_peerlist_new, stg, hparent_section, "local_peerlist_new"))
-          {
-            std::vector<peerlist_entry_base<network_address_old>> local_peerlist;
-            epee::serialization::selector<is_store>::serialize_stl_container_pod_val_as_blob(local_peerlist, stg, hparent_section, "local_peerlist");
-            for (const auto &p: local_peerlist)
-              ((response&)this_ref).local_peerlist_new.push_back(peerlist_entry({epee::net_utils::ipv4_network_address(p.adr.ip, p.adr.port), p.id, p.last_seen}));
-          }
-        }
+        KV_SERIALIZE(local_peerlist_new)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
@@ -316,7 +255,7 @@ namespace nodetool
   struct COMMAND_PING
   {
     /*
-      Used to make "callback" connection, to be sure that opponent node 
+      Used to make "callback" connection, to be sure that opponent node
       have accessible connection point. Only other nodes can add peer to peerlist,
       and ONLY in case when peer has accepted connection and answered to ping.
     */
@@ -341,14 +280,14 @@ namespace nodetool
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(status)
         KV_SERIALIZE(peer_id)
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
-  
+
 #ifdef ALLOW_DEBUG_COMMANDS
-  //These commands are considered as insecure, and made in debug purposes for a limited lifetime. 
+  //These commands are considered as insecure, and made in debug purposes for a limited lifetime.
   //Anyone who feel unsafe with this commands can disable the ALLOW_GET_STAT_COMMAND macro.
 
   struct proof_of_trust
@@ -359,9 +298,9 @@ namespace nodetool
 
     BEGIN_KV_SERIALIZE_MAP()
       KV_SERIALIZE(peer_id)
-      KV_SERIALIZE(time)        
-      KV_SERIALIZE_VAL_POD_AS_BLOB(sign)  
-    END_KV_SERIALIZE_MAP()    
+      KV_SERIALIZE(time)
+      KV_SERIALIZE_VAL_POD_AS_BLOB(sign)
+    END_KV_SERIALIZE_MAP()
   };
 
 
@@ -375,10 +314,10 @@ namespace nodetool
       proof_of_trust tr;
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tr)
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
-    
+
     struct response_t
     {
       std::string version;
@@ -393,7 +332,7 @@ namespace nodetool
         KV_SERIALIZE(connections_count)
         KV_SERIALIZE(incoming_connections_count)
         KV_SERIALIZE(payload_info)
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
   };
@@ -411,15 +350,15 @@ namespace nodetool
       proof_of_trust tr;
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(tr)
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
 
     struct response_t
     {
-      std::vector<peerlist_entry> local_peerlist_white; 
-      std::vector<peerlist_entry> local_peerlist_gray; 
-      std::vector<connection_entry> connections_list; 
+      std::vector<peerlist_entry> local_peerlist_white;
+      std::vector<peerlist_entry> local_peerlist_gray;
+      std::vector<connection_entry> connections_list;
       peerid_type my_id;
       uint64_t    local_time;
       BEGIN_KV_SERIALIZE_MAP()
@@ -428,7 +367,7 @@ namespace nodetool
         KV_SERIALIZE_CONTAINER_POD_AS_BLOB(connections_list)
         KV_SERIALIZE(my_id)
         KV_SERIALIZE(local_time)
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
   };
@@ -443,7 +382,7 @@ namespace nodetool
     struct request_t
     {
       BEGIN_KV_SERIALIZE_MAP()
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
 
@@ -453,7 +392,7 @@ namespace nodetool
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(my_id)
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
   };
@@ -468,7 +407,7 @@ namespace nodetool
     struct request_t
     {
       BEGIN_KV_SERIALIZE_MAP()
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
 
@@ -478,11 +417,11 @@ namespace nodetool
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(support_flags)
-      END_KV_SERIALIZE_MAP()    
+      END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
   };
-  
+
 #endif
 
 

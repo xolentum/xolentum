@@ -125,11 +125,16 @@ namespace
     return (value + quantum - 1) / quantum * quantum;
   }
 
+  void store_128(boost::multiprecision::uint128_t value, uint64_t &slow64, std::string &swide, uint64_t &stop64)
+  {
+    slow64 = (value & 0xffffffffffffffff).convert_to<uint64_t>();
+    swide = cryptonote::hex(value);
+    stop64 = ((value >> 64) & 0xffffffffffffffff).convert_to<uint64_t>();
+  }
+
   void store_difficulty(cryptonote::difficulty_type difficulty, uint64_t &sdiff, std::string &swdiff, uint64_t &stop64)
   {
-    sdiff = (difficulty & 0xffffffffffffffff).convert_to<uint64_t>();
-    swdiff = cryptonote::hex(difficulty);
-    stop64 = ((difficulty >> 64) & 0xffffffffffffffff).convert_to<uint64_t>();
+    store_128(difficulty, sdiff, swdiff, stop64);
   }
 }
 
@@ -546,7 +551,7 @@ namespace cryptonote
 
     CHECK_PAYMENT_SAME_TS(req, res, bs.size() * COST_PER_BLOCK);
 
-    size_t pruned_size = 0, unpruned_size = 0, ntxes = 0;
+    size_t pruned_size = 0, ntxes = 0;
     res.blocks.reserve(bs.size());
     res.output_indices.reserve(bs.size());
     for(auto& bd: bs)
@@ -554,8 +559,7 @@ namespace cryptonote
       res.blocks.resize(res.blocks.size()+1);
       res.blocks.back().pruned = req.prune;
       res.blocks.back().block = bd.first.first;
-      pruned_size += bd.first.first.size();
-      unpruned_size += bd.first.first.size();
+      size += bd.first.first.size();
       res.output_indices.push_back(COMMAND_RPC_GET_BLOCKS_FAST::block_output_indices());
       ntxes += bd.second.size();
       res.output_indices.back().indices.reserve(1 + bd.second.size());
@@ -564,11 +568,10 @@ namespace cryptonote
       res.blocks.back().txs.reserve(bd.second.size());
       for (std::vector<std::pair<crypto::hash, cryptonote::blobdata>>::iterator i = bd.second.begin(); i != bd.second.end(); ++i)
       {
-        unpruned_size += i->second.size();
         res.blocks.back().txs.push_back({std::move(i->second), crypto::null_hash});
         i->second.clear();
         i->second.shrink_to_fit();
-        pruned_size += res.blocks.back().txs.back().blob.size();
+        size += res.blocks.back().txs.back().blob.size();
       }
 
       const size_t n_txes_to_lookup = bd.second.size() + (req.no_miner_tx ? 0 : 1);
@@ -591,7 +594,7 @@ namespace cryptonote
       }
     }
 
-    MDEBUG("on_get_blocks: " << bs.size() << " blocks, " << ntxes << " txes, pruned size " << pruned_size << ", unpruned size " << unpruned_size);
+    MDEBUG("on_get_blocks: " << bs.size() << " blocks, " << ntxes << " txes, size " << size);
     res.status = CORE_RPC_STATUS_OK;
     return true;
   }
@@ -2141,6 +2144,7 @@ namespace cryptonote
       error_resp.message = "Internal error: can't produce valid response.";
       return false;
     }
+    res.miner_tx_hash = res.block_header.miner_tx_hash;
     for (size_t n = 0; n < blk.tx_hashes.size(); ++n)
     {
       res.tx_hashes.push_back(epee::string_tools::pod_to_hex(blk.tx_hashes[n]));
@@ -2426,10 +2430,9 @@ namespace cryptonote
       return true;
     }
     CHECK_PAYMENT_MIN1(req, res, COST_PER_COINBASE_TX_SUM_BLOCK * req.count, false);
-    std::pair<uint64_t, uint64_t> amounts = m_core.get_coinbase_tx_sum(req.height, req.count);
-    res.emission_amount = amounts.first;
-    res.fee_amount = amounts.second;
-    res.status = CORE_RPC_STATUS_OK;
+    std::pair<boost::multiprecision::uint128_t, boost::multiprecision::uint128_t> amounts = m_core.get_coinbase_tx_sum(req.height, req.count);
+    store_128(amounts.first, res.emission_amount, res.wide_emission_amount, res.emission_amount_top64);
+    store_128(amounts.second, res.fee_amount, res.wide_fee_amount, res.fee_amount_top64);
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------

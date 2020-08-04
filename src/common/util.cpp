@@ -1,21 +1,21 @@
 // Copyright (c) 2014-2019, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #include <unistd.h>
@@ -77,7 +77,7 @@ using namespace epee;
   #include <windows.h>
   #include <shlobj.h>
   #include <strsafe.h>
-#else 
+#else
   #include <sys/file.h>
   #include <sys/utsname.h>
   #include <sys/stat.h>
@@ -329,13 +329,13 @@ namespace tools
     // Call GetNativeSystemInfo if supported or GetSystemInfo otherwise.
 
     pGNSI = (PGNSI) GetProcAddress(
-      GetModuleHandle(TEXT("kernel32.dll")), 
+      GetModuleHandle(TEXT("kernel32.dll")),
       "GetNativeSystemInfo");
     if(NULL != pGNSI)
       pGNSI(&si);
     else GetSystemInfo(&si);
 
-    if ( VER_PLATFORM_WIN32_NT==osvi.dwPlatformId && 
+    if ( VER_PLATFORM_WIN32_NT==osvi.dwPlatformId &&
       osvi.dwMajorVersion > 4 )
     {
       StringCchCopy(pszOS, BUFSIZE, TEXT("Microsoft "));
@@ -382,7 +382,7 @@ namespace tools
         }
 
         pGPI = (PGPI) GetProcAddress(
-          GetModuleHandle(TEXT("kernel32.dll")), 
+          GetModuleHandle(TEXT("kernel32.dll")),
           "GetProductInfo");
 
         pGPI( osvi.dwMajorVersion, osvi.dwMinorVersion, 0, 0, &dwType);
@@ -512,7 +512,7 @@ namespace tools
         {
           StringCchCat(pszOS, BUFSIZE, TEXT( "Professional" ));
         }
-        else 
+        else
         {
           if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
             StringCchCat(pszOS, BUFSIZE, TEXT( "Datacenter Server" ));
@@ -543,10 +543,10 @@ namespace tools
           StringCchCat(pszOS, BUFSIZE, TEXT(", 32-bit"));
       }
 
-      return pszOS; 
+      return pszOS;
     }
     else
-    {  
+    {
       printf( "This sample does not support this version of Windows.\n");
       return pszOS;
     }
@@ -597,7 +597,7 @@ std::string get_nix_version_display_string()
     return "";
   }
 #endif
-  
+
   std::string get_default_data_dir()
   {
     /* Please for the love of god refactor  the ifdefs out of this */
@@ -1011,7 +1011,7 @@ std::string get_nix_version_display_string()
     }
     return newval;
   }
-  
+
 #ifdef _WIN32
   std::string input_line_win()
   {
@@ -1030,7 +1030,7 @@ std::string get_nix_version_display_string()
 
     SetConsoleMode(hConIn, oldMode);
     CloseHandle(hConIn);
-  
+
     int size_needed = WideCharToMultiByte(CP_UTF8, 0, buffer, -1, NULL, 0, NULL, NULL);
     std::string buf(size_needed, '\0');
     WideCharToMultiByte(CP_UTF8, 0, buffer, -1, &buf[0], size_needed, NULL, NULL);
@@ -1239,7 +1239,7 @@ std::string get_nix_version_display_string()
     return get_string_prefix_by_width(s, 999999999).second;
   };
 
-  std::vector<std::pair<std::string, size_t>> split_string_by_width(const std::string &s, size_t columns)
+  std::vector<std::pair<std::string, size_t>> split_line_by_width(const std::string &s, size_t columns)
   {
     std::vector<std::string> words;
     std::vector<std::pair<std::string, size_t>> lines;
@@ -1278,5 +1278,17 @@ std::string get_nix_version_display_string()
     }
     return lines;
   }
-
+  std::vector<std::pair<std::string, size_t>> split_string_by_width(const std::string &s, size_t columns)
+  {
+    std::vector<std::string> lines;
+    std::vector<std::pair<std::string, size_t>> all_lines;
+    boost::split(lines, s, boost::is_any_of("\n"), boost::token_compress_on);
+    for (const auto &e: lines)
+    {
+      std::vector<std::pair<std::string, size_t>> new_lines = split_line_by_width(e, columns);
+      for (auto &l: new_lines)
+        all_lines.push_back(std::move(l));
+    }
+    return all_lines;
+  }
 }
