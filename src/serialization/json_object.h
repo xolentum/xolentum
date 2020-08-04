@@ -35,7 +35,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-
 #include "cryptonote_basic/cryptonote_basic.h"
 #include "rpc/message_data_structs.h"
 #include "cryptonote_protocol/cryptonote_protocol_defs.h"
@@ -130,6 +129,7 @@ inline typename std::enable_if<is_to_hex<Type>()>::type toJsonKey(rapidjson::Wri
 // POD to json value
 template <class Type>
 inline typename std::enable_if<is_to_hex<Type>()>::type toJsonValue(rapidjson::Writer<rapidjson::StringBuffer>& dest, const Type& pod)
+{
   const auto hex = epee::to_hex::array(pod);
   dest.String(hex.data(), hex.size());
 }
@@ -328,11 +328,11 @@ inline typename std::enable_if<sfinae::is_map_like<Map>::value, void>::type toJs
   static_assert(std::is_same<std::string, key_type>() || is_to_hex<key_type>(), "invalid map key type");
 
   dest.StartObject();
-   for (const auto& i : map)
-   {
-     toJsonKey(dest, i.first);
-     toJsonValue(dest, i.second);
-   }
+  for (const auto& i : map)
+  {
+    toJsonKey(dest, i.first);
+    toJsonValue(dest, i.second);
+  }
   dest.EndObject();
 }
 
@@ -362,7 +362,7 @@ inline typename std::enable_if<sfinae::is_vector_like<Vec>::value, void>::type t
 {
   dest.StartArray();
   for (const auto& t : vec)
-      toJsonValue(dest, t);
+    toJsonValue(dest, t);
   dest.EndArray(vec.size());
 }
 

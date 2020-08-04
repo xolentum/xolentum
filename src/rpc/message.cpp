@@ -27,9 +27,9 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "message.h"
+
 #include "daemon_rpc_version.h"
 #include "serialization/json_object.h"
-
 
 namespace cryptonote
 {
@@ -145,30 +145,40 @@ std::string FullMessage::getRequest(const std::string& request, const Message& m
   rapidjson::StringBuffer buffer;
   {
     rapidjson::Writer<rapidjson::StringBuffer> dest{buffer};
+
     dest.StartObject();
     INSERT_INTO_JSON_OBJECT(dest, jsonrpc, (boost::string_ref{"2.0", 3}));
+
     dest.Key(id_field);
     json::toJsonValue(dest, id);
+
     dest.Key(method_field);
     json::toJsonValue(dest, request);
+
     dest.Key(params_field);
     message.toJson(dest);
+
     dest.EndObject();
+
     if (!dest.IsComplete())
       throw std::logic_error{"Invalid JSON tree generated"};
-    }
-    return std::string{buffer.GetString(), buffer.GetSize()};
+  }
+  return std::string{buffer.GetString(), buffer.GetSize()};
 }
+
 
 std::string FullMessage::getResponse(const Message& message, const rapidjson::Value& id)
 {
   rapidjson::StringBuffer buffer;
   {
     rapidjson::Writer<rapidjson::StringBuffer> dest{buffer};
+
     dest.StartObject();
     INSERT_INTO_JSON_OBJECT(dest, jsonrpc, (boost::string_ref{"2.0", 3}));
+
     dest.Key(id_field);
     json::toJsonValue(dest, id);
+
     if (message.status == Message::STATUS_OK)
     {
       dest.Key(result_field);
@@ -177,11 +187,14 @@ std::string FullMessage::getResponse(const Message& message, const rapidjson::Va
     else
     {
       cryptonote::rpc::error err;
+
       err.error_str = message.status;
       err.message = message.error_details;
+
       INSERT_INTO_JSON_OBJECT(dest, error, err);
     }
     dest.EndObject();
+
     if (!dest.IsComplete())
       throw std::logic_error{"Invalid JSON tree generated"};
   }
@@ -195,7 +208,7 @@ std::string BAD_REQUEST(const std::string& request)
   return BAD_REQUEST(request, invalid);
 }
 
-std::string BAD_REQUEST(const std::string& request, rapidjson::Value& id)
+std::string BAD_REQUEST(const std::string& request, const rapidjson::Value& id)
 {
   Message fail;
   fail.status = Message::STATUS_BAD_REQUEST;

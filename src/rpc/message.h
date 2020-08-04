@@ -43,8 +43,8 @@ namespace rpc
 
   class Message
   {
-    virtual void doToJson(rapidjson::Writer<rapidjson::StringBuffer>& dest) const
-    {}
+      virtual void doToJson(rapidjson::Writer<rapidjson::StringBuffer>& dest) const
+      {}
 
     public:
       static const char* STATUS_OK;
@@ -77,7 +77,7 @@ namespace rpc
 
       std::string getRequestType() const;
 
-      const rapidjson::Value& getMessage();
+      const rapidjson::Value& getMessage() const;
 
       rapidjson::Value getMessageCopy();
 
@@ -87,7 +87,6 @@ namespace rpc
 
       static std::string getRequest(const std::string& request, const Message& message, unsigned id);
       static std::string getResponse(const Message& message, const rapidjson::Value& id);
-
     private:
 
       FullMessage() = default;
