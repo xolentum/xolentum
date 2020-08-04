@@ -439,17 +439,15 @@ void SetLogLevel::Request::fromJson(const rapidjson::Value& val)
   GET_FROM_JSON_OBJECT(val, level, level);
 }
 
-rapidjson::Value SetLogLevel::Response::toJson(rapidjson::Document& doc) const
-{
-  return Message::toJson(doc);
-}
-
-void SetLogLevel::Response::fromJson(rapidjson::Value& val)
-{
-}
-
-
 void SetLogLevel::Response::doToJson(rapidjson::Writer<rapidjson::StringBuffer>& dest) const
+{}
+
+void SetLogLevel::Response::fromJson(const rapidjson::Value& val)
+{
+}
+
+
+void GetTransactionPool::Request::doToJson(rapidjson::Writer<rapidjson::StringBuffer>& dest) const
 {}
 
 void GetTransactionPool::Request::fromJson(const rapidjson::Value& val)
@@ -481,7 +479,7 @@ void HardForkInfo::Request::fromJson(const rapidjson::Value& val)
 
 void HardForkInfo::Response::doToJson(rapidjson::Writer<rapidjson::StringBuffer>& dest) const
 {
-   INSERT_INTO_JSON_OBJECT(dest, info, info);
+  INSERT_INTO_JSON_OBJECT(dest, info, info);
 }
 
 void HardForkInfo::Response::fromJson(const rapidjson::Value& val)
@@ -549,7 +547,7 @@ void GetRPCVersion::Request::fromJson(const rapidjson::Value& val)
 
 void GetRPCVersion::Response::doToJson(rapidjson::Writer<rapidjson::StringBuffer>& dest) const
 {
-   INSERT_INTO_JSON_OBJECT(dest, version, version);
+  INSERT_INTO_JSON_OBJECT(dest, version, version);
 }
 
 void GetRPCVersion::Response::fromJson(const rapidjson::Value& val)

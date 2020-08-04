@@ -28,6 +28,8 @@
 
 #pragma once
 
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <unordered_map>
 #include <vector>
 
