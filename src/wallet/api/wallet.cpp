@@ -1674,14 +1674,15 @@ uint64_t WalletImpl::estimateTransactionFee(const std::vector<std::pair<std::str
     const size_t encrypted_paymentid_size = 11;
     const size_t extra_size = pubkey_size + encrypted_paymentid_size;
 
+    /**EDIT: enable ALL features */
     return m_wallet->estimate_fee(
-        m_wallet->use_fork_rules(HF_VERSION_PER_BYTE_FEE, 0),
-        m_wallet->use_fork_rules(4, 0),
+        true,
+        true,
         1,
         m_wallet->get_min_ring_size() - 1,
         destinations.size() + 1,
         extra_size,
-        m_wallet->use_fork_rules(8, 0),
+        true,
         m_wallet->get_base_fee(),
         m_wallet->get_fee_multiplier(m_wallet->adjust_priority(static_cast<uint32_t>(priority))),
         m_wallet->get_fee_quantization_mask());
