@@ -80,6 +80,7 @@ using namespace epee;
 #include "ringct/rctSigs.h"
 #include "ringdb.h"
 #include "device/device_cold.hpp"
+#include "device_trezor/device_trezor.hpp"
 #include "net/socks_connect.h"
 
 extern "C"
@@ -412,15 +413,6 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   if (!daemon_port)
   {
     daemon_port = get_config(nettype).RPC_DEFAULT_PORT;
-  }
-
-  // if no daemon settings are given and we have a previous one, reuse that one
-  if (command_line::is_arg_defaulted(vm, opts.daemon_host) && command_line::is_arg_defaulted(vm, opts.daemon_port) && command_line::is_arg_defaulted(vm, opts.daemon_address))
-  {
-    // not a bug: taking a const ref to a temporary in this way is actually ok in a recent C++ standard
-    const std::string &def = tools::wallet2::get_default_daemon_address();
-    if (!def.empty())
-      daemon_address = def;
   }
 
   if (daemon_address.empty())
@@ -883,6 +875,11 @@ uint64_t estimate_tx_weight(bool use_rct, int n_inputs, int mixin, int n_outputs
     size += bp_clawback;
   }
   return size;
+}
+
+uint8_t get_bulletproof_fork()
+{
+  return 8;
 }
 
 uint64_t estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
@@ -1856,7 +1853,11 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
   // (that is, the prunable stuff may or may not be included)
   if (!miner_tx && !pool)
     process_unconfirmed(txid, tx, height);
-  std::unordered_map<cryptonote::subaddress_index, uint64_t> tx_money_got_in_outs;  // per receiving subaddress index
+
+  // per receiving subaddress index
+  std::unordered_map<cryptonote::subaddress_index, uint64_t> tx_money_got_in_outs;
+  std::unordered_map<cryptonote::subaddress_index, amounts_container> tx_amounts_individual_outs;
+
   crypto::public_key tx_pub_key = null_pkey;
   bool notify = false;
 
@@ -1985,6 +1986,10 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           {
             hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
             scan_output(tx, miner_tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, outs, pool);
+            if (!tx_scan_info[i].error)
+            {
+              tx_amounts_individual_outs[tx_scan_info[i].received->index].push_back(tx_scan_info[i].money_transfered);
+            }
           }
         }
       }
@@ -2008,6 +2013,10 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
         {
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
           scan_output(tx, miner_tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, outs, pool);
+          if (!tx_scan_info[i].error)
+          {
+            tx_amounts_individual_outs[tx_scan_info[i].received->index].push_back(tx_scan_info[i].money_transfered);
+          }
         }
       }
     }
@@ -2024,6 +2033,10 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           hwdev.set_mode(hw::device::NONE);
           hwdev.conceal_derivation(tx_scan_info[i].received->derivation, tx_pub_key, additional_tx_pub_keys.data, derivation, additional_derivations);
           scan_output(tx, miner_tx, tx_pub_key, i, tx_scan_info[i], num_vouts_received, tx_money_got_in_outs, outs, pool);
+          if (!tx_scan_info[i].error)
+          {
+            tx_amounts_individual_outs[tx_scan_info[i].received->index].push_back(tx_scan_info[i].money_transfered);
+          }
         }
       }
     }
@@ -2132,6 +2145,12 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           THROW_WALLET_EXCEPTION_IF(tx_money_got_in_outs[tx_scan_info[o].received->index] < tx_scan_info[o].amount,
               error::wallet_internal_error, "Unexpected values of new and old outputs");
           tx_money_got_in_outs[tx_scan_info[o].received->index] -= tx_scan_info[o].amount;
+
+          amounts_container& tx_amounts_this_out = tx_amounts_individual_outs[tx_scan_info[o].received->index]; // Only for readability on the following lines
+          auto amount_iterator = std::find(tx_amounts_this_out.begin(), tx_amounts_this_out.end(), tx_scan_info[o].amount);
+          THROW_WALLET_EXCEPTION_IF(amount_iterator == tx_amounts_this_out.end(),
+              error::wallet_internal_error, "Unexpected values of new and old outputs");
+          tx_amounts_this_out.erase(amount_iterator);
         }
         else
         {
@@ -2196,6 +2215,8 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       }
     }
   }
+
+  THROW_WALLET_EXCEPTION_IF(tx_money_got_in_outs.size() != tx_amounts_individual_outs.size(), error::wallet_internal_error, "Inconsistent size of output arrays");
 
   uint64_t tx_money_spent_in_ins = 0;
   // The line below is equivalent to "boost::optional<uint32_t> subaddr_account;", but avoids the GCC warning: ‘*((void*)& subaddr_account +4)’ may be used uninitialized in this function
@@ -2300,6 +2321,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
     if (subaddr_account && i->first.major == *subaddr_account)
     {
       sub_change += i->second;
+      tx_amounts_individual_outs.erase(i->first);
       i = tx_money_got_in_outs.erase(i);
     }
     else
@@ -2377,6 +2399,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
       payment.m_tx_hash      = txid;
       payment.m_fee          = fee;
       payment.m_amount       = i.second;
+      payment.m_amounts      = tx_amounts_individual_outs[i.first];
       payment.m_block_height = height;
       payment.m_unlock_time  = tx.unlock_time;
       payment.m_timestamp    = ts;
@@ -4267,7 +4290,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const epee::wipeable_
   r = r && hwdev.verify_keys(keys.m_view_secret_key,  keys.m_account_address.m_view_public_key);
   if(!m_watch_only && !m_multisig && hwdev.device_protocol() != hw::device::PROTOCOL_COLD)
     r = r && hwdev.verify_keys(keys.m_spend_secret_key, keys.m_account_address.m_spend_public_key);
-    THROW_WALLET_EXCEPTION_IF(!r, error::wallet_files_doesnt_correspond, m_keys_file, m_wallet_file);
+  THROW_WALLET_EXCEPTION_IF(!r, error::wallet_files_doesnt_correspond, m_keys_file, m_wallet_file);
 
   if (r)
     setup_keys(password);
@@ -7196,6 +7219,43 @@ int wallet2::get_fee_algorithm()
 {
   return 3;
 }
+//------------------------------------------------------------------------------------------------------------------------------
+uint64_t wallet2::get_min_ring_size()
+{
+  if (use_fork_rules(8, 10))
+    return 11;
+  if (use_fork_rules(7, 10))
+    return 7;
+  if (use_fork_rules(6, 10))
+    return 5;
+  if (use_fork_rules(2, 10))
+    return 3;
+  return 0;
+}
+//------------------------------------------------------------------------------------------------------------------------------
+uint64_t wallet2::get_max_ring_size()
+{
+  if (use_fork_rules(8, 10))
+    return 11;
+  return 0;
+}
+//------------------------------------------------------------------------------------------------------------------------------
+uint64_t wallet2::adjust_mixin(uint64_t mixin)
+{
+  const uint64_t min_ring_size = get_min_ring_size();
+  if (mixin + 1 < min_ring_size)
+  {
+    MWARNING("Requested ring size " << (mixin + 1) << " too low, using " << min_ring_size);
+    mixin = min_ring_size-1;
+  }
+  const uint64_t max_ring_size = get_max_ring_size();
+  if (max_ring_size && mixin + 1 > max_ring_size)
+  {
+    MWARNING("Requested ring size " << (mixin + 1) << " too high, using " << max_ring_size);
+    mixin = max_ring_size-1;
+  }
+  return mixin;
+}
 //----------------------------------------------------------------------------------------------------
 uint32_t wallet2::adjust_priority(uint32_t priority)
 {
@@ -7313,6 +7373,7 @@ crypto::chacha_key wallet2::get_ringdb_key()
 }
 
 void wallet2::register_devices(){
+  hw::trezor::register_all();
 }
 
 hw::device& wallet2::lookup_device(const std::string & device_descriptor){

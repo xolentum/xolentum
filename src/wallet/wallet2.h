@@ -360,10 +360,12 @@ private:
       END_SERIALIZE()
     };
 
+    typedef std::vector<uint64_t> amounts_container;
     struct payment_details
     {
       crypto::hash m_tx_hash;
       uint64_t m_amount;
+      amounts_container m_amounts;
       uint64_t m_fee;
       uint64_t m_block_height;
       uint64_t m_unlock_time;
@@ -1247,6 +1249,9 @@ private:
     uint64_t get_fee_multiplier(uint32_t priority, int fee_algorithm = -1);
     uint64_t get_base_fee();
     uint64_t get_fee_quantization_mask();
+    uint64_t get_min_ring_size();
+    uint64_t get_max_ring_size();
+    uint64_t adjust_mixin(uint64_t mixin);
 
     uint32_t adjust_priority(uint32_t priority);
 
@@ -1634,7 +1639,7 @@ BOOST_CLASS_VERSION(tools::wallet2::transfer_details, 12)
 BOOST_CLASS_VERSION(tools::wallet2::multisig_info, 1)
 BOOST_CLASS_VERSION(tools::wallet2::multisig_info::LR, 0)
 BOOST_CLASS_VERSION(tools::wallet2::multisig_tx_set, 1)
-BOOST_CLASS_VERSION(tools::wallet2::payment_details, 4)
+BOOST_CLASS_VERSION(tools::wallet2::payment_details, 5)
 BOOST_CLASS_VERSION(tools::wallet2::pool_payment_details, 1)
 BOOST_CLASS_VERSION(tools::wallet2::unconfirmed_transfer_details, 8)
 BOOST_CLASS_VERSION(tools::wallet2::confirmed_transfer_details, 6)
@@ -1945,6 +1950,9 @@ namespace boost
         return;
       }
       a & x.m_coinbase;
+      if (ver < 5)
+        return;
+      a & x.m_amounts;
     }
 
     template <class Archive>
