@@ -5998,7 +5998,7 @@ std::pair<std::string, std::string> simple_wallet::show_outputs_line(const std::
     uint64_t pos = (heights[j] * resolution) / blockchain_height;
     ring_str[pos] = 'o';
   }
-  if (highlight_idx < heights.size() && heights[highlight_height] < blockchain_height)
+  if (highlight_height < heights.size() && heights[highlight_height] < blockchain_height)
   {
     uint64_t pos = (heights[highlight_height] * resolution) / blockchain_height;
     ring_str[pos] = '*';
@@ -8306,7 +8306,7 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
       m_in_manual_refresh.store(true, std::memory_order_relaxed);
       epee::misc_utils::auto_scope_leave_caller scope_exit_handler = epee::misc_utils::create_scope_leave_handler([&](){m_in_manual_refresh.store(false, std::memory_order_relaxed);});
 
-      std::vector<std::tuple<cryptonote::transaction, crypto::hash, bool>>
+      std::vector<std::tuple<cryptonote::transaction, crypto::hash, bool>> process_txs;
       m_wallet->update_pool_state(process_txs);
       if (!process_txs.empty())
         m_wallet->process_pool_state(process_txs);
