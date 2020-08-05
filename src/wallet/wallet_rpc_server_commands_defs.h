@@ -459,7 +459,6 @@ namespace wallet_rpc
       std::list<transfer_destination> destinations;
       uint32_t account_index;
       std::set<uint32_t> subaddr_indices;
-      bool subaddr_indices_all;
       uint32_t priority;
       uint64_t ring_size;
       uint64_t unlock_time;
@@ -473,7 +472,6 @@ namespace wallet_rpc
         KV_SERIALIZE(destinations)
         KV_SERIALIZE(account_index)
         KV_SERIALIZE(subaddr_indices)
-        KV_SERIALIZE_OPT(subaddr_indices_all, false)
         KV_SERIALIZE(priority)
         KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
         KV_SERIALIZE(unlock_time)
@@ -763,6 +761,7 @@ namespace wallet_rpc
       std::string address;
       uint32_t account_index;
       std::set<uint32_t> subaddr_indices;
+      bool subaddr_indices_all;
       uint32_t priority;
       uint64_t ring_size;
       uint64_t outputs;
@@ -778,6 +777,7 @@ namespace wallet_rpc
         KV_SERIALIZE(address)
         KV_SERIALIZE(account_index)
         KV_SERIALIZE(subaddr_indices)
+        KV_SERIALIZE_OPT(subaddr_indices_all, false)
         KV_SERIALIZE(priority)
         KV_SERIALIZE_OPT(ring_size, (uint64_t)0)
         KV_SERIALIZE_OPT(outputs, (uint64_t)1)
@@ -1372,6 +1372,7 @@ namespace wallet_rpc
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  typedef std::vector<uint64_t> amounts_container;
   struct transfer_entry
   {
     std::string txid;
@@ -1379,6 +1380,7 @@ namespace wallet_rpc
     uint64_t height;
     uint64_t timestamp;
     uint64_t amount;
+    amounts_container amounts;
     uint64_t fee;
     std::string note;
     std::list<transfer_destination> destinations;
@@ -1398,6 +1400,7 @@ namespace wallet_rpc
       KV_SERIALIZE(height);
       KV_SERIALIZE(timestamp);
       KV_SERIALIZE(amount);
+      KV_SERIALIZE(amounts);
       KV_SERIALIZE(fee);
       KV_SERIALIZE(note);
       KV_SERIALIZE(destinations);

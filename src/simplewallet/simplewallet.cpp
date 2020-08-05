@@ -5988,7 +5988,7 @@ std::pair<std::string, std::string> simple_wallet::show_outputs_line(const std::
     blockchain_height = std::max(blockchain_height, h);
 
   for (size_t j = 0; j < heights.size(); ++j)
-    ostr << (j == highlight_idx ? " *" : " ") << heights[j];
+    ostr << (j == highlight_height ? " *" : " ") << heights[j];
 
   // visualize the distribution, using the code by moneroexamples onion-xolentum-viewer
   const uint64_t resolution = 79;
@@ -5998,9 +5998,9 @@ std::pair<std::string, std::string> simple_wallet::show_outputs_line(const std::
     uint64_t pos = (heights[j] * resolution) / blockchain_height;
     ring_str[pos] = 'o';
   }
-  if (highlight_idx < heights.size() && heights[highlight_idx] < blockchain_height)
+  if (highlight_idx < heights.size() && heights[highlight_height] < blockchain_height)
   {
-    uint64_t pos = (heights[highlight_idx] * resolution) / blockchain_height;
+    uint64_t pos = (heights[highlight_height] * resolution) / blockchain_height;
     ring_str[pos] = '*';
   }
 
