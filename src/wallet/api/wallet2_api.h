@@ -426,7 +426,6 @@ struct Wallet
     enum Device {
         Device_Software = 0,
         Device_Ledger = 1,
-        Device_Trezor = 2
     };
 
     enum Status {

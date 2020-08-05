@@ -80,7 +80,6 @@ using namespace epee;
 #include "ringct/rctSigs.h"
 #include "ringdb.h"
 #include "device/device_cold.hpp"
-#include "device_trezor/device_trezor.hpp"
 #include "net/socks_connect.h"
 
 extern "C"
@@ -4237,7 +4236,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const epee::wipeable_
 
   r = epee::serialization::load_t_from_binary(m_account, account_data);
   THROW_WALLET_EXCEPTION_IF(!r, error::invalid_password);
-  if (m_key_device_type == hw::device::device_type::LEDGER || m_key_device_type == hw::device::device_type::TREZOR) {
+  if (m_key_device_type == hw::device::device_type::LEDGER) {
     LOG_PRINT_L0("Account on device. Initing device...");
     hw::device &hwdev = lookup_device(m_device_name);
     THROW_WALLET_EXCEPTION_IF(!hwdev.set_name(m_device_name), error::wallet_internal_error, "Could not set device name " + m_device_name);
@@ -7373,8 +7372,6 @@ crypto::chacha_key wallet2::get_ringdb_key()
 }
 
 void wallet2::register_devices(){
-  //disable it for now
-  //hw::trezor::register_all();
 }
 
 hw::device& wallet2::lookup_device(const std::string & device_descriptor){
