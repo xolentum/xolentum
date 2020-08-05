@@ -882,20 +882,6 @@ uint8_t get_bulletproof_fork()
   return 8;
 }
 
-uint64_t estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
-{
-  if (use_per_byte_fee)
-  {
-    const size_t estimated_tx_weight = estimate_tx_weight(use_rct, n_inputs, mixin, n_outputs, extra_size, bulletproof);
-    return calculate_fee_from_weight(base_fee, estimated_tx_weight, fee_multiplier, fee_quantization_mask);
-  }
-  else
-  {
-    const size_t estimated_tx_size = estimate_tx_size(use_rct, n_inputs, mixin, n_outputs, extra_size, bulletproof);
-    return calculate_fee(base_fee, estimated_tx_size, fee_multiplier);
-  }
-}
-
 uint64_t calculate_fee(bool use_per_byte_fee, const cryptonote::transaction &tx, size_t blob_size, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
 {
   if (use_per_byte_fee)
@@ -4095,9 +4081,18 @@ bool wallet2::load_keys(const std::string& keys_file_name, const epee::wipeable_
     m_always_confirm_transfers = field_always_confirm_transfers;
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, print_ring_members, int, Int, false, true);
     m_print_ring_members = field_print_ring_members;
-    GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, store_tx_keys, int, Int, false, true);
-    GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, store_tx_info, int, Int, false, true);
-    m_store_tx_info = ((field_store_tx_keys != 0) || (field_store_tx_info != 0));
+    if (json.HasMember("store_tx_info"))
+    {
+      GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, store_tx_info, int, Int, true, true);
+      m_store_tx_info = field_store_tx_info;
+    }
+    else if (json.HasMember("store_tx_keys")) // backward compatibility
+    {
+      GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, store_tx_keys, int, Int, true, true);
+      m_store_tx_info = field_store_tx_keys;
+    }
+    else
+      m_store_tx_info = true;
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, default_mixin, unsigned int, Uint, false, 0);
     m_default_mixin = field_default_mixin;
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, default_priority, unsigned int, Uint, false, 0);
@@ -7140,6 +7135,20 @@ bool wallet2::sign_multisig_tx_from_file(const std::string &filename, std::vecto
   return sign_multisig_tx_to_file(exported_txs, filename, txids);
 }
 //----------------------------------------------------------------------------------------------------
+uint64_t wallet2::estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask) const
+{
+  if (use_per_byte_fee)
+  {
+    const size_t estimated_tx_weight = estimate_tx_weight(use_rct, n_inputs, mixin, n_outputs, extra_size, bulletproof);
+    return calculate_fee_from_weight(base_fee, estimated_tx_weight, fee_multiplier, fee_quantization_mask);
+  }
+  else
+  {
+    const size_t estimated_tx_size = estimate_tx_size(use_rct, n_inputs, mixin, n_outputs, extra_size, bulletproof);
+    return calculate_fee(base_fee, estimated_tx_size, fee_multiplier);
+  }
+}
+
 uint64_t wallet2::get_fee_multiplier(uint32_t priority, int fee_algorithm)
 {
   static const struct
