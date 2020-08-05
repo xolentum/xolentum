@@ -1564,7 +1564,7 @@ namespace nodetool
           else
           {
             if (!is_connected_to_at_least_one_seed_node)
-+              MWARNING("Failed to connect to any of seed peers, continuing without seeds");
+              MWARNING("Failed to connect to any of seed peers, continuing without seeds");
             break;
           }
         }
