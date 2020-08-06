@@ -75,7 +75,7 @@ namespace nodetool
     {
       return false;
     }
-    virtual epee::net_utils::zone send_txs(std::vector<cryptonote::blobdata> txs, const epee::net_utils::zone origin, const boost::uuids::uuid& source, cryptonote::i_core_events& core, cryptonote::relay_method tx_relay)=0;
+    virtual epee::net_utils::zone send_txs(std::vector<cryptonote::blobdata> txs, const epee::net_utils::zone origin, const boost::uuids::uuid& source, cryptonote::i_core_events& core, cryptonote::relay_method tx_relay)
     {
       return epee::net_utils::zone::invalid;
     }

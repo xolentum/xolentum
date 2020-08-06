@@ -3767,7 +3767,7 @@ boost::optional<wallet2::keys_file_data> wallet2::get_keys_file_data(const epee:
     json.AddMember("multisig_signers", value, json.GetAllocator());
 
     r = ::serialization::dump_binary(m_multisig_derivations, multisig_derivations);
-    CHECK_AND_ASSERT_MES(r, boost:none, "failed to serialize wallet multisig derivations");
+    CHECK_AND_ASSERT_MES(r, boost::none, "failed to serialize wallet multisig derivations");
     value.SetString(multisig_derivations.c_str(), multisig_derivations.length());
     json.AddMember("multisig_derivations", value, json.GetAllocator());
 
@@ -3980,7 +3980,7 @@ bool wallet2::load_keys(const std::string& keys_file_name, const epee::wipeable_
     }
     if (m_ask_password == AskPasswordToDecrypt && !m_unattended && !m_watch_only)
       decrypt_keys(keys_to_encrypt.get());
-      m_keys_file_locker.reset();
+    m_keys_file_locker.reset();
   }
   return r;
 }
