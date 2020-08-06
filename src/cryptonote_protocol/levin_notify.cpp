@@ -44,6 +44,9 @@
 #include "net/dandelionpp.h"
 #include "p2p/net_node.h"
 
+#undef MONERO_DEFAULT_LOG_CATEGORY
+#define MONERO_DEFAULT_LOG_CATEGORY "net.p2p.tx"
+
 namespace
 {
   int get_command_from_message(const cryptonote::blobdata &msg)
@@ -298,6 +301,8 @@ namespace levin
 
         if (!channel.connection.is_nil())
           channel.queue.push_back(std::move(message_));
+        else if (destination_ == 0 && zone_->connection_count == 0)
+          MWARNING("Unable to send transaction(s) over anonymity network - no available outbound connections");
       }
     };
 
@@ -357,9 +362,11 @@ namespace levin
           return true;
         });
 
-        for (auto& connection : connections)
+        for (auto& connection : connections){
+          std::sort(connection.first.begin(), connection.first.end()); // don't leak receive order
           make_payload_send_txs(*zone_->p2p, std::move(connection.first), connection.second, zone_->pad_txs);
-
+        }
+        
         if (next_flush != std::chrono::steady_clock::time_point::max())
           fluff_flush::queue(std::move(zone_), next_flush);
         else
@@ -390,10 +397,12 @@ namespace levin
         random_poisson in_duration(fluff_average_in);
         random_poisson out_duration(fluff_average_out);
 
-        zone_->p2p->foreach_connection([this, now, &in_duration, &out_duration, &next_flush] (detail::p2p_context& context)
+        bool available = false;
+        zone_->p2p->foreach_connection([this, now, &in_duration, &out_duration, &next_flush, &available] (detail::p2p_context& context)
         {
           if (this->source_ != context.m_connection_id && (this->zone_->is_public || !context.m_is_income))
           {
+            available = true;
             if (context.fluff_txs.empty())
               context.flush_time = now + (context.m_is_income ? in_duration() : out_duration());
 
@@ -404,6 +413,9 @@ namespace levin
           }
           return true;
         });
+
+        if (!available)
+          MWARNING("Unable to send transaction(s), no available connections");
 
         if (next_flush < zone_->flush_time)
           fluff_flush::queue(std::move(zone_), next_flush);
@@ -564,9 +576,12 @@ namespace levin
           {
             channel.active = nullptr;
             channel.connection = boost::uuids::nil_uuid();
-            zone_->strand.post(
-              update_channels{zone_, get_out_connections(*zone_->p2p)}
-            );
+
+            auto connections = get_out_connections(*zone_->p2p);
+            if (connections.empty())
+              MWARNING("Lost all outbound connections to anonymity network - currently unable to send transaction(s)");
+
+            zone_->strand.post(update_channels{zone_, std::move(connections)});
           }
         }
 
