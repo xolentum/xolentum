@@ -724,7 +724,7 @@ bool WalletImpl::recover(const std::string &path, const std::string &seed)
     return recover(path, "", seed);
 }
 
-bool WalletImpl::recover(const std::string &path, const std::string &password, const std::string &seed)
+bool WalletImpl::recover(const std::string &path, const std::string &password, const std::string &seed, const std::string &seed_offset/* = {}*/)
 {
     clearStatus();
     m_errorString.clear();
@@ -741,6 +741,10 @@ bool WalletImpl::recover(const std::string &path, const std::string &password, c
     if (!crypto::ElectrumWords::words_to_bytes(seed, recovery_key, old_language)) {
         setStatusError(tr("Electrum-style word list failed verification"));
         return false;
+    }
+    if (!seed_offset.empty())
+    {
+        recovery_key = cryptonote::decrypt_key(recovery_key, seed_offset);
     }
 
     if (old_language == crypto::ElectrumWords::old_language_name)

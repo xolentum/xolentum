@@ -67,7 +67,7 @@ Wallet *WalletManagerImpl::openWallet(const std::string &path, const std::string
 
     wallet->open(path, password);
     //Refresh addressBook
-    wallet->addressBook()->refresh(); 
+    wallet->addressBook()->refresh();
     return wallet;
 }
 
@@ -93,20 +93,21 @@ Wallet *WalletManagerImpl::recoveryWallet(const std::string &path,
                                                 const std::string &mnemonic,
                                                 NetworkType nettype,
                                                 uint64_t restoreHeight,
-                                                uint64_t kdf_rounds)
+                                                uint64_t kdf_rounds,
+                                                const std::string &seed_offset/* = {}*/)
 {
     WalletImpl * wallet = new WalletImpl(nettype, kdf_rounds);
     if(restoreHeight > 0){
         wallet->setRefreshFromBlockHeight(restoreHeight);
     }
-    wallet->recover(path, password, mnemonic);
+    wallet->recover(path, password, mnemonic, seed_offset);
     return wallet;
 }
 
 Wallet *WalletManagerImpl::createWalletFromKeys(const std::string &path,
                                                 const std::string &password,
                                                 const std::string &language,
-                                                NetworkType nettype, 
+                                                NetworkType nettype,
                                                 uint64_t restoreHeight,
                                                 const std::string &addressString,
                                                 const std::string &viewKeyString,

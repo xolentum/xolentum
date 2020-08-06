@@ -186,6 +186,17 @@ namespace config
   std::string const GENESIS_TX = "013c01ff00018080d194b574026b075395c6f75add27bccd569931fb34e5c412b72244ceb9ab6e9e3be15f476221012f356297367abb093381edbb6bb4c04d430f0a8337e7e1a08a7a6e1abfca298b00";
   uint32_t const GENESIS_NONCE = 1000;
 
+  // Hash domain separators
+  const char HASH_KEY_BULLETPROOF_EXPONENT[] = "bulletproof";
+  const char HASH_KEY_RINGDB[] = "ringdsb";
+  const char HASH_KEY_SUBADDRESS[] = "SubAddr";
+  const unsigned char HASH_KEY_ENCRYPTED_PAYMENT_ID = 0x8d;
+  const unsigned char HASH_KEY_WALLET = 0x8c;
+  const unsigned char HASH_KEY_WALLET_CACHE = 0x8d;
+  const unsigned char HASH_KEY_RPC_PAYMENT_NONCE = 0x58;
+  const unsigned char HASH_KEY_MEMORY = 'k';
+  const unsigned char HASH_KEY_MULTISIG[] = {'M', 'u', 'l', 't' , 'i', 's', 'i', 'g', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
   namespace testnet
   {
     uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 185;
