@@ -770,6 +770,13 @@ namespace cryptonote
     void set_show_time_stats(bool stats) { m_show_time_stats = stats; }
 
     /**
+     * @brief gets the hardfork voting state object
+     *
+     * @return the HardFork object
+     */
+    HardFork::State get_hard_fork_state() const;
+
+    /**
      * @brief gets the current hardfork version in use/voted for
      *
      * @return the version
@@ -1010,7 +1017,7 @@ namespace cryptonote
      */
     bool has_block_weights(uint64_t height, uint64_t nblocks) const;
 
-      /**
+    /**
      * @brief flush the invalid blocks set
      */
     void flush_invalid_blocks();
@@ -1025,6 +1032,7 @@ namespace cryptonote
     typedef std::vector<block_extended_info> blocks_container;
 
     typedef std::unordered_map<crypto::hash, block_extended_info> blocks_ext_by_hash;
+
 
     BlockchainDB* m_db;
 
@@ -1220,11 +1228,11 @@ namespace cryptonote
      * @param bl the block to be added
      * @param id the hash of the block
      * @param bvc metadata concerning the block's validity
-     * @param notify if set to true, sends new block notification on success  
+     * @param notify if set to true, sends new block notification on success
      *
      * @return true if the block was added successfully, otherwise false
      */
-     bool handle_block_to_main_chain(const block& bl, const crypto::hash& id, block_verification_context& bvc, bool notify = true);
+    bool handle_block_to_main_chain(const block& bl, const crypto::hash& id, block_verification_context& bvc, bool notify = true);
 
     /**
      * @brief validate and add a new block to an alternate blockchain

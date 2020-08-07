@@ -261,14 +261,14 @@ namespace cryptonote
     m_blockchain_storage.set_enforce_dns_checkpoints(enforce_dns);
   }
   //-----------------------------------------------------------------------------------------------
-  bool core::update_checkpoints()
+  bool core::update_checkpoints(const bool skip_dns /* = false */)
   {
     if (m_nettype != MAINNET || m_disable_dns_checkpoints) return true;
 
     if (m_checkpoints_updating.test_and_set()) return true;
 
     bool res = true;
-    if (time(NULL) - m_last_dns_checkpoints_update >= 3600)
+    if (!skip_dns && time(NULL) - m_last_dns_checkpoints_update >= 3600)
     {
       res = m_blockchain_storage.update_checkpoints(m_checkpoints_path, true);
       m_last_dns_checkpoints_update = time(NULL);
@@ -667,7 +667,8 @@ namespace cryptonote
 
     // load json & DNS checkpoints, and verify them
     // with respect to what blocks we already have
-    CHECK_AND_ASSERT_MES(update_checkpoints(), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
+    const bool skip_dns_checkpoints = !command_line::get_arg(vm, arg_dns_checkpoints);
+    CHECK_AND_ASSERT_MES(update_checkpoints(skip_dns_checkpoints), false, "One or more checkpoints loaded from json or dns conflicted with existing checkpoints.");
 
    // DNS versions checking
     if (check_updates_string == "disabled")
@@ -1290,9 +1291,9 @@ namespace cryptonote
     std::vector<crypto::hash> tx_hashes{};
     tx_hashes.resize(tx_blobs.size());
 
-    cryptonote::transaction tx{};
     for (std::size_t i = 0; i < tx_blobs.size(); ++i)
     {
+      cryptonote::transaction tx{};
       if (!parse_and_validate_tx_from_blob(tx_blobs[i], tx, tx_hashes[i]))
       {
         LOG_ERROR("Failed to parse relayed transaction");
@@ -1665,6 +1666,29 @@ namespace cryptonote
     m_blockchain_pruning_interval.do_call(boost::bind(&core::update_blockchain_pruning, this));
     m_miner.on_idle();
     m_mempool.on_idle();
+    return true;
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::check_fork_time()
+  {
+    if (m_nettype == FAKECHAIN)
+      return true;
+
+    HardFork::State state = m_blockchain_storage.get_hard_fork_state();
+    el::Level level;
+    switch (state) {
+      case HardFork::LikelyForked:
+        level = el::Level::Warning;
+        MCLOG_RED(level, "global", "**********************************************************************");
+        MCLOG_RED(level, "global", "Last scheduled hard fork is too far in the past.");
+        MCLOG_RED(level, "global", "We are most likely forked from the network. Daemon update needed now.");
+        MCLOG_RED(level, "global", "**********************************************************************");
+        break;
+      case HardFork::UpdateNeeded:
+        break;
+      default:
+        break;
+    }
     return true;
   }
   //-----------------------------------------------------------------------------------------------

@@ -686,8 +686,8 @@ namespace levin
   notify::notify(boost::asio::io_service& service, std::shared_ptr<connections> p2p, epee::byte_slice noise, const bool is_public, const bool pad_txs)
     : zone_(std::make_shared<detail::zone>(service, std::move(p2p), std::move(noise), is_public, pad_txs))
   {
-    if (!zone_->p2p)
-      throw std::logic_error{"cryptonote::levin::notify cannot have nullptr p2p argument"};
+      if (!zone_->p2p)
+        throw std::logic_error{"cryptonote::levin::notify cannot have nullptr p2p argument"};
 
       const bool noise_enabled = !zone_->noise.empty();
       if (noise_enabled || is_public)

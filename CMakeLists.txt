@@ -260,6 +260,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "kFreeBSD.*|FreeBSD")
   set(FREEBSD TRUE)
 endif()
 
+if(OSSFUZZ)
+  message(STATUS "Using OSS-Fuzz fuzzing system")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DOSSFUZZ")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSSFUZZ")
+endif()
+
 # Check if we're on DragonFly BSD. See the README.md for build instructions.
 if(CMAKE_SYSTEM_NAME MATCHES "DragonFly.*")
   set(DRAGONFLY TRUE)
@@ -620,7 +626,8 @@ else()
   endif()
 
   # linker
-  if (NOT (WIN32 AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_LESS 9.1)))
+  if (NOT SANITIZE AND NOT (WIN32 AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_LESS 9.1)))
+    # PIE executables randomly crash at startup with ASAN
     # Windows binaries die on startup with PIE when compiled with GCC <9.x
     add_linker_flag_if_supported(-pie LD_SECURITY_FLAGS)
   endif()

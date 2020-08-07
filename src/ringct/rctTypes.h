@@ -48,6 +48,7 @@ extern "C" {
 
 #include "hex.h"
 #include "span.h"
+#include "memwipe.h"
 #include "serialization/vector.h"
 #include "serialization/debug_archive.h"
 #include "serialization/binary_archive.h"
@@ -106,6 +107,8 @@ namespace rct {
         key L;
         key R;
         key ki;
+
+        ~multisig_kLRki() { memwipe(&k, sizeof(k)); }
     };
 
     struct multisig_out {
@@ -141,12 +144,12 @@ namespace rct {
         key64 s1;
         key ee;
     };
-  
+
     //Container for precomp
     struct geDsmp {
         ge_dsmp k;
     };
-    
+
     //just contains the necessary keys to represent MLSAG sigs
     //c.f. https://eprint.iacr.org/2015/1098
     struct mgSig {

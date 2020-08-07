@@ -129,7 +129,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   void get_transaction_prefix_hash(const transaction_prefix& tx, crypto::hash& h, hw::device &hwdev)
   {
-    hwdev.get_transaction_prefix_hash(tx,h);    
+    hwdev.get_transaction_prefix_hash(tx,h);
   }
 
   //---------------------------------------------------------------
@@ -163,6 +163,8 @@ namespace cryptonote
     if (!is_coinbase(tx))
     {
       rct::rctSig &rv = tx.rct_signatures;
+      if (rv.type == rct::RCTTypeNull)
+        return true;
       if (rv.outPk.size() != tx.vout.size())
       {
         LOG_PRINT_L1("Failed to parse transaction from blob, bad outPk size in tx " << get_transaction_hash(tx));

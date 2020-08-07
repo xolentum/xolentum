@@ -700,7 +700,7 @@ namespace cryptonote
       *
       * @note see Blockchain::update_checkpoints()
       */
-     bool update_checkpoints();
+     bool update_checkpoints(const bool skip_dns = false);
 
      /**
       * @brief tells the daemon to wind down operations and stop running
@@ -1006,6 +1006,18 @@ namespace cryptonote
       */
      bool check_tx_inputs_keyimages_domain(const transaction& tx) const;
 
+     /**
+      * @brief checks HardFork status and prints messages about it
+      *
+      * Checks the status of HardFork and logs/prints if an update to
+      * the daemon is necessary.
+      *
+      * @note see Blockchain::get_hard_fork_state and HardFork::State
+      *
+      * @return true
+      */
+     bool check_fork_time();
+     
      /**
       * @brief attempts to relay any transactions in the mempool which need it
       *
