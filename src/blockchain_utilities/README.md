@@ -1,6 +1,6 @@
 # Xolentum Blockchain Utilities
 
-Copyright (c) 2014-2019, The Monero Project
+Copyright (c) 2014-2020, The Monero Project
 
 ## Introduction
 

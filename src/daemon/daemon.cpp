@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -42,7 +42,6 @@
 #include "daemon/p2p.h"
 #include "daemon/protocol.h"
 #include "daemon/rpc.h"
-#include "daemon/command_server.h"
 #include "daemon/command_server.h"
 #include "daemon/command_line_args.h"
 #include "net/net_ssl.h"

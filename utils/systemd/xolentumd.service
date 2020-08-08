@@ -1,17 +1,19 @@
 [Unit]
-Description=Monero Full Node
+Description=Xolentum Full Node
 After=network.target
 
 [Service]
-User=monero
-Group=monero
+User=xolentum
+Group=xolentum
 WorkingDirectory=~
-RuntimeDirectory=monero
+RuntimeDirectory=xolentum
+StateDirectory=monero
+LogsDirectory=monero
 
 # Clearnet config
 #
 Type=forking
-PIDFile=/run/monero/xolentumd.pid
+PIDFile=/run/xolentum/xolentumd.pid
 ExecStart=/usr/bin/xolentumd --config-file /etc/xolentumd.conf \
     --detach --pidfile /run/monero/xolentumd.pid
 
