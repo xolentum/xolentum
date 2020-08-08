@@ -251,6 +251,7 @@ namespace
   const char* USAGE_MMS_SET("mms set <option_name> [<option_value>]");
   const char* USAGE_MMS_SEND_SIGNER_CONFIG("mms send_signer_config");
   const char* USAGE_MMS_START_AUTO_CONFIG("mms start_auto_config [<label> <label> ...]");
+  const char* USAGE_MMS_CONFIG_CHECKSUM("mms config_checksum");
   const char* USAGE_MMS_STOP_AUTO_CONFIG("mms stop_auto_config");
   const char* USAGE_MMS_AUTO_CONFIG("mms auto_config <auto_config_token>");
   const char* USAGE_PRINT_RING("print_ring <key_image> | <txid>");
@@ -3408,7 +3409,7 @@ simple_wallet::simple_wallet()
                            tr("Interface with the MMS (Multisig Messaging System)\n"
                               "<subcommand> is one of:\n"
                               "  init, info, signer, list, next, sync, transfer, delete, send, receive, export, note, show, set, help\n"
-                              "  send_signer_config, start_auto_config, stop_auto_config, auto_config\n"
+                              "  send_signer_config, start_auto_config, stop_auto_config, auto_config, config_checksum\n"
                               "Get help about a subcommand with: help_advanced mms <subcommand>"));
   m_cmd_binder.set_handler("mms init",
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::mms, _1),
@@ -3477,6 +3478,10 @@ simple_wallet::simple_wallet()
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::mms, _1),
                            tr(USAGE_MMS_START_AUTO_CONFIG),
                            tr("Start auto-config at the auto-config manager's wallet by issuing auto-config tokens and optionally set others' labels"));
+  m_cmd_binder.set_handler("mms config_checksum",
+                           boost::bind(&simple_wallet::on_command, this, &simple_wallet::mms, _1),
+                           tr(USAGE_MMS_CONFIG_CHECKSUM),
+                           tr("Get a checksum that allows signers to easily check for identical MMS configuration"));
   m_cmd_binder.set_handler("mms stop_auto_config",
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::mms, _1),
                            tr(USAGE_MMS_STOP_AUTO_CONFIG),
@@ -5413,7 +5418,7 @@ void simple_wallet::on_new_block(uint64_t height, const cryptonote::block& block
     m_refresh_progress_reporter.update(height, false);
 }
 //----------------------------------------------------------------------------------------------------
-void simple_wallet::on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, uint64_t unlock_time)
+void simple_wallet::on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, bool is_change, uint64_t unlock_time)
 {
   if (m_locked)
     return;
@@ -5424,7 +5429,7 @@ void simple_wallet::on_money_received(uint64_t height, const crypto::hash &txid,
     tr("idx ") << subaddr_index;
 
   const uint64_t warn_height = m_wallet->nettype() == TESTNET ? 1000000 : m_wallet->nettype() == STAGENET ? 50000 : 1650000;
-  if (height >= warn_height)
+  if (height >= warn_height && !is_change)
   {
     std::vector<tx_extra_field> tx_extra_fields;
     parse_tx_extra(tx.extra, tx_extra_fields); // failure ok
@@ -7395,23 +7400,23 @@ bool simple_wallet::donate(const std::vector<std::string> &args_)
   {
     // if not mainnet, convert donation address string to the relevant network type
     address_parse_info info;
-    if (!cryptonote::get_account_address_from_str(info, cryptonote::MAINNET, MONERO_DONATION_ADDR))
+    if (!cryptonote::get_account_address_from_str(info, cryptonote::MAINNET, XOLENTUM_DONATION_ADDR))
     {
-      fail_msg_writer() << tr("Failed to parse donation address: ") << MONERO_DONATION_ADDR;
+      fail_msg_writer() << tr("Failed to parse donation address: ") << XOLENTUM_DONATION_ADDR;
       return true;
     }
     address_str = cryptonote::get_account_address_as_str(m_wallet->nettype(), info.is_subaddress, info.address);
   }
   else
   {
-    address_str = MONERO_DONATION_ADDR;
+    address_str = XOLENTUM_DONATION_ADDR;
   }
   local_args.push_back(address_str);
   local_args.push_back(amount_str);
   if (!payment_id_str.empty())
     local_args.push_back(payment_id_str);
   if (m_wallet->nettype() == cryptonote::MAINNET)
-    message_writer() << (boost::format(tr("Donating %s %s to The Xolentum Project (donate.getmonero.org or %s).")) % amount_str % cryptonote::get_unit(cryptonote::get_default_decimal_point()) % MONERO_DONATION_ADDR).str();
+    message_writer() << (boost::format(tr("Donating %s %s to The Xolentum Project (donate.getmonero.org or %s).")) % amount_str % cryptonote::get_unit(cryptonote::get_default_decimal_point()) % XOLENTUM_DONATION_ADDR).str();
   else
     message_writer() << (boost::format(tr("Donating %s %s to %s.")) % amount_str % cryptonote::get_unit(cryptonote::get_default_decimal_point()) % address_str).str();
   transfer(local_args);
@@ -10276,6 +10281,14 @@ bool simple_wallet::user_confirms(const std::string &question)
    return !std::cin.eof() && command_line::is_yes(answer);
 }
 
+bool simple_wallet::user_confirms_auto_config()
+{
+  message_writer(console_color_red, true) << tr("WARNING: Using MMS auto-config mechanisms is not trustless");
+  message_writer() << tr("A malicious auto-config manager could send you info about own wallets instead of other signers' info");
+  message_writer() << tr("If in doubt do not use auto-config or at least compare configs using the \"mms config_checksum\" command");
+  return user_confirms("Accept the risks and continue?");
+}
+
 bool simple_wallet::get_number_from_arg(const std::string &arg, uint32_t &number, const uint32_t lower_bound, const uint32_t upper_bound)
 {
   bool valid = false;
@@ -10428,7 +10441,7 @@ void simple_wallet::show_message(const mms::message &m)
   case mms::message_type::additional_key_set:
   case mms::message_type::note:
     display_content = true;
-    ms.get_sanitized_message_text(m, sanitized_text);
+    sanitized_text = mms::message_store::get_sanitized_text(m.content, 1000);
     break;
   default:
     display_content = false;
@@ -10777,6 +10790,11 @@ void simple_wallet::mms_next(const std::vector<std::string> &args)
         {
           break;
         }
+        if (!user_confirms_auto_config())
+        {
+          message_writer() << tr("You can use the \"mms delete\" command to delete any unwanted message");
+          break;
+        }
       }
       ms.process_signer_config(state, m.content);
       ms.stop_auto_config();
@@ -11103,6 +11121,18 @@ void simple_wallet::mms_start_auto_config(const std::vector<std::string> &args)
   list_signers(ms.get_all_signers());
 }
 
+void simple_wallet::mms_config_checksum(const std::vector<std::string> &args)
+{
+  if (args.size() != 0)
+  {
+    fail_msg_writer() << tr("Usage: mms config_checksum");
+    return;
+  }
+  mms::message_store& ms = m_wallet->get_message_store();
+  LOCK_IDLE_SCOPE();
+  message_writer() << ms.get_config_checksum();
+}
+
 void simple_wallet::mms_stop_auto_config(const std::vector<std::string> &args)
 {
   if (args.size() != 0)
@@ -11131,6 +11161,10 @@ void simple_wallet::mms_auto_config(const std::vector<std::string> &args)
   if (!ms.check_auto_config_token(args[0], adjusted_token))
   {
     fail_msg_writer() << tr("Invalid auto-config token");
+    return;
+  }
+  if (!user_confirms_auto_config())
+  {
     return;
   }
   mms::authorized_signer me = ms.get_signer(0);
@@ -11244,6 +11278,10 @@ bool simple_wallet::mms(const std::vector<std::string> &args)
     else if (sub_command == "start_auto_config")
     {
       mms_start_auto_config(mms_args);
+    }
+    else if (sub_command == "config_checksum")
+    {
+      mms_config_checksum(mms_args);
     }
     else if (sub_command == "stop_auto_config")
     {

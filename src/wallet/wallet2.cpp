@@ -1852,6 +1852,20 @@ void wallet2::cache_tx_data(const cryptonote::transaction& tx, const crypto::has
   }
 }
 //----------------------------------------------------------------------------------------------------
+bool wallet2::spends_one_of_ours(const cryptonote::transaction &tx) const
+{
+  for (const auto &in: tx.vin)
+  {
+    if (in.type() != typeid(cryptonote::txin_to_key))
+      continue;
+    const cryptonote::txin_to_key &in_to_key = boost::get<cryptonote::txin_to_key>(in);
+    auto it = m_key_images.find(in_to_key.k_image);
+    if (it != m_key_images.end())
+      return true;
+  }
+  return false;
+}
+//----------------------------------------------------------------------------------------------------
 void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote::transaction& tx, const std::vector<uint64_t> &o_indices, uint64_t height, uint8_t block_version, uint64_t ts, bool miner_tx, bool pool, bool double_spend_seen, const tx_cache_data &tx_cache_data, std::map<std::pair<uint64_t, uint64_t>, size_t> *output_tracker_cache)
 {
   PERF_TIMER(process_new_transaction);
@@ -2073,13 +2087,13 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           uint64_t amount = tx.vout[o].amount ? tx.vout[o].amount : tx_scan_info[o].amount;
           if (!pool)
           {
-	    m_transfers.push_back(transfer_details{});
-	    transfer_details& td = m_transfers.back();
-	    td.m_block_height = height;
-	    td.m_internal_output_index = o;
-	    td.m_global_output_index = o_indices[o];
-	    td.m_tx = (const cryptonote::transaction_prefix&)tx;
-	    td.m_txid = txid;
+      	    m_transfers.push_back(transfer_details{});
+      	    transfer_details& td = m_transfers.back();
+      	    td.m_block_height = height;
+      	    td.m_internal_output_index = o;
+      	    td.m_global_output_index = o_indices[o];
+      	    td.m_tx = (const cryptonote::transaction_prefix&)tx;
+      	    td.m_txid = txid;
             td.m_key_image = tx_scan_info[o].ki;
             td.m_key_image_known = !m_watch_only && !m_multisig;
             if (!td.m_key_image_known)
@@ -2123,10 +2137,10 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
               td.m_rct = false;
             }
             td.m_frozen = false;
-	    set_unspent(m_transfers.size()-1);
+      	    set_unspent(m_transfers.size()-1);
             if (td.m_key_image_known)
-	      m_key_images[td.m_key_image] = m_transfers.size()-1;
-	    m_pub_keys[tx_scan_info[o].in_ephemeral.pub] = m_transfers.size()-1;
+	             m_key_images[td.m_key_image] = m_transfers.size()-1;
+	          m_pub_keys[tx_scan_info[o].in_ephemeral.pub] = m_transfers.size()-1;
             if (output_tracker_cache)
               (*output_tracker_cache)[std::make_pair(tx.vout[o].amount, td.m_global_output_index)] = m_transfers.size() - 1;
             if (m_multisig)
@@ -2136,9 +2150,9 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
               if (m_multisig_rescan_info && m_multisig_rescan_info->front().size() >= m_transfers.size())
                 update_multisig_rescan_info(*m_multisig_rescan_k, *m_multisig_rescan_info, m_transfers.size() - 1);
             }
-	    LOG_PRINT_L0("Received money: " << print_money(td.amount()) << ", with tx: " << txid);
-	    if (0 != m_callback)
-	      m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index, td.m_tx.unlock_time);
+	           LOG_PRINT_L0("Received money: " << print_money(td.amount()) << ", with tx: " << txid);
+	            if (0 != m_callback)
+                m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index, spends_one_of_ours(tx), td.m_tx.unlock_time);
           }
           total_received_1 += amount;
           notify = true;
@@ -2211,11 +2225,11 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
                 update_multisig_rescan_info(*m_multisig_rescan_k, *m_multisig_rescan_info, m_transfers.size() - 1);
             }
             THROW_WALLET_EXCEPTION_IF(td.get_public_key() != tx_scan_info[o].in_ephemeral.pub, error::wallet_internal_error, "Inconsistent public keys");
-	    THROW_WALLET_EXCEPTION_IF(td.m_spent, error::wallet_internal_error, "Inconsistent spent status");
+	          THROW_WALLET_EXCEPTION_IF(td.m_spent, error::wallet_internal_error, "Inconsistent spent status");
 
-	    LOG_PRINT_L0("Received money: " << print_money(td.amount()) << ", with tx: " << txid);
-	    if (0 != m_callback)
-	      m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index, td.m_tx.unlock_time);
+	          LOG_PRINT_L0("Received money: " << print_money(td.amount()) << ", with tx: " << txid);
+	          if (0 != m_callback)
+              m_callback->on_money_received(height, txid, tx, td.m_amount, td.m_subaddr_index, spends_one_of_ours(tx), td.m_tx.unlock_time);
           }
           total_received_1 += extra_amount;
           notify = true;
@@ -8927,7 +8941,7 @@ std::vector<size_t> wallet2::pick_preferred_rct_inputs(uint64_t needed_money, ui
           MDEBUG("Ignoring output " << j << " of amount " << print_money(td2.amount()) << " which is outside prescribed range [" << print_money(m_ignore_outputs_below) << ", " << print_money(m_ignore_outputs_above) << "]");
           continue;
         }
-        if (!is_spent(td2, false) && !td2.m_frozen && !td.m_key_image_partial && td2.is_rct() && td.amount() + td2.amount() >= needed_money && is_transfer_unlocked(td2) && td2.m_subaddr_index == td.m_subaddr_index)
+        if (!is_spent(td2, false) && !td2.m_frozen && !td2.m_key_image_partial && td2.is_rct() && td.amount() + td2.amount() >= needed_money && is_transfer_unlocked(td2) && td2.m_subaddr_index == td.m_subaddr_index)
         {
           // update our picks if those outputs are less related than any we
           // already found. If the same, don't update, and oldest suitable outputs
@@ -12964,7 +12978,7 @@ size_t wallet2::import_multisig(std::vector<cryptonote::blobdata> blobs)
   CHECK_AND_ASSERT_THROW_MES(info.size() + 1 <= m_multisig_signers.size() && info.size() + 1 >= m_multisig_threshold, "Wrong number of multisig sources");
 
   std::vector<std::vector<rct::key>> k;
-  auto wiper = epee::misc_utils::create_scope_leave_handler([&](){memwipe(k.data(), k.size() * sizeof(k[0]));});
+  auto wiper = epee::misc_utils::create_scope_leave_handler([&](){for (auto &v: k) memwipe(v.data(), v.size() * sizeof(v[0]));});
   for (const auto &td: m_transfers)
     k.push_back(td.m_multisig_k);
 

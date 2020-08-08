@@ -53,7 +53,8 @@
 #undef MONERO_DEFAULT_LOG_CATEGORY
 #define MONERO_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
 // Hardcode Xolentum's donation address (see #1447)
-constexpr const char MONERO_DONATION_ADDR[] = "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A";
+#warning "Update this address before launch. Refer to commit 58e1c8b031a7e2ab41b6958b3c0a2498f631fe28 for update procedure"
+constexpr const char XOLENTUM_DONATION_ADDR[] = "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A";
 
 /*!
  * \namespace cryptonote
@@ -340,7 +341,7 @@ namespace cryptonote
 
     //----------------- i_wallet2_callback ---------------------
     virtual void on_new_block(uint64_t height, const cryptonote::block& block);
-    virtual void on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, uint64_t unlock_time);
+    virtual void on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index, bool is_change, uint64_t unlock_time);
     virtual void on_unconfirmed_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, const cryptonote::subaddress_index& subaddr_index);
     virtual void on_money_spent(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& in_tx, uint64_t amount, const cryptonote::transaction& spend_tx, const cryptonote::subaddress_index& subaddr_index);
     virtual void on_skip_transaction(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx);
@@ -476,6 +477,7 @@ namespace cryptonote
     void ask_send_all_ready_messages();
     void check_for_messages();
     bool user_confirms(const std::string &question);
+    bool user_confirms_auto_config();
     bool get_message_from_arg(const std::string &arg, mms::message &m);
     bool get_number_from_arg(const std::string &arg, uint32_t &number, const uint32_t lower_bound, const uint32_t upper_bound);
 
@@ -496,6 +498,7 @@ namespace cryptonote
     void mms_help(const std::vector<std::string> &args);
     void mms_send_signer_config(const std::vector<std::string> &args);
     void mms_start_auto_config(const std::vector<std::string> &args);
+    void mms_config_checksum(const std::vector<std::string> &args);
     void mms_stop_auto_config(const std::vector<std::string> &args);
     void mms_auto_config(const std::vector<std::string> &args);
   };
