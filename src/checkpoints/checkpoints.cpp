@@ -72,7 +72,7 @@ namespace cryptonote
   {
   }
   //---------------------------------------------------------------------------
-  bool checkpoints::add_checkpoint(uint64_t height, const std::string& hash_str)
+  bool checkpoints::add_checkpoint(uint64_t height, const std::string& hash_str, const std::string& difficulty_str)
   {
     crypto::hash h = crypto::null_hash;
     bool r = epee::string_tools::hex_to_pod(hash_str, h);
@@ -84,6 +84,23 @@ namespace cryptonote
       CHECK_AND_ASSERT_MES(h == m_points[height], false, "Checkpoint at given height already exists, and hash for new checkpoint was different!");
     }
     m_points[height] = h;
+    if (!difficulty_str.empty())
+    {
+      try
+      {
+        difficulty_type difficulty(difficulty_str);
+        if (m_difficulty_points.count(height))
+        {
+          CHECK_AND_ASSERT_MES(difficulty == m_difficulty_points[height], false, "Difficulty checkpoint at given height already exists, and difficulty for new checkpoint was different!");
+        }
+        m_difficulty_points[height] = difficulty;
+      }
+      catch (...)
+      {
+        LOG_ERROR("Failed to parse difficulty checkpoint: " << difficulty_str);
+        return false;
+      }
+    }
     return true;
   }
   //---------------------------------------------------------------------------
@@ -143,7 +160,11 @@ namespace cryptonote
   {
     return m_points;
   }
-
+  //---------------------------------------------------------------------------
+  const std::map<uint64_t, difficulty_type>& checkpoints::get_difficulty_points() const
+  {
+    return m_difficulty_points;
+  }
   bool checkpoints::check_for_conflicts(const checkpoints& other) const
   {
     for (auto& pt : other.get_points())

@@ -30,6 +30,7 @@
 
 #pragma once
 #include <boost/asio/io_service.hpp>
+#include <boost/function/function_fwd.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/list.hpp>
@@ -308,6 +309,22 @@ namespace cryptonote
      * @return the target
      */
     difficulty_type get_difficulty_for_next_block();
+
+    /**
+    * @brief check currently stored difficulties against difficulty checkpoints
+    *
+    * @return {flag, height} flag: true if all difficulty checkpoints pass, height: the last checkpoint height before the difficulty drift bug starts
+    */
+    std::pair<bool, uint64_t> check_difficulty_checkpoints() const;
+
+    /**
+    * @brief recalculate difficulties for blocks after the last difficulty checkpoints to circumvent the annoying 'difficulty drift' bug
+    *
+    * @param start_height: if omitted, starts recalculation from the last difficulty checkpoint
+    *
+    * @return number of blocks whose difficulties got corrected
+    */
+    size_t recalculate_difficulties(boost::optional<uint64_t> start_height = boost::none);
 
     /**
      * @brief adds a block to the blockchain
@@ -748,7 +765,7 @@ namespace cryptonote
      *
      * @param notify the notify object to call at every new block
      */
-    void set_block_notify(const std::shared_ptr<tools::Notify> &notify) { m_block_notify = notify; }
+     void add_block_notify(boost::function<void(std::uint64_t, epee::span<const block>)> &&notify);
 
     /**
      * @brief sets a reorg notify object to call for every reorg
@@ -1109,7 +1126,11 @@ namespace cryptonote
 
     bool m_batch_success;
 
-    std::shared_ptr<tools::Notify> m_block_notify;
+    /* `boost::function` is used because the implementation never allocates if
+        the callable object has a single `std::shared_ptr` or `std::weap_ptr`
+        internally. Whereas, the libstdc++ `std::function` will allocate. */
+
+    std::vector<boost::function<void(std::uint64_t, epee::span<const block>)>> m_block_notifiers;
     std::shared_ptr<tools::Notify> m_reorg_notify;
 
     // for prepare_handle_incoming_blocks
