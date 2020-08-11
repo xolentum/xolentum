@@ -4136,31 +4136,7 @@ namespace tools
     {
       if (!req.any_net_type && (!m_wallet || net_type.type != m_wallet->nettype()))
         continue;
-      if (req.allow_openalias)
-      {
-        std::string address;
-        res.valid = get_account_address_from_str_or_url(info, net_type.type, req.address,
-          [&er, &address](const std::string &url, const std::vector<std::string> &addresses, bool dnssec_valid)->std::string {
-            if (!dnssec_valid)
-            {
-              er.message = std::string("Invalid DNSSEC for ") + url;
-              return {};
-            }
-            if (addresses.empty())
-            {
-              er.message = std::string("No Monero address found at ") + url;
-              return {};
-            }
-            address = addresses[0];
-            return address;
-          });
-        if (res.valid)
-          res.openalias_address = address;
-      }
-      else
-      {
-        res.valid = cryptonote::get_account_address_from_str(info, net_type.type, req.address);
-      }
+      res.valid = cryptonote::get_account_address_from_str(info, net_type.type, req.address);
       if (res.valid)
       {
         res.integrated = info.has_payment_id;
