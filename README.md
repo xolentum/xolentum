@@ -2,7 +2,7 @@
   <img src="https://xolentum.sohamb03.me/resources/press-kit/assets/logo.png" alt="Xolentum Logo">
   <br>
   <b><i>Xolentum is a decentralized, peer-to-peer and open source digital currency. It's fast, secure and completely private.</i></b>
-  
+  <br>
   <img alt="GitHub stars" src="https://img.shields.io/github/stars/xolentum/xolentum?style=social">
   <img alt="Discord" src="https://img.shields.io/discord/657866019829973002">
   <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/xolentum/xolentum">
