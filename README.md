@@ -3,11 +3,7 @@
   <br>
   <b><i>Xolentum is a decentralized, peer-to-peer and open source digital currency. It's fast, secure and completely private.</i></b>
   <p>&nbsp;</p>
-  <img alt="GitHub stars" src="https://img.shields.io/github/stars/xolentum/xolentum?style=social">
-  <img alt="Discord" src="https://img.shields.io/discord/657866019829973002">
-  <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/xolentum/xolentum">
-  <img alt="GitHub issues" src="https://img.shields.io/github/issues/xolentum/xolentum">
-  <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/xolentum/xolentum">
+  <img alt="GitHub stars" src="https://img.shields.io/github/stars/xolentum/xolentum?style=social"><img alt="Discord" src="https://img.shields.io/discord/657866019829973002"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/xolentum/xolentum"><img alt="GitHub issues" ="https://img.shields.io/github/issues/xolentum/xolentum"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/xolentum/xolentum">
 </p>
 
 ## About
