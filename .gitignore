@@ -1,1 +1,4 @@
+#build files
 build/
+#Doxygen documentations
+doc/
