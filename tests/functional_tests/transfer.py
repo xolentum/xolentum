@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 
 # Copyright (c) 2019 The Monero Project
-#
+# 
 # All rights reserved.
-#
+# 
 # Redistribution and use in source and binary forms, with or without modification, are
 # permitted provided that the following conditions are met:
-#
+# 
 # 1. Redistributions of source code must retain the above copyright notice, this list of
 #    conditions and the following disclaimer.
-#
+# 
 # 2. Redistributions in binary form must reproduce the above copyright notice, this list
 #    of conditions and the following disclaimer in the documentation and/or other
 #    materials provided with the distribution.
-#
+# 
 # 3. Neither the name of the copyright holder nor the names of its contributors may be
 #    used to endorse or promote products derived from this software without specific
 #    prior written permission.
-#
+# 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 # EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -135,7 +135,7 @@ class TransferTest():
         assert res.fee > 0
         fee = res.fee
         assert len(res.tx_blob) > 0
-        blob_size = len(res.tx_blob) // 2
+        tx_weight = res.weight
         assert len(res.tx_metadata) == 0
         assert len(res.multisig_txset) == 0
         assert len(res.unsigned_txset) == 0
@@ -144,7 +144,7 @@ class TransferTest():
         res = daemon.get_fee_estimate(10)
         assert res.fee > 0
         assert res.quantization_mask > 0
-        expected_fee = (res.fee * 1 * blob_size + res.quantization_mask - 1) // res.quantization_mask * res.quantization_mask
+        expected_fee = (res.fee * 1 * tx_weight + res.quantization_mask - 1) // res.quantization_mask * res.quantization_mask
         assert abs(1 - fee / expected_fee) < 0.01
 
         self.wallet[0].refresh()
@@ -256,6 +256,7 @@ class TransferTest():
         assert res.too_big == False
         assert res.overspend == False
         assert res.fee_too_low == False
+        assert res.not_rct == False
 
         self.wallet[0].refresh()
 
@@ -544,7 +545,7 @@ class TransferTest():
     def check_get_payments(self):
         print('Checking get_payments')
 
-        daemon = Daemon(idx = 2)
+        daemon = Daemon()
         res = daemon.get_info()
         height = res.height
 
@@ -597,6 +598,7 @@ class TransferTest():
         assert res.too_big == False
         assert res.overspend == False
         assert res.fee_too_low == False
+        assert res.not_rct == False
 
         res = daemon.get_transactions([txes[0][0]])
         assert len(res.txs) >= 1
@@ -613,6 +615,7 @@ class TransferTest():
         assert res.too_big == False
         assert res.overspend == False
         assert res.fee_too_low == False
+        assert res.not_rct == False
         assert res.too_few_outputs == False
 
         res = daemon.get_transactions([txes[0][0]])
