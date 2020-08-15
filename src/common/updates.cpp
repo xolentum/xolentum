@@ -94,7 +94,7 @@ namespace tools
 
   std::string get_update_url(const std::string &software, const std::string &subdir, const std::string &buildtag, const std::string &version, bool user)
   {
-    const char *base = user ? "https://downloads.xolentum.org/" : "https://updates.xolentum.org/";
+    const char *base = user ? "https://downloads.getmonero.org/" : "https://updates.getmonero.org/";
 #ifdef _WIN32
     static const char *extension = strncmp(buildtag.c_str(), "source", 6) ? (strncmp(buildtag.c_str(), "install-", 8) ? ".zip" : ".exe") : ".tar.bz2";
 #else
