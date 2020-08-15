@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -32,9 +32,11 @@
 
 #include <ctime>
 
+#include <boost/function.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 
+#include "cryptonote_basic/fwd.h"
 #include "cryptonote_core/i_core_events.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler_common.h"
 #include "cryptonote_protocol/enums.h"
@@ -45,10 +47,10 @@
 #include "blockchain.h"
 #include "cryptonote_basic/miner.h"
 #include "cryptonote_basic/connection_context.h"
-#include "cryptonote_basic/cryptonote_stat_info.h"
 #include "warnings.h"
 #include "crypto/hash.h"
 #include "span.h"
+#include "rpc/fwd.h"
 
 PUSH_WARNINGS
 DISABLE_VS_WARNINGS(4355)
@@ -191,7 +193,7 @@ namespace cryptonote
       * @note see Blockchain::cleanup_handle_incoming_blocks
       */
      bool cleanup_handle_incoming_blocks(bool force_sync = false);
-     	     	
+
      /**
       * @brief check the size of a block against the current maximum
       *
@@ -447,6 +449,13 @@ namespace cryptonote
      void set_enforce_dns_checkpoints(bool enforce_dns);
 
      /**
+     * @brief set a listener for txes being added to the txpool
+     *
+     * @param callable to notify, or empty function to disable.
+     */
+     void set_txpool_listener(boost::function<void(std::vector<txpool_event>)> zmq_pub);
+
+     /**
       * @brief set whether or not to enable or disable DNS checkpoints
       *
       * @param disble whether to disable DNS checkpoints
@@ -470,11 +479,12 @@ namespace cryptonote
 
      /**
       * @copydoc tx_memory_pool::get_txpool_backlog
+      * @param include_sensitive_txes include private transactions
       *
       * @note see tx_memory_pool::get_txpool_backlog
       */
-     bool get_txpool_backlog(std::vector<tx_backlog_entry>& backlog) const;
-     
+      bool get_txpool_backlog(std::vector<tx_backlog_entry>& backlog, bool include_sensitive_txes = false) const;
+
      /**
       * @copydoc tx_memory_pool::get_transactions
       * @param include_sensitive_txes include private transactions
@@ -515,10 +525,11 @@ namespace cryptonote
 
      /**
       * @copydoc tx_memory_pool::get_transactions_count
+      * @param include_sensitive_txes include private transactions
       *
       * @note see tx_memory_pool::get_transactions_count
       */
-     size_t get_pool_transactions_count() const;
+      size_t get_pool_transactions_count(bool include_sensitive_txes = false) const;
 
      /**
       * @copydoc Blockchain::get_total_transactions
@@ -555,14 +566,6 @@ namespace cryptonote
       */
      bool find_blockchain_supplement(const uint64_t req_start_block, const std::list<crypto::hash>& qblock_ids, std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > >& blocks, uint64_t& total_height, uint64_t& start_height, bool pruned, bool get_miner_tx_hash, size_t max_count) const;
 
-     /**
-      * @brief gets some stats about the daemon
-      *
-      * @param st_inf return-by-reference container for the stats requested
-      *
-      * @return true
-      */
-     bool get_stat_info(core_stat_info& st_inf) const;
 
      /**
       * @copydoc Blockchain::get_tx_outputs_gindexs
@@ -707,7 +710,7 @@ namespace cryptonote
       *
       * @note see Blockchain::update_checkpoints()
       */
-     bool update_checkpoints();
+     bool update_checkpoints(const bool skip_dns = false);
 
      /**
       * @brief tells the daemon to wind down operations and stop running
@@ -765,18 +768,18 @@ namespace cryptonote
       *
       * @return the number of blocks to sync in one go
       */
-     std::pair<uint64_t, uint64_t> get_coinbase_tx_sum(const uint64_t start_offset, const size_t count);
+     std::pair<boost::multiprecision::uint128_t, boost::multiprecision::uint128_t> get_coinbase_tx_sum(const uint64_t start_offset, const size_t count);
 
       /**
       * @brief get the sum of coinbase tx amounts for the entire chain
       */
      uint64_t get_generated_coins();
-     
+
      /**
       * @brief get the network type we're on
       *
       * @return which network are we on?
-      */     
+      */
      network_type get_nettype() const { return m_nettype; };
 
      /**
@@ -863,6 +866,20 @@ namespace cryptonote
       * @brief flushes the bad txs cache
       */
      void flush_bad_txs_cache();
+
+     /**
+      * @brief flushes the invalid block cache
+      */
+     void flush_invalid_blocks();
+
+     /**
+     * @brief returns the set of transactions in the txpool which are not in the argument
+     *
+     * @param hashes hashes of transactions to exclude from the result
+     *
+     * @return true iff success, false otherwise
+     */
+     bool get_txpool_complement(const std::vector<crypto::hash> &hashes, std::vector<cryptonote::blobdata> &txes);
 
    private:
 
@@ -1027,6 +1044,13 @@ namespace cryptonote
       */
      bool check_block_rate();
 
+     /**
+     * @brief recalculate difficulties after the last difficulty checklpoint to circumvent the annoying 'difficulty drift' bug
+     *
+     * @return true
+     */
+     bool recalculate_difficulties();
+
      bool m_test_drop_download = true; //!< whether or not to drop incoming blocks (for testing)
 
      uint64_t m_test_drop_download_height = 0; //!< height under which to drop incoming blocks, if doing so
@@ -1052,6 +1076,7 @@ namespace cryptonote
      epee::math_helper::once_a_time_seconds<60*10, true> m_check_disk_space_interval; //!< interval for checking for disk space
      epee::math_helper::once_a_time_seconds<90, false> m_block_rate_interval; //!< interval for checking block rate
      epee::math_helper::once_a_time_seconds<60*60*5, true> m_blockchain_pruning_interval; //!< interval for incremental blockchain pruning
+     epee::math_helper::once_a_time_seconds<60*60*24*7, false> m_diff_recalc_interval; //!< interval for recalculating difficulties
 
      std::atomic<bool> m_starter_message_showed; //!< has the "daemon will sync now" message been shown?
 
@@ -1089,7 +1114,12 @@ namespace cryptonote
      bool m_fluffy_blocks_enabled;
      bool m_offline;
 
+     /* `boost::function` is used because the implementation never allocates if
+           the callable object has a single `std::shared_ptr` or `std::weap_ptr`
+           internally. Whereas, the libstdc++ `std::function` will allocate. */
+
      std::shared_ptr<tools::Notify> m_block_rate_notify;
+     boost::function<void(std::vector<txpool_event>)> m_zmq_pub;
    };
 }
 

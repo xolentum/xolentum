@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -30,7 +30,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/ip/address.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 #include "common/command_line.h"
 #include "common/i18n.h"
 #include "hex.h"
@@ -51,7 +51,7 @@ namespace cryptonote
         const std::vector<std::string> ssl_allowed_fingerprints = command_line::get_arg(vm, arg.rpc_ssl_allowed_fingerprints);
 
         std::vector<std::vector<uint8_t>> allowed_fingerprints{ ssl_allowed_fingerprints.size() };
-        std::transform(ssl_allowed_fingerprints.begin(), ssl_allowed_fingerprints.end(), allowed_fingerprints.begin(), epee::from_hex::vector);
+        std::transform(ssl_allowed_fingerprints.begin(), ssl_allowed_fingerprints.end(), allowed_fingerprints.begin(), epee::from_hex_locale::to_vector);
         for (const auto &fpr: allowed_fingerprints)
         {
           if (fpr.size() != SSL_FINGERPRINT_SIZE)
@@ -103,6 +103,7 @@ namespace cryptonote
      , rpc_ssl_allowed_fingerprints({"rpc-ssl-allowed-fingerprints", rpc_args::tr("List of certificate fingerprints to allow")})
      , rpc_ssl_allow_chained({"rpc-ssl-allow-chained", rpc_args::tr("Allow user (via --rpc-ssl-certificates) chain certificates"), false})
      , rpc_ssl_allow_any_cert({"rpc-ssl-allow-any-cert", rpc_args::tr("Allow any peer certificate"), false})
+     , disable_rpc_ban({"disable-rpc-ban", rpc_args::tr("Do not ban hosts on RPC errors"), false, false})
   {}
 
   const char* rpc_args::tr(const char* str) { return i18n_translate(str, "cryptonote::rpc_args"); }
@@ -123,6 +124,7 @@ namespace cryptonote
     command_line::add_arg(desc, arg.rpc_ssl_ca_certificates);
     command_line::add_arg(desc, arg.rpc_ssl_allowed_fingerprints);
     command_line::add_arg(desc, arg.rpc_ssl_allow_chained);
+    command_line::add_arg(desc, arg.disable_rpc_ban);
     if (any_cert_option)
       command_line::add_arg(desc, arg.rpc_ssl_allow_any_cert);
   }
@@ -131,11 +133,12 @@ namespace cryptonote
   {
     const descriptors arg{};
     rpc_args config{};
-    
+
     config.bind_ip = command_line::get_arg(vm, arg.rpc_bind_ip);
     config.bind_ipv6_address = command_line::get_arg(vm, arg.rpc_bind_ipv6_address);
     config.use_ipv6 = command_line::get_arg(vm, arg.rpc_use_ipv6);
     config.require_ipv4 = !command_line::get_arg(vm, arg.rpc_ignore_ipv4);
+    config.disable_rpc_ban = command_line::get_arg(vm, arg.disable_rpc_ban);
     if (!config.bind_ip.empty())
     {
       // always parse IP here for error consistency
@@ -218,7 +221,7 @@ namespace cryptonote
 
       std::vector<std::string> access_control_origins;
       boost::split(access_control_origins, access_control_origins_input, boost::is_any_of(","));
-      std::for_each(access_control_origins.begin(), access_control_origins.end(), boost::bind(&boost::trim<std::string>, _1, std::locale::classic()));
+      std::for_each(access_control_origins.begin(), access_control_origins.end(), std::bind(&boost::trim<std::string>, std::placeholders::_1, std::locale::classic()));
       config.access_control_origins = std::move(access_control_origins);
     }
 

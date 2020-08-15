@@ -465,7 +465,7 @@ eof:
   bool run_default_console_handler_no_srv_param(t_server* ptsrv, t_handler handlr, std::function<std::string(void)> prompt, const std::string& usage = "")
   {
     async_console_handler console_handler;
-    return console_handler.run(ptsrv, boost::bind<bool>(no_srv_param_adapter<t_server, t_handler>, _1, _2, handlr), prompt, usage);
+    return console_handler.run(ptsrv, std::bind<bool>(no_srv_param_adapter<t_server, t_handler>, std::placeholders::_1, std::placeholders::_2, handlr), prompt, usage);
   }
 
   template<class t_server, class t_handler>
@@ -606,11 +606,14 @@ eof:
     async_console_handler m_console_handler;
   public:
     ~console_handlers_binder() {
-      stop_handling();
-      if (m_console_thread.get() != nullptr)
-      {
-        m_console_thread->join();
+      try{
+        stop_handling();
+        if (m_console_thread.get() != nullptr)
+        {
+          m_console_thread->join();
+        }
       }
+      catch (const std::exception &e) { /* ignore */ }
     }
 
     bool start_handling(std::function<std::string(void)> prompt, const std::string& usage_string = "", std::function<void(void)> exit_handler = NULL)
@@ -630,7 +633,7 @@ eof:
 
     bool run_handling(std::function<std::string(void)> prompt, const std::string& usage_string, std::function<void(void)> exit_handler = NULL)
     {
-      return m_console_handler.run(boost::bind(&console_handlers_binder::process_command_str, this, _1), prompt, usage_string, exit_handler);
+      return m_console_handler.run(std::bind(&console_handlers_binder::process_command_str, this, std::placeholders::_1), prompt, usage_string, exit_handler);
     }
 
     void print_prompt()

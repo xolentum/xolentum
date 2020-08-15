@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2019, The Monero Project
+# Copyright (c) 2014-2020, The Monero Project
 #
 # All rights reserved.
 #
@@ -31,7 +31,7 @@
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(INSERT CMAKE_MODULE_PATH 0
-  "${CMAKE_SOURCE_DIR}/cmake")
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 include(CheckLinkerFlag)
@@ -47,6 +47,13 @@ cmake_minimum_required(VERSION 2.8.7)
 message(STATUS "CMake version ${CMAKE_VERSION}")
 
 project(xolentum)
+
+option (USE_CCACHE "Use ccache if a usable instance is found" ON)
+if (USE_CCACHE)
+	include(FindCcache) # Has to be included after the project() macro, to be able to read the CXX variable.
+else()
+	message(STATUS "ccache deselected")
+endif()
 
 enable_language(C ASM)
 
@@ -183,10 +190,40 @@ else()
   message(STATUS "Building without build tag")
 endif()
 
+if(NOT MANUAL_SUBMODULES)
+  find_package(Git)
+  if(GIT_FOUND)
+    function (check_submodule relative_path)
+      execute_process(COMMAND git rev-parse "HEAD" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${relative_path} OUTPUT_VARIABLE localHead)
+      execute_process(COMMAND git rev-parse "HEAD:${relative_path}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE checkedHead)
+      string(COMPARE EQUAL "${localHead}" "${checkedHead}" upToDate)
+      if (upToDate)
+        message(STATUS "Submodule '${relative_path}' is up-to-date")
+      else()
+        message(FATAL_ERROR "Submodule '${relative_path}' is not up-to-date. Please update all submodules with\ngit submodule update --init --force\nor run cmake with -DMANUAL_SUBMODULES=1\n")
+      endif()
+    endfunction ()
+
+    message(STATUS "Checking submodules")
+    check_submodule(external/miniupnp)
+    check_submodule(external/unbound)
+    check_submodule(external/rapidjson)
+    check_submodule(external/randomx)
+  endif()
+endif()
+
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG ${OPT_FLAGS_RELEASE}")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG ${OPT_FLAGS_RELEASE}")
 
 # set this to 0 if per-block checkpoint needs to be disabled
+set(PER_BLOCK_CHECKPOINT 0)
+
+if(PER_BLOCK_CHECKPOINT)
+  add_definitions("-DPER_BLOCK_CHECKPOINT")
+  set(Blocks "blocks")
+else()
+  set(Blocks "")
+endif()
 
 list(INSERT CMAKE_MODULE_PATH 0
   "${CMAKE_SOURCE_DIR}/cmake")
@@ -248,6 +285,12 @@ message(STATUS "Building for a ${ARCH_WIDTH}-bit system")
 # CMAKE_SYSTEM_NAME checks are commonly known, but specifically taken from libsdl's CMakeLists
 if(CMAKE_SYSTEM_NAME MATCHES "kFreeBSD.*|FreeBSD")
   set(FREEBSD TRUE)
+endif()
+
+if(OSSFUZZ)
+  message(STATUS "Using OSS-Fuzz fuzzing system")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DOSSFUZZ")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSSFUZZ")
 endif()
 
 # Check if we're on DragonFly BSD. See the README.md for build instructions.
@@ -386,7 +429,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "(SunOS|Solaris)")
 endif ()
 
 if (APPLE AND NOT IOS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64 -fvisibility=hidden -fvisibility-inlines-hidden -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64 -fvisibility=default -std=c++11")
   if (NOT OpenSSL_DIR)
       EXECUTE_PROCESS(COMMAND brew --prefix openssl
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
@@ -441,7 +484,7 @@ include_directories(${LIBUNWIND_INCLUDE})
 link_directories(${LIBUNWIND_LIBRARY_DIRS})
 
 # Final setup for hid
-if (HIDAPI_FOUND) 
+if (HIDAPI_FOUND)
   message(STATUS "Using HIDAPI include dir at ${HIDAPI_INCLUDE_DIR}")
   add_definitions(-DHAVE_HIDAPI)
   include_directories(${HIDAPI_INCLUDE_DIR})
@@ -610,7 +653,8 @@ else()
   endif()
 
   # linker
-  if (NOT (WIN32 AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_LESS 9.1)))
+  if (NOT SANITIZE AND NOT OSSFUZZ AND NOT (WIN32 AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_LESS 9.1)))
+    # PIE executables randomly crash at startup with ASAN
     # Windows binaries die on startup with PIE when compiled with GCC <9.x
     add_linker_flag_if_supported(-pie LD_SECURITY_FLAGS)
   endif()
@@ -733,7 +777,7 @@ else()
   endif(ARM)
 
   if(ANDROID AND NOT BUILD_GUI_DEPS STREQUAL "ON" OR IOS)
-    #From Android 5: "only position independent executables (PIE) are supported" 
+    #From Android 5: "only position independent executables (PIE) are supported"
     message(STATUS "Enabling PIE executable")
     set(PIC_FLAG "")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE")
@@ -742,10 +786,15 @@ else()
   endif()
 
   if(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -DGTEST_HAS_TR1_TUPLE=0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -DGTEST_HAS_TR1_TUPLE=0")
   endif()
 
-  set(DEBUG_FLAGS "-g3 -O0")
+  set(DEBUG_FLAGS "-g3")
+  if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND NOT (CMAKE_C_COMPILER_VERSION VERSION_LESS 4.8))
+    set(DEBUG_FLAGS "${DEBUG_FLAGS} -Og ")
+  else()
+    set(DEBUG_FLAGS "${DEBUG_FLAGS} -O0 ")
+  endif()
 
   # At least some CLANGs default to not enough for xolentum
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=900")
@@ -814,7 +863,6 @@ if(STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
 endif()
-
 find_package(Boost 1.58 QUIET REQUIRED COMPONENTS system filesystem thread date_time chrono regex serialization program_options locale)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_LIB_SUFFIXES})
@@ -937,6 +985,14 @@ endif()
 add_subdirectory(contrib)
 add_subdirectory(src)
 
+find_package(PythonInterp)
+if(BUILD_TESTS)
+  message(STATUS "Building tests")
+  add_subdirectory(tests)
+else()
+  message(STATUS "Not building tests")
+endif()
+
 if(BUILD_DEBUG_UTILITIES)
   message(STATUS "Building debug utilities")
 else()
@@ -974,3 +1030,13 @@ option(INSTALL_VENDORED_LIBUNBOUND "Install libunbound binary built from source 
 
 
 CHECK_C_COMPILER_FLAG(-std=c11 HAVE_C11)
+
+find_package(PythonInterp)
+find_program(iwyu_tool_path NAMES iwyu_tool.py iwyu_tool)
+if (iwyu_tool_path AND PYTHONINTERP_FOUND)
+  add_custom_target(iwyu
+    COMMAND "${PYTHON_EXECUTABLE}" "${iwyu_tool_path}" -p "${CMAKE_BINARY_DIR}" -- --no_fwd_decls
+    COMMENT "Running include-what-you-use tool"
+    VERBATIM
+  )
+endif()

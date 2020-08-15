@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2019, The Monero Project
+# Copyright (c) 2014-2020, The Monero Project
 #
 # All rights reserved.
 #
@@ -44,6 +44,7 @@ set(core_tests_sources
   v2_tests.cpp
   rct.cpp
   bulletproofs.cpp
+  rct2.cpp
   wallet_tools.cpp)
 
 set(core_tests_headers
@@ -64,6 +65,7 @@ set(core_tests_headers
   v2_tests.h
   rct.h
   bulletproofs.h
+  rct2.h
   wallet_tools.h)
 
 add_executable(core_tests

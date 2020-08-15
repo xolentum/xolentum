@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2019, The Monero Project
+# Copyright (c) 2014-2020, The Monero Project
 #
 # All rights reserved.
 #
@@ -34,6 +34,7 @@ set(unit_tests_sources
   blockchain_db.cpp
   block_queue.cpp
   block_reward.cpp
+  bootstrap_node_selector.cpp
   bulletproofs.cpp
   canonical_amounts.cpp
   chacha.cpp
@@ -93,7 +94,8 @@ set(unit_tests_sources
   wipeable_string.cpp
   is_hdd.cpp
   aligned.cpp
-  rpc_version_str.cpp)
+  rpc_version_str.cpp
+  zmq_rpc.cpp)
 
 set(unit_tests_headers
   unit_tests_utils.h)
@@ -106,6 +108,8 @@ target_link_libraries(unit_tests
     ringct
     cryptonote_protocol
     cryptonote_core
+    daemon_messages
+    daemon_rpc_server
     blockchain_db
     lmdb_lib
     rpc

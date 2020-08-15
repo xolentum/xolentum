@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -36,13 +36,16 @@ struct hardfork_t
   uint8_t version;
   uint64_t height;
   uint8_t threshold;
-  hardfork_t(uint8_t version, uint64_t height, uint8_t threshold): version(version), height(height), threshold(threshold) {}
+  time_t time;
+  hardfork_t(uint8_t version, uint64_t height, uint8_t threshold, time_t time): version(version), height(height), threshold(threshold), time(time) {}
 };
 
 extern const hardfork_t mainnet_hard_forks[];
+extern const uint64_t mainnet_hard_fork_version_1_till;
 extern const size_t num_mainnet_hard_forks;
 
 extern const hardfork_t testnet_hard_forks[];
+extern const uint64_t testnet_hard_fork_version_1_till;
 extern const size_t num_testnet_hard_forks;
 
 extern const hardfork_t stagenet_hard_forks[];

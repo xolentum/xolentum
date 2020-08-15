@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 
 # Copyright (c) 2019 The Monero Project
-# 
+#
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without modification, are
 # permitted provided that the following conditions are met:
-# 
+#
 # 1. Redistributions of source code must retain the above copyright notice, this list of
 #    conditions and the following disclaimer.
-# 
+#
 # 2. Redistributions in binary form must reproduce the above copyright notice, this list
 #    of conditions and the following disclaimer in the documentation and/or other
 #    materials provided with the distribution.
-# 
+#
 # 3. Neither the name of the copyright holder nor the names of its contributors may be
 #    used to endorse or promote products derived from this software without specific
 #    prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 # EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -31,6 +31,7 @@
 from __future__ import print_function
 import subprocess
 import os
+import time
 
 """Test daemon RPC payment calls
 """
@@ -43,6 +44,7 @@ class RPCPaymentTest():
         self.make_test_signature = os.environ['MAKE_TEST_SIGNATURE']
         assert len(self.make_test_signature) > 0
         self.secret_key, self.public_key = self.get_keys()
+        self.signatures = []
         self.reset()
         self.test_access_tracking()
         self.test_access_mining()
@@ -56,8 +58,19 @@ class RPCPaymentTest():
         assert len(fields) == 2
         return fields
 
+    def refill_signatures(self):
+        self.signatures_time = time.time()
+        self.signatures = []
+        signatures = subprocess.check_output([self.make_test_signature, self.secret_key, '256']).decode('utf-8')
+        for line in signatures.split():
+            self.signatures.append(line.rstrip())
+
     def get_signature(self):
-        return subprocess.check_output([self.make_test_signature, self.secret_key]).decode('utf-8').rstrip()
+        if len(self.signatures) == 0 or self.signatures_time + 10 < time.time():
+        self.refill_signatures()
+        s = self.signatures[0]
+        self.signatures = self.signatures[1:]
+        return s
 
     def reset(self):
         print('Resetting blockchain')
@@ -143,6 +156,7 @@ class RPCPaymentTest():
         found_valid = 0
         found_invalid = 0
         last_credits = 0
+        loop_time = time.time()
         while found_valid == 0 or found_invalid == 0:
             nonce += 1
             try:
@@ -152,9 +166,16 @@ class RPCPaymentTest():
             except Exception as e:
                 found_invalid += 1
                 res = daemon.rpc_access_info(client = self.get_signature())
+                cookie = res.cookie
+                loop_time = time.time()
                 assert res.credits < last_credits or res.credits == 0
             assert nonce < 1000 # can't find both valid and invalid -> the RPC probably fails
             last_credits = res.credits
+
+            if time.time() >= loop_time + 10:
+                res = daemon.rpc_access_info(client = self.get_signature())
+                cookie = res.cookie
+                loop_time = time.time()
 
         # we should now have 1 valid nonce, and a number of bad ones
         res = daemon.rpc_access_info(client = self.get_signature())
@@ -174,7 +195,7 @@ class RPCPaymentTest():
         assert e.nonces_bad == found_invalid
         assert e.nonces_good == found_valid
         assert e.nonces_dupe == 0
-
+        loop_time = time.time()
         # Try random nonces till we find one that's valid so we get a load of credits
         while last_credits == 0:
             nonce += 1
@@ -186,6 +207,10 @@ class RPCPaymentTest():
             except:
                 found_invalid += 1
             assert nonce < 1000 # can't find a valid none -> the RPC probably fails
+            if time.time() >= loop_time + 10:
+                res = daemon.rpc_access_info(client = self.get_signature())
+                cookie = res.cookie
+                loop_time = time.time()
 
         # we should now have at least 5000
         res = daemon.rpc_access_info(client = self.get_signature())
@@ -208,6 +233,7 @@ class RPCPaymentTest():
         res = daemon.rpc_access_info(client = self.get_signature())
         cookie = res.cookie
         old_cookie = cookie # we keep that so can submit a stale later
+        loop_time = time.time()
         while True:
             nonce += 1
             try:
@@ -217,6 +243,11 @@ class RPCPaymentTest():
             except:
                 found_invalid += 1
             assert nonce < 1000 # can't find both valid and invalid -> the RPC probably fails
+
+            if time.time() >= loop_time + 10:
+                res = daemon.rpc_access_info(client = self.get_signature())
+                cookie = res.cookie
+                loop_time = time.time()
 
         res = daemon.rpc_access_data()
         assert len(res.entries) > 0
@@ -247,14 +278,17 @@ class RPCPaymentTest():
 
         # find stales without updating cookie, one within 5 seconds (accepted), one later (rejected)
         res = daemon.rpc_access_info(client = self.get_signature())
+        cookie = res.cookie # let the daemon update its timestamp, but use old cookie
         found_close_stale = 0
         found_late_stale = 0
+        loop_time = time.time()
         while found_close_stale == 0 or found_late_stale == 0:
             nonce += 1
             try:
                 res = daemon.rpc_access_submit_nonce(nonce = nonce, cookie = cookie, client = self.get_signature())
                 found_close_stale += 1
                 found_valid += 1
+                time.sleep(15) # now we've got an early stale, wait till they become late stales
             except Exception as e:
                 #if e[0]['error']['code'] == -18: # stale
                 if "'code': -18" in str(e): # stale (ugly version, but also works with python 3)
@@ -262,6 +296,11 @@ class RPCPaymentTest():
                 else:
                     found_invalid += 1
             assert nonce < 1000 # can't find both valid and invalid -> the RPC probably fails
+
+            if time.time() >= loop_time + 10:
+                res = daemon.rpc_access_info(client = self.get_signature())
+                # cookie = res.cookie # let the daemon update its timestamp, but use old cookie
+                loop_time = time.time()
 
         res = daemon.rpc_access_data()
         assert len(res.entries) > 0

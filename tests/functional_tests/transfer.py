@@ -135,7 +135,7 @@ class TransferTest():
         assert res.fee > 0
         fee = res.fee
         assert len(res.tx_blob) > 0
-        blob_size = len(res.tx_blob) // 2
+        tx_weight = res.weight
         assert len(res.tx_metadata) == 0
         assert len(res.multisig_txset) == 0
         assert len(res.unsigned_txset) == 0
@@ -144,7 +144,7 @@ class TransferTest():
         res = daemon.get_fee_estimate(10)
         assert res.fee > 0
         assert res.quantization_mask > 0
-        expected_fee = (res.fee * 1 * blob_size + res.quantization_mask - 1) // res.quantization_mask * res.quantization_mask
+        expected_fee = (res.fee * 1 * tx_weight + res.quantization_mask - 1) // res.quantization_mask * res.quantization_mask
         assert abs(1 - fee / expected_fee) < 0.01
 
         self.wallet[0].refresh()
@@ -169,7 +169,7 @@ class TransferTest():
         assert e.subaddr_indices == [{'major': 0, 'minor': 0}]
         assert e.address == '42ey1afDFnn4886T7196doS9GPMzexD9gXpsZJDwVjeRVdFCSoHnv7KPbBeGpzJBzHRCAs9UxqeoyFQMYbqSWYTfJJQAWDm'
         assert e.double_spend_seen == False
-        assert e.confirmations == 0
+        assert not 'confirmations' in e or e.confirmations == 0
 
         running_balances[0] -= 1000000000000 + fee
 
@@ -282,7 +282,7 @@ class TransferTest():
         assert e.subaddr_indices == [{'major': 0, 'minor': 0}]
         assert e.address == '44Kbx4sJ7JDRDV5aAhLJzQCjDz2ViLRduE3ijDZu3osWKBjMGkV1XPk4pfDUMqt1Aiezvephdqm6YD19GKFD9ZcXVUTp6BW'
         assert e.double_spend_seen == False
-        assert e.confirmations == 0
+        assert not 'confirmations' in e or e.confirmations == 0
         assert e.amount == amount
         assert e.fee == fee
 

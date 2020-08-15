@@ -1,21 +1,21 @@
-// Copyright (c) 2014-2019, The Monero Project
-// 
+// Copyright (c) 2014-2020, The Monero Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 #include <boost/format.hpp>
 #include <boost/asio/ip/address.hpp>
@@ -326,6 +326,7 @@ namespace tools
     entry.height = pd.m_block_height;
     entry.timestamp = pd.m_timestamp;
     entry.amount = pd.m_amount;
+    entry.amounts = pd.m_amounts;
     entry.unlock_time = pd.m_unlock_time;
     entry.locked = !m_wallet->is_transfer_unlocked(pd.m_unlock_time, pd.m_block_height);
     entry.fee = pd.m_fee;
@@ -408,6 +409,7 @@ namespace tools
     entry.height = 0;
     entry.timestamp = pd.m_timestamp;
     entry.amount = pd.m_amount;
+    entry.amounts = pd.m_amounts;
     entry.unlock_time = pd.m_unlock_time;
     entry.locked = true;
     entry.fee = pd.m_fee;
@@ -426,10 +428,10 @@ namespace tools
     try
     {
       res.balance = req.all_accounts ? m_wallet->balance_all(req.strict) : m_wallet->balance(req.account_index, req.strict);
-      res.unlocked_balance = req.all_accounts ? m_wallet->unlocked_balance_all(req.strict, &res.blocks_to_unlock) : m_wallet->unlocked_balance(req.account_index, req.strict, &res.blocks_to_unlock);
+      res.unlocked_balance = req.all_accounts ? m_wallet->unlocked_balance_all(req.strict, &res.blocks_to_unlock, &res.time_to_unlock) : m_wallet->unlocked_balance(req.account_index, req.strict, &res.blocks_to_unlock, &res.time_to_unlock);
       res.multisig_import_needed = m_wallet->multisig() && m_wallet->has_multisig_partial_key_images();
       std::map<uint32_t, std::map<uint32_t, uint64_t>> balance_per_subaddress_per_account;
-      std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress_per_account;
+      std::map<uint32_t, std::map<uint32_t, std::pair<uint64_t, std::pair<uint64_t, uint64_t>>>> unlocked_balance_per_subaddress_per_account;
       if (req.all_accounts)
       {
         for (uint32_t account_index = 0; account_index < m_wallet->get_num_subaddress_accounts(); ++account_index)
@@ -449,7 +451,7 @@ namespace tools
       {
         uint32_t account_index = p.first;
         std::map<uint32_t, uint64_t> balance_per_subaddress = p.second;
-        std::map<uint32_t, std::pair<uint64_t, uint64_t>> unlocked_balance_per_subaddress = unlocked_balance_per_subaddress_per_account[account_index];
+        std::map<uint32_t, std::pair<uint64_t, std::pair<uint64_t, uint64_t>>> unlocked_balance_per_subaddress = unlocked_balance_per_subaddress_per_account[account_index];
         std::set<uint32_t> address_indices;
         if (!req.all_accounts && !req.address_indices.empty())
         {
@@ -469,7 +471,8 @@ namespace tools
           info.address = m_wallet->get_subaddress_as_str(index);
           info.balance = balance_per_subaddress[i];
           info.unlocked_balance = unlocked_balance_per_subaddress[i].first;
-          info.blocks_to_unlock = unlocked_balance_per_subaddress[i].second;
+          info.blocks_to_unlock = unlocked_balance_per_subaddress[i].second.first;
+          info.time_to_unlock = unlocked_balance_per_subaddress[i].second.second;
           info.label = m_wallet->get_subaddress_label(index);
           info.num_unspent_outputs = std::count_if(transfers.begin(), transfers.end(), [&](const tools::wallet2::transfer_details& td) { return !td.m_spent && td.m_subaddr_index == index; });
           res.per_subaddress.emplace_back(std::move(info));
@@ -765,7 +768,7 @@ namespace tools
           }
           if (addresses.empty())
           {
-            er.message = std::string("No Xolentum address found at ") + url;
+            er.message = std::string("No Monero address found at ") + url;
             return {};
           }
           return addresses[0];
@@ -945,8 +948,9 @@ namespace tools
 
     try
     {
+      uint64_t mixin = m_wallet->adjust_mixin(req.ring_size ? req.ring_size - 1 : 0);
       uint32_t priority = m_wallet->adjust_priority(req.priority);
-      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_2(dsts, DEFAULT_MIXIN, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices);
+      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_2(dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices);
 
       if (ptx_vector.empty())
       {
@@ -996,9 +1000,10 @@ namespace tools
 
     try
     {
+      uint64_t mixin = m_wallet->adjust_mixin(req.ring_size ? req.ring_size - 1 : 0);
       uint32_t priority = m_wallet->adjust_priority(req.priority);
       LOG_PRINT_L2("on_transfer_split calling create_transactions_2");
-      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_2(dsts, DEFAULT_MIXIN, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices);
+      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_2(dsts, mixin, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices);
       LOG_PRINT_L2("on_transfer_split called create_transactions_2");
 
       if (ptx_vector.empty())
@@ -1176,7 +1181,6 @@ namespace tools
       }
     }
 
-    std::vector<tools::wallet2::pending_tx> ptx;
     try
     {
       // gather info to ask the user
@@ -1413,10 +1417,22 @@ namespace tools
       return  false;
     }
 
+    std::set<uint32_t> subaddr_indices;
+    if (req.subaddr_indices_all)
+    {
+      for (uint32_t i = 0; i < m_wallet->get_num_subaddresses(req.account_index); ++i)
+        subaddr_indices.insert(i);
+    }
+    else
+    {
+      subaddr_indices= req.subaddr_indices;
+    }
+
     try
     {
+      uint64_t mixin = m_wallet->adjust_mixin(req.ring_size ? req.ring_size - 1 : 0);
       uint32_t priority = m_wallet->adjust_priority(req.priority);
-      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_all(req.below_amount, dsts[0].addr, dsts[0].is_subaddress, req.outputs, DEFAULT_MIXIN, req.unlock_time, priority, extra, req.account_index, req.subaddr_indices);
+      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_all(req.below_amount, dsts[0].addr, dsts[0].is_subaddress, req.outputs, mixin, req.unlock_time, priority, extra, req.account_index, subaddr_indices);
 
       return fill_response(ptx_vector, req.get_tx_keys, res.tx_key_list, res.amount_list, res.fee_list, res.weight_list, res.multisig_txset, res.unsigned_txset, req.do_not_relay,
           res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, er);
@@ -1469,8 +1485,9 @@ namespace tools
 
     try
     {
+      uint64_t mixin = m_wallet->adjust_mixin(req.ring_size ? req.ring_size - 1 : 0);
       uint32_t priority = m_wallet->adjust_priority(req.priority);
-      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_single(ki, dsts[0].addr, dsts[0].is_subaddress, req.outputs, DEFAULT_MIXIN, req.unlock_time, priority, extra);
+      std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_single(ki, dsts[0].addr, dsts[0].is_subaddress, req.outputs, mixin, req.unlock_time, priority, extra);
 
       if (ptx_vector.empty())
       {
@@ -1985,7 +2002,7 @@ namespace tools
         }
         if (addresses.empty())
         {
-          er.message = std::string("No Xolentum address found at ") + url;
+          er.message = std::string("No Monero address found at ") + url;
           return {};
         }
         return addresses[0];
@@ -2455,7 +2472,7 @@ namespace tools
 
     if (req.pool)
     {
-      std::vector<std::pair<cryptonote::transaction, bool>> process_txs;
+      std::vector<std::tuple<cryptonote::transaction, crypto::hash, bool>> process_txs;
       m_wallet->update_pool_state(process_txs);
       if (!process_txs.empty())
         m_wallet->process_pool_state(process_txs);
@@ -2538,7 +2555,7 @@ namespace tools
       }
     }
 
-    std::vector<std::pair<cryptonote::transaction, bool>> process_txs;
+    std::vector<std::tuple<cryptonote::transaction, crypto::hash, bool>> process_txs;
     m_wallet->update_pool_state(process_txs);
     if (!process_txs.empty())
       m_wallet->process_pool_state(process_txs);
@@ -2794,7 +2811,7 @@ namespace tools
         }
         if (addresses.empty())
         {
-          er.message = std::string("No Xolentum address found at ") + url;
+          er.message = std::string("No Monero address found at ") + url;
           return {};
         }
         return addresses[0];
@@ -2848,7 +2865,7 @@ namespace tools
           }
           if (addresses.empty())
           {
-            er.message = std::string("No Xolentum address found at ") + url;
+            er.message = std::string("No Monero address found at ") + url;
             return {};
           }
           return addresses[0];
@@ -2987,7 +3004,7 @@ namespace tools
       return false;
     }
 
-    cryptonote::COMMAND_RPC_START_MINING::request daemon_req = AUTO_VAL_INIT(daemon_req); 
+    cryptonote::COMMAND_RPC_START_MINING::request daemon_req = AUTO_VAL_INIT(daemon_req);
     daemon_req.miner_address = m_wallet->get_account().get_public_address_str(m_wallet->nettype());
     daemon_req.threads_count        = req.threads_count;
     daemon_req.do_background_mining = req.do_background_mining;
@@ -4119,31 +4136,7 @@ namespace tools
     {
       if (!req.any_net_type && (!m_wallet || net_type.type != m_wallet->nettype()))
         continue;
-      if (req.allow_openalias)
-      {
-        std::string address;
-        res.valid = get_account_address_from_str_or_url(info, net_type.type, req.address,
-          [&er, &address](const std::string &url, const std::vector<std::string> &addresses, bool dnssec_valid)->std::string {
-            if (!dnssec_valid)
-            {
-              er.message = std::string("Invalid DNSSEC for ") + url;
-              return {};
-            }
-            if (addresses.empty())
-            {
-              er.message = std::string("No Xolentum address found at ") + url;
-              return {};
-            }
-            address = addresses[0];
-            return address;
-          });
-        if (res.valid)
-          res.openalias_address = address;
-      }
-      else
-      {
-        res.valid = cryptonote::get_account_address_from_str(info, net_type.type, req.address);
-      }
+      res.valid = cryptonote::get_account_address_from_str(info, net_type.type, req.address);
       if (res.valid)
       {
         res.integrated = info.has_payment_id;
@@ -4166,7 +4159,7 @@ namespace tools
       er.message = "Command unavailable in restricted mode.";
       return false;
     }
-   
+
     std::vector<std::vector<uint8_t>> ssl_allowed_fingerprints;
     ssl_allowed_fingerprints.reserve(req.ssl_allowed_fingerprints.size());
     for (const std::string &fp: req.ssl_allowed_fingerprints)

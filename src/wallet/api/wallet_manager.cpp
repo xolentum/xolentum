@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -67,7 +67,7 @@ Wallet *WalletManagerImpl::openWallet(const std::string &path, const std::string
 
     wallet->open(path, password);
     //Refresh addressBook
-    wallet->addressBook()->refresh(); 
+    wallet->addressBook()->refresh();
     return wallet;
 }
 
@@ -93,20 +93,21 @@ Wallet *WalletManagerImpl::recoveryWallet(const std::string &path,
                                                 const std::string &mnemonic,
                                                 NetworkType nettype,
                                                 uint64_t restoreHeight,
-                                                uint64_t kdf_rounds)
+                                                uint64_t kdf_rounds,
+                                                const std::string &seed_offset/* = {}*/)
 {
     WalletImpl * wallet = new WalletImpl(nettype, kdf_rounds);
     if(restoreHeight > 0){
         wallet->setRefreshFromBlockHeight(restoreHeight);
     }
-    wallet->recover(path, password, mnemonic);
+    wallet->recover(path, password, mnemonic, seed_offset);
     return wallet;
 }
 
 Wallet *WalletManagerImpl::createWalletFromKeys(const std::string &path,
                                                 const std::string &password,
                                                 const std::string &language,
-                                                NetworkType nettype, 
+                                                NetworkType nettype,
                                                 uint64_t restoreHeight,
                                                 const std::string &addressString,
                                                 const std::string &viewKeyString,
@@ -333,30 +334,30 @@ bool WalletManagerImpl::stopMining()
     return mres.status == CORE_RPC_STATUS_OK;
 }
 
-std::string WalletManagerImpl::resolveOpenAlias(const std::string &address, bool &dnssec_valid) const
+std::tuple<bool, std::string, std::string, std::string, std::string> WalletManager::checkUpdates(
+    const std::string &software,
+    std::string subdir,
+    const char *buildtag/* = nullptr*/,
+    const char *current_version/* = nullptr*/)
 {
-    std::vector<std::string> addresses = tools::dns_utils::addresses_from_url(address, dnssec_valid);
-    if (addresses.empty())
-        return "";
-    return addresses.front();
-}
-
-std::tuple<bool, std::string, std::string, std::string, std::string> WalletManager::checkUpdates(const std::string &software, std::string subdir)
-{
+  if (buildtag == nullptr)
+  {
 #ifdef BUILD_TAG
-    static const char buildtag[] = BOOST_PP_STRINGIZE(BUILD_TAG);
+    static const char buildtag_default[] = BOOST_PP_STRINGIZE(BUILD_TAG);
 #else
-    static const char buildtag[] = "source";
+    static const char buildtag_default[] = "source";
     // Override the subdir string when built from source
     subdir = "source";
 #endif
+    buildtag = buildtag_default;
+  }
 
     std::string version, hash;
     MDEBUG("Checking for a new " << software << " version for " << buildtag);
     if (!tools::check_updates(software, buildtag, version, hash))
       return std::make_tuple(false, "", "", "", "");
 
-    if (tools::vercmp(version.c_str(), MONERO_VERSION) > 0)
+    if (tools::vercmp(version.c_str(), current_version != nullptr ? current_version : MONERO_VERSION) > 0)
     {
       std::string user_url = tools::get_update_url(software, subdir, buildtag, version, true);
       std::string auto_url = tools::get_update_url(software, subdir, buildtag, version, false);

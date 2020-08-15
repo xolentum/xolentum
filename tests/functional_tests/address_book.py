@@ -2,23 +2,23 @@
 #encoding=utf-8
 
 # Copyright (c) 2019 The Monero Project
-# 
+#
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without modification, are
 # permitted provided that the following conditions are met:
-# 
+#
 # 1. Redistributions of source code must retain the above copyright notice, this list of
 #    conditions and the following disclaimer.
-# 
+#
 # 2. Redistributions in binary form must reproduce the above copyright notice, this list
 #    of conditions and the following disclaimer in the documentation and/or other
 #    materials provided with the distribution.
-# 
+#
 # 3. Neither the name of the copyright holder nor the names of its contributors may be
 #    used to endorse or promote products derived from this software without specific
 #    prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 # EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -138,15 +138,6 @@ class AddressBookTest():
         assert errors == 5
         res = wallet.get_address_book()
         assert not 'entries' in res or len(res.entries) == 0
-
-        # openalias
-        res = wallet.add_address_book('donate@getmonero.org', description = 'dev fund')
-        assert res.index == 0
-        res = wallet.get_address_book()
-        assert len(res.entries) == 1
-        e = res.entries[0]
-        assert e.address == '44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A'
-        assert e.description == 'dev fund'
 
         # UTF-8
         res = wallet.add_address_book('42ey1afDFnn4886T7196doS9GPMzexD9gXpsZJDwVjeRVdFCSoHnv7KPbBeGpzJBzHRCAs9UxqeoyFQMYbqSWYTfJJQAWDm', description = u'あまやかす')

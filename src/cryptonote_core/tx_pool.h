@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -205,10 +205,11 @@ namespace cryptonote
      * @brief loads pool state (if any) from disk, and initializes pool
      *
      * @param max_txpool_weight the max weight in bytes
+     * @param mine_stem_txes whether to mine txes in stem relay mode
      *
      * @return true
      */
-    bool init(size_t max_txpool_weight = 0);
+     bool init(size_t max_txpool_weight = 0, bool mine_stem_txes = false);
 
     /**
      * @brief attempts to save the transaction pool state to disk
@@ -411,14 +412,14 @@ namespace cryptonote
       /*! if the transaction was returned to the pool from the blockchain
        *  due to a reorg, then this will be true
        */
-      bool kept_by_block;  
+      bool kept_by_block;
 
       //! the highest block the transaction referenced when last checking it failed
       /*! if verifying a transaction's inputs fails, it's possible this is due
        *  to a reorg since it was created (if it used recently created outputs
        *  as inputs).
        */
-      uint64_t last_failed_height;  
+      uint64_t last_failed_height;
 
       //! the hash of the highest block the transaction referenced when last checking it failed
       /*! if verifying a transaction's inputs fails, it's possible this is due
@@ -440,6 +441,11 @@ namespace cryptonote
      * @brief get infornation about a single transaction
      */
     bool get_transaction_info(const crypto::hash &txid, tx_details &td) const;
+
+    /**
+     * @brief get transactions not in the passed set
+     */
+    bool get_complement(const std::vector<crypto::hash> &hashes, std::vector<cryptonote::blobdata> &txes) const;
 
   private:
 
@@ -465,10 +471,11 @@ namespace cryptonote
      * @brief check if a transaction in the pool has a given spent key image
      *
      * @param key_im the spent key image to look for
+     * @param txid hash of the new transaction where `key_im` was seen.
      *
      * @return true if the spent key image is present, otherwise false
      */
-    bool have_tx_keyimg_as_spent(const crypto::key_image& key_im) const;
+     bool have_tx_keyimg_as_spent(const crypto::key_image& key_im, const crypto::hash& txid) const;
 
     /**
      * @brief check if any spent key image in a transaction is in the pool
@@ -479,10 +486,11 @@ namespace cryptonote
      * @note see tx_pool::have_tx_keyimg_as_spent
      *
      * @param tx the transaction to check spent key images of
+     * @param txid hash of `tx`.
      *
      * @return true if any spent key images are present in the pool, otherwise false
      */
-    bool have_tx_keyimges_as_spent(const transaction& tx) const;
+     bool have_tx_keyimges_as_spent(const transaction& tx, const crypto::hash& txid) const;
 
     /**
      * @brief forget a transaction's spent key images
@@ -562,7 +570,7 @@ private:
 #endif
 
     //! container for spent key images from the transactions in the pool
-    key_images_container m_spent_key_images;  
+    key_images_container m_spent_key_images;
 
     //TODO: this time should be a named constant somewhere, not hard-coded
     //! interval on which to check for stale/"stuck" transactions
@@ -596,6 +604,7 @@ private:
 
     size_t m_txpool_max_weight;
     size_t m_txpool_weight;
+    bool m_mine_stem_txes;
 
     mutable std::unordered_map<crypto::hash, std::tuple<bool, tx_verification_context, uint64_t, crypto::hash>> m_input_cache;
 
@@ -634,6 +643,3 @@ namespace boost
 }
 BOOST_CLASS_VERSION(cryptonote::tx_memory_pool, CURRENT_MEMPOOL_ARCHIVE_VER)
 BOOST_CLASS_VERSION(cryptonote::tx_memory_pool::tx_details, CURRENT_MEMPOOL_TX_DETAILS_ARCHIVE_VER)
-
-
-

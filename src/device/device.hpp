@@ -1,21 +1,21 @@
-// Copyright (c) 2017-2019, The Monero Project
-// 
+// Copyright (c) 2017-2020, The Monero Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -39,7 +39,7 @@
 #define USE_DEVICE_LEDGER 1
 #endif
 
-#if !defined(HAVE_HIDAPI) 
+#if !defined(HAVE_HIDAPI)
 #undef  USE_DEVICE_LEDGER
 #define USE_DEVICE_LEDGER 0
 #endif
@@ -56,6 +56,7 @@ namespace cryptonote
     struct subaddress_index;
     struct tx_destination_entry;
     struct keypair;
+    class transaction_prefix;
 }
 
 namespace hw {
@@ -78,7 +79,7 @@ namespace hw {
         virtual void on_button_request(uint64_t code=0) {}
         virtual void on_button_pressed() {}
         virtual boost::optional<epee::wipeable_string> on_pin_request() { return boost::none; }
-        virtual boost::optional<epee::wipeable_string> on_passphrase_request(bool on_device) { return boost::none; }
+        virtual boost::optional<epee::wipeable_string> on_passphrase_request(bool & on_device) { on_device = true; return boost::none; }
         virtual void on_progress(const device_progress& event) {}
         virtual ~i_device_callback() = default;
     };
@@ -104,7 +105,6 @@ namespace hw {
         {
           SOFTWARE = 0,
           LEDGER = 1,
-          TREZOR = 2
         };
 
 
@@ -140,7 +140,7 @@ namespace hw {
 
         /* ======================================================================= */
         /*  LOCKER                                                                 */
-        /* ======================================================================= */ 
+        /* ======================================================================= */
         virtual void lock(void) = 0;
         virtual void unlock(void) = 0;
         virtual bool try_lock(void) = 0;
@@ -197,11 +197,13 @@ namespace hw {
         /*                               TRANSACTION                               */
         /* ======================================================================= */
 
-        virtual void generate_tx_proof(const crypto::hash &prefix_hash, 
-                                       const crypto::public_key &R, const crypto::public_key &A, const boost::optional<crypto::public_key> &B, const crypto::public_key &D, const crypto::secret_key &r, 
+        virtual void generate_tx_proof(const crypto::hash &prefix_hash,
+                                       const crypto::public_key &R, const crypto::public_key &A, const boost::optional<crypto::public_key> &B, const crypto::public_key &D, const crypto::secret_key &r,
                                        crypto::signature &sig) = 0;
 
         virtual bool  open_tx(crypto::secret_key &tx_key) = 0;
+
+        virtual void get_transaction_prefix_hash(const cryptonote::transaction_prefix& tx, crypto::hash& h) = 0;
 
         virtual bool  encrypt_payment_id(crypto::hash8 &payment_id, const crypto::public_key &public_key, const crypto::secret_key &secret_key) = 0;
         bool  decrypt_payment_id(crypto::hash8 &payment_id, const crypto::public_key &public_key, const crypto::secret_key &secret_key)
@@ -261,4 +263,3 @@ namespace hw {
     device& get_device(const std::string & device_descriptor);
     bool register_device(const std::string & device_name, device * hw_device);
 }
-

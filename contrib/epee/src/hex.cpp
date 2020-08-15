@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019, The Monero Project
+// Copyright (c) 2017-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -32,6 +32,8 @@
 #include <limits>
 #include <ostream>
 #include <stdexcept>
+
+#include "storages/parserse_base_utils.h"
 
 namespace epee
 {
@@ -84,7 +86,42 @@ namespace epee
     return write_hex(out, src);
   }
 
-  std::vector<uint8_t> from_hex::vector(boost::string_ref src)
+
+  bool from_hex::to_string(std::string& out, const boost::string_ref src)
+  {
+    out.resize(src.size() / 2);
+    return to_buffer_unchecked(reinterpret_cast<std::uint8_t*>(&out[0]), src);
+  }
+
+  bool from_hex::to_buffer(span<std::uint8_t> out, const boost::string_ref src) noexcept
+  {
+    if (src.size() / 2 != out.size())
+      return false;
+    return to_buffer_unchecked(out.data(), src);
+  }
+
+  bool from_hex::to_buffer_unchecked(std::uint8_t* dst, const boost::string_ref s) noexcept
+  {
+    if (s.size() % 2 != 0)
+      return false;
+
+    const unsigned char *src = (const unsigned char *)s.data();
+    for(size_t i = 0; i < s.size(); i += 2)
+    {
+      int tmp = *src++;
+      tmp = epee::misc_utils::parse::isx[tmp];
+      if (tmp == 0xff) return false;
+      int t2 = *src++;
+      t2 = epee::misc_utils::parse::isx[t2];
+      if (t2 == 0xff) return false;
+      *dst++ = (tmp << 4) | t2;
+    }
+
+    return true;
+  }
+
+
+  std::vector<uint8_t> from_hex_locale::to_vector(const boost::string_ref src)
   {
     // should we include a specific character
     auto include = [](char input) {
@@ -104,7 +141,7 @@ namespace epee
     result.reserve(count / 2);
 
     // the data to work with (std::string is always null-terminated)
-    auto data = src.data();
+    auto data = src.begin();
 
     // convert a single hex character to an unsigned integer
     auto char_to_int = [](const char *input) {
@@ -130,9 +167,9 @@ namespace epee
     };
 
     // keep going until we reach the end
-    while (data[0] != '\0') {
+    while (data != src.end()) {
       // skip unwanted characters
-      if (!include(data[0])) {
+      if (!include(*data)) {
         ++data;
         continue;
       }

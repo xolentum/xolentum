@@ -36,8 +36,11 @@ def setup():
     os.chdir('..')
     make_image_prog = ['bin/make-base-vm', '--suite', 'bionic', '--arch', 'amd64']
     if args.docker:
-        if not subprocess.call(['docker', '--help'], shell=False, stdout=subprocess.DEVNULL):
-            print("Please install docker first manually")
+        try:
+            subprocess.check_output(['docker', '--help'])
+        except:
+            print("ERROR: Could not find 'docker' command. Ensure this is in your PATH.")
+            sys.exit(1)
         make_image_prog += ['--docker']
     elif not args.kvm:
         make_image_prog += ['--lxc']
@@ -157,9 +160,9 @@ def main():
     elif not args.kvm:
         os.environ['USE_LXC'] = '1'
         if not 'GITIAN_HOST_IP' in os.environ.keys():
-            os.environ['GITIAN_HOST_IP'] = '10.0.3.1'
+            os.environ['GITIAN_HOST_IP'] = '10.0.2.2'
         if not 'LXC_GUEST_IP' in os.environ.keys():
-            os.environ['LXC_GUEST_IP'] = '10.0.3.5'
+            os.environ['LXC_GUEST_IP'] = '10.0.2.5'
 
     # Disable MacOS build if no SDK found
     args.nomac = False
