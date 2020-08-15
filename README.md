@@ -32,7 +32,7 @@ This is the core implementation of Xolentum. It is open-source and completely fr
 
 We offer compiled binaries of Xolentum for all the supported OS. **Click [here](https://github.com/xolentum/xolentum/releases/latest) to download.**
 
-You can also compile Xolentum from source. **Click [here](https://xolentum.org/resources/guidess/compilation) for instructions.**
+You can also compile Xolentum from source. **Click [here](https://xolentum.org/resources/guides/compilation) for instructions.**
 
 ## Contributing
 
