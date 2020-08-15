@@ -53,8 +53,8 @@
 #undef MONERO_DEFAULT_LOG_CATEGORY
 #define MONERO_DEFAULT_LOG_CATEGORY "wallet.simplewallet"
 // Hardcode Xolentum's donation address (see #1447)
-#warning "Update this address before launch. Refer to commit 58e1c8b031a7e2ab41b6958b3c0a2498f631fe28 for update procedure"
-constexpr const char XOLENTUM_DONATION_ADDR[] = "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A";
+
+constexpr const char XOLENTUM_DONATION_ADDR[] = "Xwmjr3jep6H6FBzLJjkj7v59qJQqLJyK5K67hiJPnJ1hVsvDUr4LPDXYFoPhBXMMoDJK4i27UdvAAhHShuxaY96r1NuL4n5jF";
 
 /*!
  * \namespace cryptonote
