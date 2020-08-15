@@ -171,7 +171,7 @@ Take a look in the assert files and note the SHA256 checksums listed there.
 You should verify that the checksum that is listed matches each of the binaries you actually built.
 This may be done on Linux using the `sha256sum` command or on MacOS using `shasum --algorithm 256` for example.
 
-You can also look in the [gitian.sigs](https://github.com/xolentum-project/gitian.sigs/) repo and / or [getmonero.org release checksums](https://web.getmonero.org/downloads/hashes.txt) to see if others got the same checksum for the same version tag.  If there is ever a mismatch -- **STOP! Something is wrong**.  Contact others on IRC / github to figure out what is going on.
+You can also look in the [gitian.sigs](https://github.com/xolentum-project/gitian.sigs/) repo and / or [xolentum.org release checksums](https://web.xolentum.org/downloads/hashes.txt) to see if others got the same checksum for the same version tag.  If there is ever a mismatch -- **STOP! Something is wrong**.  Contact others on IRC / github to figure out what is going on.
 
 
 Signing assert files
