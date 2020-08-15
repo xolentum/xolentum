@@ -2299,7 +2299,7 @@ bool simple_wallet::welcome(const std::vector<std::string> &args)
   message_writer() << tr("Flaws in Xolentum may be discovered in the future, and attacks may be developed to peek under some");
   message_writer() << tr("of the layers of privacy Xolentum provides. Be safe and practice defense in depth.");
   message_writer() << "";
-  message_writer() << tr("Welcome to Xolentum and financial privacy. For more information see https://GetMonero.org");
+  message_writer() << tr("Welcome to Xolentum and financial privacy. For more information see https://www.xolentum.org/");
   return true;
 }
 
@@ -3049,7 +3049,7 @@ bool simple_wallet::help(const std::vector<std::string> &args/* = std::vector<st
   message_writer() << tr("Commands:");
   message_writer() << "";
   message_writer() << tr("\"welcome\" - Read welcome message.");
-  message_writer() << tr("\"donate <amount>\" - Donate XMR to the development team.");
+  message_writer() << tr("\"donate <amount>\" - Donate XOL to the development team.");
   message_writer() << tr("\"balance\" - Show balance.");
   message_writer() << tr("\"address new\" - Create new subaddress.");
   message_writer() << tr("\"address all\" - Show all addresses.");
@@ -3169,7 +3169,7 @@ simple_wallet::simple_wallet()
   m_cmd_binder.set_handler("donate",
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::donate, _1),
                            tr(USAGE_DONATE),
-                           tr("Donate <amount> to the development team (donate.getmonero.org)."));
+                           tr("Donate <amount> to the development team."));
   m_cmd_binder.set_handler("sign_transfer",
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::sign_transfer, _1),
                            tr(USAGE_SIGN_TRANSFER),

@@ -32,21 +32,21 @@ This is the core implementation of Xolentum. It is open-source and completely fr
 
 We offer compiled binaries of Xolentum for all the supported OS. **Click [here](https://github.com/xolentum/xolentum/releases/latest) to download.**
 
-You can also compile Xolentum from source. **Click [here](https://xolentum.org/resources/guidess/compilation) for instructions.** 
+You can also compile Xolentum from source. **Click [here](https://xolentum.org/resources/guidess/compilation) for instructions.**
 
 ## Contributing
 
-We welcome all contributions from the community. If you are looking to help out, please refer to the [contributing guide](CONTRIBUTING.md) for a set of guidelines. 
+We welcome all contributions from the community. If you are looking to help out, please refer to the [contributing guide](CONTRIBUTING.md) for a set of guidelines.
 
 ## Supporting
 
 Xolentum is a completely community-driven project. We would really appreciate if you are willing to support our project financially. Here are the donation addresses:
 
-* Xolentum - `xyz`
+* Xolentum - `Xwmjr3jep6H6FBzLJjkj7v59qJQqLJyK5K67hiJPnJ1hVsvDUr4LPDXYFoPhBXMMoDJK4i27UdvAAhHShuxaY96r1NuL4n5jF`
 * BitCoin - `1DyqVvN4KR5Rxdf3zGpA6gRBHsN5uR29nf`
 * Monero - `49EPmSiHM9ibXxdgNmPFeKcoqjY1WKMtx4BGLGXREXZ2CzYsXDjfVfuRZivR3kGFqWAELbJJwrmia2qsGvScZZFkHZLE5Ef`
 
-If you would like to donate/support the project through any other means, please reach out to a Staff member on [our Discord server](https://chat.xolentum.org/). 
+If you would like to donate/support the project through any other means, please reach out to a Staff member on [our Discord server](https://chat.xolentum.org/).
 
 ## License
 
