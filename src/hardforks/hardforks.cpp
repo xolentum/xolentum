@@ -39,11 +39,11 @@ const size_t num_mainnet_hard_forks = sizeof(mainnet_hard_forks) / sizeof(mainne
 const uint64_t mainnet_hard_fork_version_1_till = 2113;
 
 const hardfork_t testnet_hard_forks[] = {
-  { 1, 1, 0, 1596630477 },
-  { 2, 2113, 0, 1596651607 },
+  { 1, 1, 0, 1597516874 },
+  { 2, 5203, 0, 1597906250 },
 };
 const size_t num_testnet_hard_forks = sizeof(testnet_hard_forks) / sizeof(testnet_hard_forks[0]);
-const uint64_t testnet_hard_fork_version_1_till = 2113;
+const uint64_t testnet_hard_fork_version_1_till = 5203;
 
 const hardfork_t stagenet_hard_forks[] = {
   { 1, 1, 0, 1596630477 },

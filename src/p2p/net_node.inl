@@ -606,6 +606,7 @@ namespace nodetool
     {
       full_addrs.insert("184.67.59.50:44441"); //0
       full_addrs.insert("184.67.59.54:44441"); //1
+      full_addrs.insert("74.208.136.168:44441"); //2
     }
     else if (nettype == cryptonote::STAGENET)
     {
