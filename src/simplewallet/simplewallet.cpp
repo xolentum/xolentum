@@ -3053,7 +3053,7 @@ bool simple_wallet::help(const std::vector<std::string> &args/* = std::vector<st
   message_writer() << tr("\"balance\" - Show balance.");
   message_writer() << tr("\"address new\" - Create new subaddress.");
   message_writer() << tr("\"address all\" - Show all addresses.");
-  message_writer() << tr("\"transfer <address> <amount>\" - Send XMR to an address.");
+  message_writer() << tr("\"transfer <address> <amount>\" - Send XOL to an address.");
   message_writer() << tr("\"show_transfers [in|out|pending|failed|pool]\" - Show transactions.");
   message_writer() << tr("\"sweep_all <address>\" - Send whole balance to another wallet.");
   message_writer() << tr("\"seed\" - Show secret 25 words that can be used to recover this wallet.");
