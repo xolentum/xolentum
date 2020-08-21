@@ -401,7 +401,8 @@ bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_ge
     size_t output_index = 0;
     for(const tx_destination_entry& dst_entr: destinations)
     {
-      CHECK_AND_ASSERT_MES(dst_entr.amount > 0 , false, "Destination with wrong amount: " << dst_entr.amount);
+      /*The check is disabled because the CLSAG hide the tx amount so we cannot determine it from here*/
+      //CHECK_AND_ASSERT_MES(dst_entr.amount > 0 , false, "Destination with wrong amount: " << dst_entr.amount);
       crypto::public_key out_eph_public_key;
 
       hwdev.generate_output_ephemeral_keys(tx.version,sender_account_keys, txkey_pub, tx_key,
