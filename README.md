@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://xolentum.sohamb03.me/resources/press-kit/assets/logo.png" alt="Xolentum Logo">
+  <img src="https://xolentum.org/resources/press-kit/assets/logo.png" alt="Xolentum Logo">
 </p>
 
 <p>&nbsp;</p>
