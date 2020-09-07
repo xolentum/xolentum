@@ -32,8 +32,8 @@
 #define MONERO_DEFAULT_LOG_CATEGORY "blockchain.hardforks"
 
 const hardfork_t mainnet_hard_forks[] = {
-  { 1, 1, 0, 1596630477 },
-  { 2, 2113,0, 1596651607 },
+  { 1, 1, 0, 1599487200 },
+  { 2, 2113,0, 1599613980 },
 };
 const size_t num_mainnet_hard_forks = sizeof(mainnet_hard_forks) / sizeof(mainnet_hard_forks[0]);
 const uint64_t mainnet_hard_fork_version_1_till = 2113;
