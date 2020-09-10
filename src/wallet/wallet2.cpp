@@ -11874,7 +11874,7 @@ uint64_t wallet2::get_approximate_blockchain_height() const
 {
   //TESORO-TODO: need to change this either when we know when the chain will launch
   //So we can get an accurate estimation of block height.
-  const time_t init_time = 1581473682;
+  const time_t init_time = 1599487200;
   uint64_t approx_blockchain_height = (time(NULL) - init_time) / DIFFICULTY_TARGET;
   LOG_PRINT_L2("Calculated blockchain height: " << approx_blockchain_height);
   return approx_blockchain_height;
