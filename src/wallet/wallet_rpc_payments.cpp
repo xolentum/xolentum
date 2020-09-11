@@ -1,21 +1,21 @@
-// Copyright (c) 2018-2019, The Monero Project
-// 
+// Copyright (c) 2018-2020, The Monero Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -85,7 +85,7 @@ bool wallet2::make_rpc_payment(uint32_t nonce, uint32_t cookie, uint64_t &credit
   uint64_t pre_call_credits = m_rpc_payment_state.credits;
   req.client = get_client_signature();
   epee::json_rpc::error error;
-  bool r = epee::net_utils::invoke_http_json_rpc("/json_rpc", "rpc_access_submit_nonce", req, res, error, m_http_client, rpc_timeout);
+  bool r = epee::net_utils::invoke_http_json_rpc("/json_rpc", "rpc_access_submit_nonce", req, res, error, *m_http_client, rpc_timeout);
   m_daemon_rpc_mutex.unlock();
   THROW_ON_RPC_RESPONSE_ERROR_GENERIC(r, error, res, "rpc_access_submit_nonce");
   THROW_WALLET_EXCEPTION_IF(res.credits < pre_call_credits, error::wallet_internal_error, "RPC payment did not increase balance");

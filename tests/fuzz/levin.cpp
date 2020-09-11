@@ -1,21 +1,21 @@
-// Copyright (c) 2017-2019, The Monero Project
-// 
+// Copyright (c) 2017-2020, The Monero Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -279,26 +279,10 @@ namespace
 #endif
 }
 
-class LevinFuzzer: public Fuzzer
-{
-public:
-  LevinFuzzer() {} //: handler(endpoint, config, context) {}
-  virtual int init();
-  virtual int run(const std::string &filename);
+BEGIN_INIT_SIMPLE_FUZZER()
+END_INIT_SIMPLE_FUZZER()
 
-private:
-  //epee::net_utils::connection_context_base context;
-  //epee::levin::async_protocol_handler<> handler;
-};
-
-int LevinFuzzer::init()
-{
-  return 0;
-}
-
-int LevinFuzzer::run(const std::string &filename)
-{
-  std::string s;
+BEGIN_SIMPLE_FUZZER()
 
 #if 0
   epee::levin::bucket_head2 req_head;
@@ -313,13 +297,6 @@ int LevinFuzzer::run(const std::string &filename)
   fwrite(&req_head,sizeof(req_head),1, f);
   fclose(f);
 #endif
-  if (!epee::file_io_utils::load_file_to_string(filename, s))
-  {
-    std::cout << "Error: failed to load file " << filename << std::endl;
-    return 1;
-  }
-  try
-  {
     //std::unique_ptr<test_connection> conn = new test();
     boost::asio::io_service io_service;
     test_levin_protocol_handler_config m_handler_config;
@@ -329,21 +306,5 @@ int LevinFuzzer::run(const std::string &filename)
     conn->start();
     //m_commands_handler.invoke_out_buf(expected_out_data);
     //m_commands_handler.return_code(expected_return_code);
-    conn->m_protocol_handler.handle_recv(s.data(), s.size());
-  }
-  catch (const std::exception &e)
-  {
-    std::cerr << "Failed to test http client: " << e.what() << std::endl;
-    return 1;
-  }
-  return 0;
-}
-
-int main(int argc, const char **argv)
-{
-  TRY_ENTRY();
-  LevinFuzzer fuzzer;
-  return run_fuzzer(argc, argv, fuzzer);
-  CATCH_ENTRY_L0("main", 1);
-}
-
+    conn->m_protocol_handler.handle_recv(buf, len);
+END_SIMPLE_FUZZER()

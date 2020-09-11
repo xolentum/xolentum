@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -363,18 +363,6 @@ std::vector<std::string> DNSResolver::get_txt_record(const std::string& url, boo
   return get_record(url, DNS_TYPE_TXT, txt_to_string, dnssec_available, dnssec_valid);
 }
 
-std::string DNSResolver::get_dns_format_from_oa_address(const std::string& oa_addr)
-{
-  std::string addr(oa_addr);
-  auto first_at = addr.find("@");
-  if (first_at == std::string::npos)
-    return addr;
-
-  // convert name@domain.tld to name.domain.tld
-  addr.replace(first_at, 1, ".");
-
-  return addr;
-}
 
 DNSResolver& DNSResolver::instance()
 {
@@ -450,8 +438,7 @@ std::vector<std::string> addresses_from_url(const std::string& url, bool& dnssec
   std::vector<std::string> addresses;
   // get txt records
   bool dnssec_available, dnssec_isvalid;
-  std::string oa_addr = DNSResolver::instance().get_dns_format_from_oa_address(url);
-  auto records = DNSResolver::instance().get_txt_record(oa_addr, dnssec_available, dnssec_isvalid);
+  auto records = DNSResolver::instance().get_txt_record(url, dnssec_available, dnssec_isvalid);
 
   // TODO: update this to allow for conveying that dnssec was not available
   if (dnssec_available && dnssec_isvalid)
@@ -525,7 +512,7 @@ bool load_txt_records_from_dns(std::vector<std::string> &good_records, const std
   for (size_t n = 0; n < dns_urls.size(); ++n)
   {
     tpool.submit(&waiter,[n, dns_urls, &records, &avail, &valid](){
-      records[n] = tools::DNSResolver::instance().get_txt_record(dns_urls[n], avail[n], valid[n]); 
+      records[n] = tools::DNSResolver::instance().get_txt_record(dns_urls[n], avail[n], valid[n]);
     });
   }
   waiter.wait(&tpool);

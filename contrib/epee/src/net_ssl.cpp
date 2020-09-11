@@ -1,21 +1,21 @@
 // Copyright (c) 2018, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -128,7 +128,7 @@ namespace net_utils
 // https://stackoverflow.com/questions/256405/programmatically-create-x509-certificate-using-openssl
 bool create_rsa_ssl_certificate(EVP_PKEY *&pkey, X509 *&cert)
 {
-  MGINFO("Generating SSL certificate");
+  MINFO("Generating SSL certificate");
   pkey = EVP_PKEY_new();
   if (!pkey)
   {
@@ -198,7 +198,7 @@ bool create_rsa_ssl_certificate(EVP_PKEY *&pkey, X509 *&cert)
 
 bool create_ec_ssl_certificate(EVP_PKEY *&pkey, X509 *&cert, int type)
 {
-  MGINFO("Generating SSL certificate");
+  MINFO("Generating SSL certificate");
   pkey = EVP_PKEY_new();
   if (!pkey)
   {
@@ -222,7 +222,7 @@ bool create_ec_ssl_certificate(EVP_PKEY *&pkey, X509 *&cert, int type)
   }
   openssl_group group_deleter{group};
 
-  EC_GROUP_set_asn1_flag(group, OPENSSL_EC_NAMED_CURVE); 
+  EC_GROUP_set_asn1_flag(group, OPENSSL_EC_NAMED_CURVE);
   EC_GROUP_set_point_conversion_form(group, POINT_CONVERSION_UNCOMPRESSED);
 
   if (!EC_GROUP_check(group, NULL))
@@ -289,7 +289,9 @@ ssl_options_t::ssl_options_t(std::vector<std::vector<std::uint8_t>> fingerprints
 
 boost::asio::ssl::context ssl_options_t::create_context() const
 {
-  boost::asio::ssl::context ssl_context{boost::asio::ssl::context::tlsv12};
+  // note: this enables a lot of old and insecure protocols, which we
+  // promptly disable below - if the result is actually used
+  boost::asio::ssl::context ssl_context{boost::asio::ssl::context::sslv23};
   if (!bool(*this))
     return ssl_context;
 
@@ -509,7 +511,7 @@ bool ssl_options_t::handshake(
         // autodetect will reconnect without SSL - warn and keep connection encrypted
         if (support != ssl_support_t::e_ssl_support_autodetect)
         {
-          MERROR("SSL certificate is not in the allowed list, connection droppped");
+          MERROR("SSL certificate is not in the allowed list, connection dropped");
           return false;
         }
         MWARNING("SSL peer has not been verified");
@@ -599,4 +601,3 @@ static void add_windows_root_certs(SSL_CTX *ctx) noexcept
     SSL_CTX_set_cert_store(ctx, store);
 }
 #endif
-

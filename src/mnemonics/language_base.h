@@ -1,21 +1,21 @@
-// Copyright (c) 2014-2019, The Monero Project
-// 
+// Copyright (c) 2014-2020, The Monero Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -28,7 +28,7 @@
 
 /*!
  * \file language_base.h
- * 
+ *
  * \brief Language Base class for Polymorphism.
  */
 
@@ -41,6 +41,7 @@
 #include <boost/algorithm/string.hpp>
 #include "misc_log_ex.h"
 #include "fnv1.h"
+#include "common/utf8.h"
 
 /*!
  * \namespace Language
@@ -73,78 +74,11 @@ namespace Language
     return prefix;
   }
 
-  template<typename T>
-  inline T utf8canonical(const T &s)
-  {
-    T sc = "";
-    size_t avail = s.size();
-    const char *ptr = s.data();
-    wint_t cp = 0;
-    int bytes = 1;
-    char wbuf[8], *wptr;
-    while (avail--)
-    {
-      if ((*ptr & 0x80) == 0)
-      {
-        cp = *ptr++;
-        bytes = 1;
-      }
-      else if ((*ptr & 0xe0) == 0xc0)
-      {
-        if (avail < 1)
-          throw std::runtime_error("Invalid UTF-8");
-        cp = (*ptr++ & 0x1f) << 6;
-        cp |= *ptr++ & 0x3f;
-        --avail;
-        bytes = 2;
-      }
-      else if ((*ptr & 0xf0) == 0xe0)
-      {
-        if (avail < 2)
-          throw std::runtime_error("Invalid UTF-8");
-        cp = (*ptr++ & 0xf) << 12;
-        cp |= (*ptr++ & 0x3f) << 6;
-        cp |= *ptr++ & 0x3f;
-        avail -= 2;
-        bytes = 3;
-      }
-      else if ((*ptr & 0xf8) == 0xf0)
-      {
-        if (avail < 3)
-          throw std::runtime_error("Invalid UTF-8");
-        cp = (*ptr++ & 0x7) << 18;
-        cp |= (*ptr++ & 0x3f) << 12;
-        cp |= (*ptr++ & 0x3f) << 6;
-        cp |= *ptr++ & 0x3f;
-        avail -= 3;
-        bytes = 4;
-      }
-      else
-        throw std::runtime_error("Invalid UTF-8");
-
-      cp = std::towlower(cp);
-      wptr = wbuf;
-      switch (bytes)
-      {
-        case 1: *wptr++ = cp; break;
-        case 2: *wptr++ = 0xc0 | (cp >> 6); *wptr++ = 0x80 | (cp & 0x3f); break;
-        case 3: *wptr++ = 0xe0 | (cp >> 12); *wptr++ = 0x80 | ((cp >> 6) & 0x3f); *wptr++ = 0x80 | (cp & 0x3f); break;
-        case 4: *wptr++ = 0xf0 | (cp >> 18); *wptr++ = 0x80 | ((cp >> 12) & 0x3f); *wptr++ = 0x80 | ((cp >> 6) & 0x3f); *wptr++ = 0x80 | (cp & 0x3f); break;
-        default: throw std::runtime_error("Invalid UTF-8");
-      }
-      *wptr = 0;
-      sc += T(wbuf, bytes);
-      cp = 0;
-      bytes = 1;
-    }
-    return sc;
-  }
-
   struct WordHash
   {
     std::size_t operator()(const epee::wipeable_string &s) const
     {
-      const epee::wipeable_string sc = utf8canonical(s);
+      const epee::wipeable_string sc = tools::utf8canonical(s, [](wint_t c) -> wint_t { return std::towlower(c); });
       return epee::fnv::FNV1a(sc.data(), sc.size());
     }
   };
@@ -153,8 +87,8 @@ namespace Language
   {
     bool operator()(const epee::wipeable_string &s0, const epee::wipeable_string &s1) const
     {
-      const epee::wipeable_string s0c = utf8canonical(s0);
-      const epee::wipeable_string s1c = utf8canonical(s1);
+      const epee::wipeable_string s0c = tools::utf8canonical(s0, [](wint_t c) -> wint_t { return std::towlower(c); });
+      const epee::wipeable_string s1c = tools::utf8canonical(s1, [](wint_t c) -> wint_t { return std::towlower(c); });
       return s0c == s1c;
     }
   };

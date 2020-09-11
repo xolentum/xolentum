@@ -1,21 +1,21 @@
-// Copyright (c) 2014-2019, The Monero Project
-// 
+// Copyright (c) 2014-2020, The Monero Project
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #include <boost/regex.hpp>
@@ -60,6 +60,7 @@
 #include "bulletproof.h"
 #include "crypto_ops.h"
 #include "multiexp.h"
+#include "sig_mlsag.h"
 
 namespace po = boost::program_options;
 
@@ -213,6 +214,8 @@ int main(int argc, char** argv)
   TEST_PERFORMANCE1(filter, p, test_cn_fast_hash, 32);
   TEST_PERFORMANCE1(filter, p, test_cn_fast_hash, 16384);
 
+  TEST_PERFORMANCE2(filter, p, test_sig_mlsag, 11, true); // MLSAG verification
+
   TEST_PERFORMANCE2(filter, p, test_ringct_mlsag, 11, false);
   TEST_PERFORMANCE2(filter, p, test_ringct_mlsag, 11, true);
 
@@ -254,13 +257,18 @@ int main(int argc, char** argv)
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_scalarmultKey);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_scalarmultH);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_scalarmult8);
+  TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_scalarmult8_p3);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_ge_dsm_precomp);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_ge_double_scalarmult_base_vartime);
+  TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_ge_triple_scalarmult_base_vartime);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_ge_double_scalarmult_precomp_vartime);
+  TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_ge_triple_scalarmult_precomp_vartime);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_ge_double_scalarmult_precomp_vartime2);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_addKeys2);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_addKeys3);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_addKeys3_2);
+  TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_addKeys_aGbBcC);
+  TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_addKeys_aAbBcC);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_isInMainSubgroup);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_zeroCommitUncached);
   TEST_PERFORMANCE1(filter, p, test_crypto_ops, op_zeroCommitCached);

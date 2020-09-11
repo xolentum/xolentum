@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2019, The Monero Project
+# Copyright (c) 2014-2020, The Monero Project
 #
 # All rights reserved.
 #
@@ -147,11 +147,6 @@ if (BUILD_GUI_DEPS)
     install(TARGETS wallet_merged
         ARCHIVE DESTINATION ${lib_folder})
 
-    install(FILES ${TREZOR_DEP_LIBS}
-            DESTINATION ${lib_folder})
-    file(WRITE "trezor_link_flags.txt" ${TREZOR_DEP_LINKER})
-    install(FILES "trezor_link_flags.txt"
-            DESTINATION ${lib_folder})
 endif()
 
 add_subdirectory(api)

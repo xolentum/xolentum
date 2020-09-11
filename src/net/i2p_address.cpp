@@ -1,4 +1,4 @@
-// Copyright (c) 2019, The Monero Project
+// Copyright (c) 2019-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -171,7 +171,8 @@ namespace net
 
     bool i2p_address::less(const i2p_address& rhs) const noexcept
     {
-        return std::strcmp(host_str(), rhs.host_str()) < 0 || port() < rhs.port();
+        int res = std::strcmp(host_str(), rhs.host_str());
+        return res < 0 || (res == 0 && port() < rhs.port());
     }
 
     bool i2p_address::is_same_host(const i2p_address& rhs) const noexcept

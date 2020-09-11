@@ -3,7 +3,7 @@
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 datadir=${dir}/db
-bindir=${dir}/builder/output/linux/release-aes/bin
+bindir=${dir}/build/Linux/prefix-test/release/bin
 
 function prep()
 {

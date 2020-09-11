@@ -55,8 +55,8 @@ RUN set -ex \
 ENV BOOST_ROOT /usr/local/boost_${BOOST_VERSION}
 
 # OpenSSL
-ARG OPENSSL_VERSION=1.1.1b
-ARG OPENSSL_HASH=5c557b023230413dfb0756f3137a13e6d726838ccd1430888ad15bfb2b43ea4b
+ARG OPENSSL_VERSION=1.1.1g
+ARG OPENSSL_HASH=ddb04774f1e32f0c49751e21b67216ac87852ceb056b75209af2443400636d46
 RUN set -ex \
     && curl -s -O https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz \
     && echo "${OPENSSL_HASH}  openssl-${OPENSSL_VERSION}.tar.gz" | sha256sum -c \
@@ -190,23 +190,22 @@ COPY --from=builder /src/build/release/bin /usr/local/bin/
 
 # Create xolentum user
 RUN adduser --system --group --disabled-password xolentum && \
-	mkdir -p /wallet /home/xolentum/.bitmonero && \
-	chown -R xolentum:xolentum /home/xolentum/.bitmonero && \
+	mkdir -p /wallet /home/xolentum/.xolentum && \
+	chown -R xolentum:xolentum /home/xolentum/.xolentum && \
 	chown -R xolentum:xolentum /wallet
 
 # Contains the blockchain
-VOLUME /home/xolentum/.bitmonero
+VOLUME /home/xolentum/.xolentum
 
 # Generate your wallet via accessing the container and run:
 # cd /wallet
 # xolentum-wallet-cli
 VOLUME /wallet
 
-EXPOSE 18080
-EXPOSE 18081
+EXPOSE 13579
+EXPOSE 13580
 
 # switch to user xolentum
 USER xolentum
 
-ENTRYPOINT ["monerod", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
-
+ENTRYPOINT ["xolentumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]

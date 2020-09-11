@@ -1,6 +1,6 @@
 // Copyright (c) 2006-2013, Andrey N. Sabelnikov, www.sabelnikov.net
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 // * Redistributions of source code must retain the above copyright
@@ -11,7 +11,7 @@
 // * Neither the name of the Andrey N. Sabelnikov nor the
 // names of its contributors may be used to endorse or promote products
 // derived from this software without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -22,7 +22,7 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 
 
 
@@ -43,11 +43,12 @@
 
 #ifdef HTTP_ENABLE_GZIP
 #include "gzip_encoding.h"
-#endif 
+#endif
 
 #include "string_tools.h"
 #include "reg_exp_definer.h"
-#include "http_base.h" 
+#include "abstract_http_client.h"
+#include "http_base.h"
 #include "http_auth.h"
 #include "to_nonconst_iterator.h"
 #include "net_parse_helpers.h"
@@ -68,7 +69,7 @@ namespace epee
 namespace net_utils
 {
 
-	/*struct url 
+	/*struct url
 	{
 	public:
 		void parse(const std::string& url_s)
@@ -105,140 +106,11 @@ namespace net_utils
 
 
 	//---------------------------------------------------------------------------
-	static inline const char* get_hex_vals()
-	{
-		static const char hexVals[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-		return hexVals;
-	}
-
-	static inline const char* get_unsave_chars()
-	{
-		//static char unsave_chars[] = "\"<>%\\^[]`+$,@:;/!#?=&";
-		static const char unsave_chars[] = "\"<>%\\^[]`+$,@:;!#&";
-		return unsave_chars;
-	}
-
-	static inline bool is_unsafe(unsigned char compare_char)
-	{
-		if(compare_char <= 32 || compare_char >= 123)
-			return true;
-
-		const char* punsave = get_unsave_chars();
-
-		for(int ichar_pos = 0; 0!=punsave[ichar_pos] ;ichar_pos++)
-			if(compare_char == punsave[ichar_pos])
-				return true;
-
-		return false;
-	}
-	
-	static inline 
-		std::string dec_to_hex(char num, int radix)
-	{
-		int temp=0;
-		std::string csTmp;
-		int num_char;
-
-		num_char = (int) num;
-		if (num_char < 0)
-			num_char = 256 + num_char;
-
-		while (num_char >= radix)
-		{
-			temp = num_char % radix;
-			num_char = (int)floor((float)num_char / (float)radix);
-			csTmp = get_hex_vals()[temp];
-		}
-
-		csTmp += get_hex_vals()[num_char];
-
-		if(csTmp.size() < 2)
-		{
-			csTmp += '0';
-		}
-		
-		std::reverse(csTmp.begin(), csTmp.end());
-		//_mbsrev((unsigned char*)csTmp.data());
-
-		return csTmp;
-	}
-	static inline int get_index(const char *s, char c) { const char *ptr = (const char*)memchr(s, c, 16); return ptr ? ptr-s : -1; }
-	static inline 
-		std::string hex_to_dec_2bytes(const char *s)
-	{
-		const char *hex = get_hex_vals();
-		int i0 = get_index(hex, toupper(s[0]));
-		int i1 = get_index(hex, toupper(s[1]));
-		if (i0 < 0 || i1 < 0)
-			return std::string("%") + std::string(1, s[0]) + std::string(1, s[1]);
-		return std::string(1, i0 * 16 | i1);
-	}
-
-	static inline std::string convert(char val)
-	{
-		std::string csRet;
-		csRet += "%";
-		csRet += dec_to_hex(val, 16);
-		return  csRet;
-	}
-	static inline std::string conver_to_url_format(const std::string& uri)
-	{
-
-		std::string result;
-
-		for(size_t i = 0; i!= uri.size(); i++)
-		{
-			if(is_unsafe(uri[i]))
-				result += convert(uri[i]);
-			else
-				result += uri[i];
-
-		}
-
-		return result;
-	}
-	static inline std::string convert_from_url_format(const std::string& uri)
-	{
-
-		std::string result;
-
-		for(size_t i = 0; i!= uri.size(); i++)
-		{
-			if(uri[i] == '%' && i + 2 < uri.size())
-			{
-				result += hex_to_dec_2bytes(uri.c_str() + i + 1);
-				i += 2;
-			}
-			else
-				result += uri[i];
-
-		}
-
-		return result;
-	}
-
-  static inline std::string convert_to_url_format_force_all(const std::string& uri)
-  {
-
-    std::string result;
-
-    for(size_t i = 0; i!= uri.size(); i++)
-    {
-        result += convert(uri[i]);
-    }
-
-    return result;
-  }
-
-
-
-
-
 	namespace http
 	{
 
 		template<typename net_client_type>
-		class http_simple_client_template: public i_target_handler
+		class http_simple_client_template : public i_target_handler, public abstract_http_client
 		{
 		private:
 			enum reciev_machine_state
@@ -279,7 +151,7 @@ namespace net_utils
 
 		public:
 			explicit http_simple_client_template()
-				: i_target_handler()
+				: i_target_handler(), abstract_http_client()
 				, m_net_client()
 				, m_host_buff()
 				, m_port()
@@ -299,26 +171,19 @@ namespace net_utils
 			const std::string &get_host() const { return m_host_buff; };
 			const std::string &get_port() const { return m_port; };
 
-			bool set_server(const std::string& address, boost::optional<login> user, ssl_options_t ssl_options = ssl_support_t::e_ssl_support_autodetect)
-			{
-				http::url_content parsed{};
-				const bool r = parse_url(address, parsed);
-				CHECK_AND_ASSERT_MES(r, false, "failed to parse url: " << address);
-				set_server(std::move(parsed.host), std::to_string(parsed.port), std::move(user), std::move(ssl_options));
-				return true;
-			}
+			using abstract_http_client::set_server;
 
-			void set_server(std::string host, std::string port, boost::optional<login> user, ssl_options_t ssl_options = ssl_support_t::e_ssl_support_autodetect)
+			void set_server(std::string host, std::string port, boost::optional<login> user, ssl_options_t ssl_options = ssl_support_t::e_ssl_support_autodetect) override
 			{
 				CRITICAL_REGION_LOCAL(m_lock);
 				disconnect();
 				m_host_buff = std::move(host);
 				m_port = std::move(port);
-                                m_auth = user ? http_client_auth{std::move(*user)} : http_client_auth{};
-				m_net_client.set_ssl(std::move(ssl_options));
+				m_auth = user ? http_client_auth{std::move(*user)} : http_client_auth{};
+			 	m_net_client.set_ssl(std::move(ssl_options));
 			}
 
-			void set_auto_connect(bool auto_connect)
+			void set_auto_connect(bool auto_connect) override
 			{
 				m_auto_connect = auto_connect;
 			}
@@ -330,19 +195,19 @@ namespace net_utils
 				m_net_client.set_connector(std::move(connector));
 			}
 
-      bool connect(std::chrono::milliseconds timeout)
+      bool connect(std::chrono::milliseconds timeout) override
       {
         CRITICAL_REGION_LOCAL(m_lock);
         return m_net_client.connect(m_host_buff, m_port, timeout);
       }
 			//---------------------------------------------------------------------------
-			bool disconnect()
+			bool disconnect() override
 			{
 				CRITICAL_REGION_LOCAL(m_lock);
 				return m_net_client.disconnect();
 			}
 			//---------------------------------------------------------------------------
-			bool is_connected(bool *ssl = NULL)
+			bool is_connected(bool *ssl = NULL) override
 			{
 				CRITICAL_REGION_LOCAL(m_lock);
 				return m_net_client.is_connected(ssl);
@@ -361,15 +226,14 @@ namespace net_utils
         return true;
       }
 			//---------------------------------------------------------------------------
-			inline 
-				bool invoke_get(const boost::string_ref uri, std::chrono::milliseconds timeout, const std::string& body = std::string(), const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list())
+			inline bool invoke_get(const boost::string_ref uri, std::chrono::milliseconds timeout, const std::string& body = std::string(), const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list()) override
 			{
 					CRITICAL_REGION_LOCAL(m_lock);
 					return invoke(uri, "GET", body, timeout, ppresponse_info, additional_params);
 			}
 
 			//---------------------------------------------------------------------------
-			inline bool invoke(const boost::string_ref uri, const boost::string_ref method, const std::string& body, std::chrono::milliseconds timeout, const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list())
+			inline bool invoke(const boost::string_ref uri, const boost::string_ref method, const std::string& body, std::chrono::milliseconds timeout, const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list()) override
 			{
 				CRITICAL_REGION_LOCAL(m_lock);
 				if(!is_connected())
@@ -442,7 +306,7 @@ namespace net_utils
 				return false;
 			}
 			//---------------------------------------------------------------------------
-			inline bool invoke_post(const boost::string_ref uri, const std::string& body, std::chrono::milliseconds timeout, const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list())
+			inline bool invoke_post(const boost::string_ref uri, const std::string& body, std::chrono::milliseconds timeout, const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list()) override
 			{
 				CRITICAL_REGION_LOCAL(m_lock);
 				return invoke(uri, "POST", body, timeout, ppresponse_info, additional_params);
@@ -456,17 +320,22 @@ namespace net_utils
 				return handle_reciev(timeout);
 			}
 			//---------------------------------------------------------------------------
-			uint64_t get_bytes_sent() const
+			uint64_t get_bytes_sent() const override
 			{
 				return m_net_client.get_bytes_sent();
 			}
 			//---------------------------------------------------------------------------
-			uint64_t get_bytes_received() const
+			uint64_t get_bytes_received() const override
 			{
 				return m_net_client.get_bytes_received();
 			}
 			//---------------------------------------------------------------------------
-		private: 
+			void wipe_response()
+			{
+				m_response_info.wipe();
+			}
+			//---------------------------------------------------------------------------
+		private:
 			//---------------------------------------------------------------------------
 			inline bool handle_reciev(std::chrono::milliseconds timeout)
 			{
@@ -534,7 +403,7 @@ namespace net_utils
 			inline
 				bool handle_header(std::string& recv_buff, bool& need_more_data)
 			{
- 
+
 				CRITICAL_REGION_LOCAL(m_lock);
         if(!recv_buff.size())
         {
@@ -645,7 +514,7 @@ namespace net_utils
 							continue;
 						}
 						else if(*it == '\n')
-						{	
+						{
 							std::string chunk_head = buff.substr(0, offset);
 							if(!get_len_from_chunk_head(chunk_head, chunk_size))
 								return false;
@@ -675,7 +544,7 @@ namespace net_utils
 
 							buff.erase(buff.begin(), ++it);
 
-							is_matched = true;				
+							is_matched = true;
 							return true;
 						}
 						else
@@ -897,14 +766,14 @@ namespace net_utils
           return false;
 #endif
 				}
-				else 
+				else
 				{
 					m_pcontent_encoding_handler.reset(new do_nothing_sub_handler(this));
 				}
 
 				return true;
 			}
-			inline	
+			inline
 				bool analize_cached_header_and_invoke_state()
 			{
 				m_response_info.clear();
@@ -923,8 +792,8 @@ namespace net_utils
 
 
 
-				if(!m_len_in_summary && ((m_response_info.m_response_code>=100&&m_response_info.m_response_code<200) 
-					|| 204 == m_response_info.m_response_code 
+				if(!m_len_in_summary && ((m_response_info.m_response_code>=100&&m_response_info.m_response_code<200)
+					|| 204 == m_response_info.m_response_code
 					|| 304 == m_response_info.m_response_code) )
 				{//There will be no response body, server will display the local page with error
 					m_state = reciev_machine_state_done;
@@ -943,7 +812,7 @@ namespace net_utils
 					return true;
 				}
 				else if(!m_response_info.m_header_info.m_content_length.empty())
-				{ 
+				{
 					//In the response header the length was specified
 					if(!content_len_valid)
 					{
@@ -975,10 +844,10 @@ namespace net_utils
 					m_state = reciev_machine_state_error;
 					MERROR("Undefined transfer type, consider http_body_transfer_connection_close method. header: " << m_header_cache);
 					return false;
-				} 
+				}
 				return false;
 			}
-			inline 
+			inline
 				bool is_connection_close_field(const std::string& str)
 			{
 				STATIC_REGEXP_EXPR_1(rexp_match_close, "^\\s*close", boost::regex::icase | boost::regex::normal);
@@ -1002,7 +871,7 @@ namespace net_utils
 						boundary = result[6];
 					else if(result[7].matched)
 						boundary = result[7];
-					else 
+					else
 					{
 						LOG_ERROR("Failed to match boundary in content-type=" << head_info.m_content_type);
 						return false;
@@ -1016,6 +885,14 @@ namespace net_utils
 			}
 		};
 		typedef http_simple_client_template<blocked_mode_client> http_simple_client;
+
+    class http_simple_client_factory : public http_client_factory
+    {
+    public:
+      std::unique_ptr<abstract_http_client> create() override {
+        return std::unique_ptr<epee::net_utils::http::abstract_http_client>(new epee::net_utils::http::http_simple_client());
+      }
+    };
 	}
 }
 }

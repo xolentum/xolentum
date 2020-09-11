@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019, The Monero Project
+// Copyright (c) 2014-2020, The Monero Project
 //
 // All rights reserved.
 //
@@ -30,6 +30,7 @@
 
 #pragma once
 #include <boost/asio/io_service.hpp>
+#include <boost/function/function_fwd.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/list.hpp>
@@ -76,11 +77,11 @@ namespace cryptonote
     db_nosync //!< Leave syncing up to the backing db (safest, but slowest because of disk I/O)
   };
 
-  /** 
+  /**
    * @brief Callback routine that returns checkpoints data for specific network type
-   * 
+   *
    * @param network network type
-   * 
+   *
    * @return checkpoints data, empty span if there ain't any checkpoints for specific network type
    */
   typedef std::function<const epee::span<const unsigned char>(cryptonote::network_type network)> GetCheckpointsCallback;
@@ -308,6 +309,22 @@ namespace cryptonote
      * @return the target
      */
     difficulty_type get_difficulty_for_next_block();
+
+    /**
+    * @brief check currently stored difficulties against difficulty checkpoints
+    *
+    * @return {flag, height} flag: true if all difficulty checkpoints pass, height: the last checkpoint height before the difficulty drift bug starts
+    */
+    std::pair<bool, uint64_t> check_difficulty_checkpoints() const;
+
+    /**
+    * @brief recalculate difficulties for blocks after the last difficulty checkpoints to circumvent the annoying 'difficulty drift' bug
+    *
+    * @param start_height: if omitted, starts recalculation from the last difficulty checkpoint
+    *
+    * @return number of blocks whose difficulties got corrected
+    */
+    size_t recalculate_difficulties(boost::optional<uint64_t> start_height = boost::none);
 
     /**
      * @brief adds a block to the blockchain
@@ -748,7 +765,7 @@ namespace cryptonote
      *
      * @param notify the notify object to call at every new block
      */
-    void set_block_notify(const std::shared_ptr<tools::Notify> &notify) { m_block_notify = notify; }
+     void add_block_notify(boost::function<void(std::uint64_t, epee::span<const block>)> &&notify);
 
     /**
      * @brief sets a reorg notify object to call for every reorg
@@ -768,6 +785,13 @@ namespace cryptonote
      * @param stats the new time stats setting
      */
     void set_show_time_stats(bool stats) { m_show_time_stats = stats; }
+
+    /**
+     * @brief gets the hardfork voting state object
+     *
+     * @return the HardFork object
+     */
+    HardFork::State get_hard_fork_state() const;
 
     /**
      * @brief gets the current hardfork version in use/voted for
@@ -826,7 +850,7 @@ namespace cryptonote
      * @param earliest_height the earliest height at which <version> is allowed
      * @param voting which version this node is voting for/using
      *
-     * @return whether the version queried is enabled 
+     * @return whether the version queried is enabled
      */
     bool get_hard_fork_voting_info(uint8_t version, uint32_t &window, uint32_t &votes, uint32_t &threshold, uint64_t &earliest_height, uint8_t &voting) const;
 
@@ -1010,6 +1034,11 @@ namespace cryptonote
      */
     bool has_block_weights(uint64_t height, uint64_t nblocks) const;
 
+    /**
+     * @brief flush the invalid blocks set
+     */
+    void flush_invalid_blocks();
+
 #ifndef IN_UNIT_TESTS
   private:
 #endif
@@ -1020,6 +1049,7 @@ namespace cryptonote
     typedef std::vector<block_extended_info> blocks_container;
 
     typedef std::unordered_map<crypto::hash, block_extended_info> blocks_ext_by_hash;
+
 
     BlockchainDB* m_db;
 
@@ -1054,6 +1084,7 @@ namespace cryptonote
     std::vector<uint64_t> m_timestamps;
     std::vector<difficulty_type> m_difficulties;
     uint64_t m_timestamps_and_difficulties_height;
+    bool m_reset_timestamps_and_difficulties_height;
     uint64_t m_long_term_block_weights_window;
     uint64_t m_long_term_effective_median_block_weight;
     mutable crypto::hash m_long_term_block_weights_cache_tip_hash;
@@ -1095,7 +1126,11 @@ namespace cryptonote
 
     bool m_batch_success;
 
-    std::shared_ptr<tools::Notify> m_block_notify;
+    /* `boost::function` is used because the implementation never allocates if
+        the callable object has a single `std::shared_ptr` or `std::weap_ptr`
+        internally. Whereas, the libstdc++ `std::function` will allocate. */
+
+    std::vector<boost::function<void(std::uint64_t, epee::span<const block>)>> m_block_notifiers;
     std::shared_ptr<tools::Notify> m_reorg_notify;
 
     // for prepare_handle_incoming_blocks
@@ -1199,10 +1234,11 @@ namespace cryptonote
      *
      * @param bl the block to be added
      * @param bvc metadata concerning the block's validity
+     * @param notify if set to true, sends new block notification on success
      *
      * @return true if the block was added successfully, otherwise false
      */
-    bool handle_block_to_main_chain(const block& bl, block_verification_context& bvc);
+    bool handle_block_to_main_chain(const block& bl, block_verification_context& bvc, bool notify = true);
 
     /**
      * @brief validate and add a new block to the end of the blockchain
@@ -1214,10 +1250,11 @@ namespace cryptonote
      * @param bl the block to be added
      * @param id the hash of the block
      * @param bvc metadata concerning the block's validity
+     * @param notify if set to true, sends new block notification on success
      *
      * @return true if the block was added successfully, otherwise false
      */
-    bool handle_block_to_main_chain(const block& bl, const crypto::hash& id, block_verification_context& bvc);
+    bool handle_block_to_main_chain(const block& bl, const crypto::hash& id, block_verification_context& bvc, bool notify = true);
 
     /**
      * @brief validate and add a new block to an alternate blockchain
@@ -1456,7 +1493,7 @@ namespace cryptonote
      * A (possibly empty) set of block hashes can be compiled into the
      * xolentum daemon binary.  This function loads those hashes into
      * a useful state.
-     * 
+     *
      * @param get_checkpoints if set, will be called to get checkpoints data
      */
     void load_compiled_in_block_hashes(const GetCheckpointsCallback& get_checkpoints);
