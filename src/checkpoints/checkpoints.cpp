@@ -247,7 +247,7 @@ namespace cryptonote
     static const std::vector<std::string> stagenet_dns_urls = { };
 
     if (!tools::dns_utils::load_txt_records_from_dns(records, nettype == TESTNET ? testnet_dns_urls : nettype == STAGENET ? stagenet_dns_urls : dns_urls))
-      return true; // why true ?
+    //  return true; // why true ?
 
     for (const auto& record : records)
     {
@@ -276,7 +276,7 @@ namespace cryptonote
         ADD_CHECKPOINT(height, hashStr);
       }
     }
-    return true;
+    return false;
   }
 
   bool checkpoints::load_new_checkpoints(const std::string &json_hashfile_fullpath, network_type nettype, bool dns)
