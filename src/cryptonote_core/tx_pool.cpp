@@ -153,6 +153,19 @@ namespace cryptonote
       return false;
     }
 
+    if(m_blockchain.get_current_hard_fork_version()>=HF_VERSION_TX_POW_ENABLE){
+      if(!m_blockchain.check_tx_pow(tx,tvc)){
+        LOG_PRINT_L1("PoW verification failed");
+        return false;
+      }
+    }
+    else{
+      if(tx.version>1){
+        LOG_PRINT_L1("Could not allow tx version >= 2 when tx pow is not enabled");
+        tvc.m_verifivation_failed=true;
+        return false;
+      }
+    }
     // fee per kilobyte, size rounded up.
     uint64_t fee = tx.rct_signatures.txnFee;
 

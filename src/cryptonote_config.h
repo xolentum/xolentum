@@ -155,6 +155,8 @@
 //have some chain established before it can be used
 #define HF_VERSION_LONG_TERM_BLOCK_WEIGHT       2
 #define HF_VERSION_EFFECTIVE_SHORT_TERM_MEDIAN_IN_PENALTY 2
+#define HF_VERSION_TX_POW_ENABLE                3
+#define HF_VERSION_TX_POW_MANDATORY             4
 
 #define HASH_OF_HASHES_STEP                     512
 
@@ -175,6 +177,8 @@
 
 #define DEFAULT_MIXIN                           4
 #define DEFAULT_RINGSIZE                        DEFAULT_MIXIN + 1
+
+#define TX_POW_DIFF_V1                          1000
 
 // New constants are intended to go here
 namespace config

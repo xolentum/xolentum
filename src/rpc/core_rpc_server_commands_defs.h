@@ -590,6 +590,7 @@ namespace cryptonote
       bool fee_too_low;
       bool too_few_outputs;
       bool sanity_check_failed;
+      bool bad_pow;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_access_response_base)
@@ -604,6 +605,7 @@ namespace cryptonote
         KV_SERIALIZE(fee_too_low)
         KV_SERIALIZE(too_few_outputs)
         KV_SERIALIZE(sanity_check_failed)
+        KV_SERIALIZE(bad_pow);
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

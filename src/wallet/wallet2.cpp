@@ -238,6 +238,8 @@ namespace
         add_reason(reason, "tx sanity check failed");
       if (res.not_relayed)
         add_reason(reason, "tx was not relayed");
+      if(res.bad_pow)
+        add_reason(reason, "bad PoW");
       return reason;
   }
 
@@ -6472,7 +6474,12 @@ crypto::hash wallet2::get_payment_id(const pending_tx &ptx) const
 void wallet2::commit_tx(pending_tx& ptx)
 {
   using namespace cryptonote;
+  /*
+  *Todo: add PoW miner here
+  */
+  if(ptx.tx.version>=2){
 
+  }
   if(m_light_wallet)
   {
     cryptonote::COMMAND_RPC_SUBMIT_RAW_TX::request oreq;

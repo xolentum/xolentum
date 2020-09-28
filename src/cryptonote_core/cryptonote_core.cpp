@@ -826,7 +826,7 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
 
     uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = 1;
+    const size_t max_tx_version = 2;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
       MERROR_VER("Bad tx version (" << tx.version << ", max is " << max_tx_version << ")");
