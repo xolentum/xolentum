@@ -1132,7 +1132,7 @@ namespace cryptonote
     CHECK_AND_ASSERT_MES(const_cast<cryptonote::transaction&>(t).serialize_base(ba),true,"Could not serialize pruned tx for PoW");
     std::string pruned = ss.str();
     //we got the blob here
-    res = cn_fast_hash(pruned.c_str(),pruned.size(),res);
+    cn_fast_hash(pruned.c_str(),pruned.size(),res);
     return true;
   }
   //---------------------------------------------------------------
