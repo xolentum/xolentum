@@ -616,8 +616,12 @@ namespace nodetool
     }
     else
     {
-      full_addrs.insert("184.67.59.50:13579"); //0
-      full_addrs.insert("184.67.59.54:13579"); //1
+      full_addrs.insert("107.172.25.164:13579"); // @sohamb03
+      full_addrs.insert("5.253.86.49:13579"); // @sohamb03
+      full_addrs.insert("144.91.98.15:13579"); // @CyberStacker
+      full_addrs.insert("168.138.200.216:13579"); // @sakura
+      full_addrs.insert("161.97.81.2:13579"); //@greywolf
+      full_addrs.insert("64.140.150.22:13579"); //@zarlo
     }
     return full_addrs;
   }
