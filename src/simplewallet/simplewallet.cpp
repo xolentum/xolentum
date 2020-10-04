@@ -10227,9 +10227,13 @@ int main(int argc, char* argv[])
   // Activate UTF-8 support for Boost filesystem classes on Windows
   std::locale::global(boost::locale::generator().generate(""));
   boost::filesystem::path::imbue(std::locale());
-#endif
+  SetConsoleCP( CP_UTF8 );
+  SetConsoleOutputCP( CP_UTF8 );
+  setvbuf( stdout, nullptr, _IONBF, 0 );
+  setlocale(LC_ALL,".UTF8");
+#else
   setlocale(LC_CTYPE, "");
-
+#endif
   po::options_description desc_params(wallet_args::tr("Wallet options"));
   tools::wallet2::init_options(desc_params);
   command_line::add_arg(desc_params, arg_wallet_file);

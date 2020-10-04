@@ -32,15 +32,26 @@
 #include <cwchar>
 #include <stdexcept>
 
+#ifndef _WINT_T_INTERNAL
+#warning "Using internal typedefs for wint_t"
+#ifdef _WIN32
+/*BUG in mingw that make wint_t as int16_t so we must override it*/
+#define _WINT_T_INTERNAL int
+#warning "Overriding wint_t as int due to the bug"
+#else
+#define _WINT_T_INTERNAL wint_t
+#endif
+#endif
+
 namespace tools
 {
   template<typename T, typename Transform>
-  inline T utf8canonical(const T &s, Transform t = [](wint_t c)->wint_t { return c; })
+  inline T utf8canonical(const T &s, Transform t = [](_WINT_T_INTERNAL c)->_WINT_T_INTERNAL { return c; })
   {
     T sc = "";
     size_t avail = s.size();
     const char *ptr = s.data();
-    wint_t cp = 0;
+    _WINT_T_INTERNAL cp = 0;
     int bytes = 1;
     char wbuf[8], *wptr;
     while (avail--)
