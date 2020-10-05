@@ -890,29 +890,6 @@ uint64_t estimate_tx_weight(bool use_rct, int n_inputs, int mixin, int n_outputs
   return size;
 }
 
-uint8_t get_bulletproof_fork()
-{
-  return 1;
-}
-uint8_t get_clsag_fork()
-{
-  return 1;
-}
-
-uint64_t estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
- {
-   if (use_per_byte_fee)
-   {
-     const size_t estimated_tx_weight = estimate_tx_weight(use_rct, n_inputs, mixin, n_outputs, extra_size, bulletproof, clsag);
-     return calculate_fee_from_weight(base_fee, estimated_tx_weight, fee_multiplier, fee_quantization_mask);
-   }
-   else
-   {
-    const size_t estimated_tx_size = estimate_tx_size(use_rct, n_inputs, mixin, n_outputs, extra_size, bulletproof, clsag);
-   return calculate_fee(base_fee, estimated_tx_size, fee_multiplier);
- }
-}
-
 uint64_t calculate_fee(bool use_per_byte_fee, const cryptonote::transaction &tx, size_t blob_size, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
 {
   if (use_per_byte_fee)
