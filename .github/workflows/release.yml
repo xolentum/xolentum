@@ -15,12 +15,12 @@ jobs:
     - name: Update brew and install Xolentum dependencies
       run: brew update && brew install boost hidapi zmq libpgm miniupnpc ldns expat libunwind-headers protobuf
     - name: Build
-      run: make release-static  -j3
+      run: USE_SINGLE_DIR=1 make release-static  -j3
     - name: Upload Mac artifacts
       uses: actions/upload-artifact@master
       with:
         name: MacOS
-        path: 'build/**/**/xolentum*'
+        path: 'build/**/**/**/bin/xolentum*'
 
 
   release-windows:
@@ -35,12 +35,12 @@ jobs:
     - name: Install Xolentum dependencies
       run: msys2do pacman -S --needed --noconfirm mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium mingw-w64-x86_64-hidapi mingw-w64-x86_64-protobuf-c mingw-w64-x86_64-libusb git
     - name: Build
-      run: msys2do make release-static-win64 -j3
+      run: USE_SINGLE_DIR=1 msys2do make release-static-win64 -j3
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@master
       with:
         name: Windows
-        path: 'build/**/**/xolentum*'
+        path: 'build/**/**/**/bin/xolentum*'
 
   release-ubuntu:
     runs-on: ubuntu-latest
@@ -60,9 +60,9 @@ jobs:
     - name: Install Xolentum dependencies
       run: sudo apt -y install build-essential cmake libboost-all-dev miniupnpc libunbound-dev graphviz doxygen libunwind8-dev pkg-config libssl-dev libzmq3-dev libsodium-dev libhidapi-dev libnorm-dev libusb-1.0-0-dev libpgm-dev libprotobuf-dev protobuf-compiler
     - name: Build
-      run: make relelease-static -j3
+      run: USE_SINGLE_DIR=1 make relelease-static -j3
     - name: Upload Linux artifacts
       uses: actions/upload-artifact@master
       with:
         name: Linux
-        path: 'build/**/**/xolentum*'
+        path: 'build/**/**/**/bin/xolentum*'
