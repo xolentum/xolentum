@@ -35,7 +35,7 @@ jobs:
     - name: Install Xolentum dependencies
       run: msys2do pacman -S --needed --noconfirm mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium mingw-w64-x86_64-hidapi mingw-w64-x86_64-protobuf-c mingw-w64-x86_64-libusb git
     - name: Build
-      run: mysys2do USE_SINGLE_DIR=1 make release-static-win64 -j2
+      run: msys2do USE_SINGLE_DIR=1 make release-static-win64 -j2
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@master
       with:
