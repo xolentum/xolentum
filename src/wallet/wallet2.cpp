@@ -81,6 +81,7 @@ using namespace epee;
 #include "ringdb.h"
 #include "device/device_cold.hpp"
 #include "net/socks_connect.h"
+#include "tx_pow_miner.h"
 
 extern "C"
 {
@@ -817,7 +818,7 @@ size_t estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs, size_t extra
   // tx prefix
 
   // first few bytes
-  size += 1 + 6;
+  size += 1 + 6 + 4 /*nonce*/;
 
   // vin
   size += n_inputs * (1+6+(mixin+1)*2+32);
@@ -6478,7 +6479,10 @@ void wallet2::commit_tx(pending_tx& ptx)
   *Todo: add PoW miner here
   */
   if(ptx.tx.version>=2){
-
+    LOG_PRINT_L1("Mining is started to produce PoW needed for transaction submission");
+    tx_pow_miner miner;
+    miner.start(ptx.tx,TX_POW_DIFF_V1);
+    miner.wait_for_result(ptx.tx);
   }
   if(m_light_wallet)
   {
@@ -7187,7 +7191,7 @@ bool wallet2::sign_multisig_tx(multisig_tx_set &exported_txs, std::vector<crypto
     rct::multisig_out msout = ptx.multisig_sigs.front().msout;
     auto sources = sd.sources;
     rct::RCTConfig rct_config = sd.rct_config;
-    bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources, sd.splitted_dsts, ptx.change_dts.addr, sd.extra, tx, sd.unlock_time, ptx.tx_key, ptx.additional_tx_keys, sd.use_rct, rct_config, &msout, false);
+    bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources, sd.splitted_dsts, ptx.change_dts.addr, sd.extra, tx, sd.unlock_time, ptx.tx_key, ptx.additional_tx_keys, sd.use_rct, rct_config, &msout, false,use_fork_rules(HF_VERSION_TX_POW_ENABLE, 5));
     THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sd.sources, sd.splitted_dsts, sd.unlock_time, m_nettype);
 
     THROW_WALLET_EXCEPTION_IF(get_transaction_prefix_hash (tx) != get_transaction_prefix_hash(ptx.tx),
@@ -8885,7 +8889,7 @@ void wallet2::transfer_selected_rct(std::vector<cryptonote::tx_destination_entry
         LOG_PRINT_L2("Creating supplementary multisig transaction");
         cryptonote::transaction ms_tx;
         auto sources_copy_copy = sources_copy;
-        bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources_copy_copy, splitted_dsts, change_dts.addr, extra, ms_tx, unlock_time,tx_key, additional_tx_keys, true, rct_config, &msout, false);
+        bool r = cryptonote::construct_tx_with_tx_key(m_account.get_keys(), m_subaddresses, sources_copy_copy, splitted_dsts, change_dts.addr, extra, ms_tx, unlock_time,tx_key, additional_tx_keys, true, rct_config, &msout, false,use_fork_rules(HF_VERSION_TX_POW_ENABLE, 5));
         LOG_PRINT_L2("constructed tx, r="<<r);
         THROW_WALLET_EXCEPTION_IF(!r, error::tx_not_constructed, sources, splitted_dsts, unlock_time, m_nettype);
         THROW_WALLET_EXCEPTION_IF(upper_transaction_weight_limit <= get_transaction_weight(tx), error::tx_too_big, tx, upper_transaction_weight_limit);
