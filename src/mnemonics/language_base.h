@@ -78,7 +78,7 @@ namespace Language
   {
     std::size_t operator()(const epee::wipeable_string &s) const
     {
-      const epee::wipeable_string sc = tools::utf8canonical(s, [](wint_t c) -> wint_t { return std::towlower(c); });
+      const epee::wipeable_string sc = tools::utf8canonical(s, [](_WINT_T_INTERNAL c) -> _WINT_T_INTERNAL { return std::towlower(c); });
       return epee::fnv::FNV1a(sc.data(), sc.size());
     }
   };
@@ -87,8 +87,8 @@ namespace Language
   {
     bool operator()(const epee::wipeable_string &s0, const epee::wipeable_string &s1) const
     {
-      const epee::wipeable_string s0c = tools::utf8canonical(s0, [](wint_t c) -> wint_t { return std::towlower(c); });
-      const epee::wipeable_string s1c = tools::utf8canonical(s1, [](wint_t c) -> wint_t { return std::towlower(c); });
+      const epee::wipeable_string s0c = tools::utf8canonical(s0, [](_WINT_T_INTERNAL c) -> _WINT_T_INTERNAL { return std::towlower(c); });
+      const epee::wipeable_string s1c = tools::utf8canonical(s1, [](_WINT_T_INTERNAL c) -> _WINT_T_INTERNAL { return std::towlower(c); });
       return s0c == s1c;
     }
   };

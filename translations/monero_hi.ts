@@ -11,7 +11,7 @@
     <message>
         <location filename="../src/wallet/api/address_book.cpp" line="60"/>
         <source>Payment ID supplied: this is obsolete</source>
-        <translation type="unfinished"></translation>
+        <translation>भुगतान की गई आईडी: यह अप्रचलित है</translation>
     </message>
 </context>
 <context>
@@ -324,12 +324,12 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1443"/>
         <source>Destinations and amounts are unequal</source>
-        <translation type="unfinished"></translation>
+        <translation>गंतव्य और राशियाँ असमान हैं</translation>
     </message>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1451"/>
         <source>payment id has invalid format, expected 64 character hex string: </source>
-        <translation type="unfinished"></translation>
+        <translation>भुगतान आईडी में अमान्य प्रारूप है, उम्मीद है कि 64 वर्ण हेक्स स्ट्रिंग:</translation>
     </message>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1459"/>
@@ -339,12 +339,12 @@
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1465"/>
         <source>a single transaction cannot use more than one payment id</source>
-        <translation type="unfinished"></translation>
+        <translation>एक एकल लेनदेन एक से अधिक भुगतान आईडी का उपयोग नहीं कर सकता है</translation>
     </message>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="1491"/>
         <source>failed to set up payment id, though it was decoded correctly</source>
-        <translation type="unfinished"></translation>
+        <translation>भुगतान आईडी सेट करने में विफल, हालाँकि इसे सही ढंग से डिकोड किया गया था</translation>
     </message>
     <message>
         <location filename="../src/wallet/api/wallet.cpp" line="2307"/>
@@ -567,17 +567,17 @@
     <message>
         <location filename="../src/rpc/rpc_args.cpp" line="93"/>
         <source>Specify IPv6 address to bind RPC server</source>
-        <translation type="unfinished"></translation>
+        <translation>RPC सर्वर को बांधने के लिए IPv6 पता निर्दिष्ट करें</translation>
     </message>
     <message>
         <location filename="../src/rpc/rpc_args.cpp" line="94"/>
         <source>Allow IPv6 for RPC</source>
-        <translation type="unfinished"></translation>
+        <translation>RPC के लिए IPv6 की अनुमति दें</translation>
     </message>
     <message>
         <location filename="../src/rpc/rpc_args.cpp" line="95"/>
         <source>Ignore unsuccessful IPv4 bind for RPC</source>
-        <translation type="unfinished"></translation>
+        <translation>RPC के लिए असफल IPv4 को अनदेखा करें</translation>
     </message>
     <message>
         <location filename="../src/rpc/rpc_args.cpp" line="96"/>
@@ -607,7 +607,7 @@
     <message>
         <location filename="../src/rpc/rpc_args.cpp" line="101"/>
         <source>Path to a PEM format certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>एक पीईएम प्रारूप प्रमाण पत्र के लिए पथ</translation>
     </message>
     <message>
         <location filename="../src/rpc/rpc_args.cpp" line="102"/>

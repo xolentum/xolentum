@@ -717,7 +717,7 @@ std::string message_store::get_sanitized_text(const std::string &text, size_t ma
 
   try
   {
-    sanitized_text = tools::utf8canonical(sanitized_text, [](wint_t c)
+    sanitized_text = tools::utf8canonical(sanitized_text, [](_WINT_T_INTERNAL c)
     {
       if ((c < 0x20) || (c == 0x7f) || (c >= 0x80 && c <= 0x9f))
       {
