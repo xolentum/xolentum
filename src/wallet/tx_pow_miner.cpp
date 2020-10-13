@@ -26,7 +26,9 @@
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "wallet/tx_pow_miner.h"
-#include "difficulty.h"
+#include <boost/interprocess/detail/atomic.hpp>
+#include "cryptonote_basic/cryptonote_format_utils.h"
+#include "misc_language.h"
 
 namespace cryptonote{
   tx_pow_miner::tx_pow_miner():m_stop(0),
@@ -36,7 +38,7 @@ namespace cryptonote{
     m_attrs.set_stack_size(THREAD_STACK_SIZE);
   }
   tx_pow_miner::~tx_pow_miner(){
-    try{terminate()}catch(...){}
+    try{terminate();}catch(...){}
   }
   void tx_pow_miner::start(cryptonote::transaction& tx,difficulty_type difficulty){
     if(m_threads_active)
@@ -52,7 +54,7 @@ namespace cryptonote{
     CRITICAL_REGION_LOCAL(m_threads_lock);//we are going to modify the threads structures, lock it down
     boost::interprocess::ipcdetail::atomic_write32(&m_stop, 0);
     boost::interprocess::ipcdetail::atomic_write32(&m_thread_index, 0);
-    for(size_t i = 0; i != cores; i++)
+    for(size_t i = 0; i != m_threads_total; i++)
     {
       m_threads.push_back(boost::thread(m_attrs, boost::bind(&tx_pow_miner::worker, this)));
     }
@@ -76,18 +78,18 @@ namespace cryptonote{
         //set the value
         m_starter_nonce=nonce;
         m_post_result=true;
-        CRITICAL_REGION_END(m_state_lock);
+        CRITICAL_REGION_END();
         stop_signal();//stop the miner
       }
       nonce+=m_threads_total;
     }
     --m_threads_active;
   }
-  void tx_pow_miner::stop(){
+  void tx_pow_miner::terminate(){
     stop_signal();
     while (m_threads_active > 0)
     {
-      misc_utils::sleep_no_w(100);
+      epee::misc_utils::sleep_no_w(100);
     }
     m_threads.clear();
   }
@@ -97,7 +99,7 @@ namespace cryptonote{
   void tx_pow_miner::wait_for_result(cryptonote::transaction& tx){
     while (m_threads_active > 0)
     {
-      misc_utils::sleep_no_w(100);
+      epee::misc_utils::sleep_no_w(100);
     }
     m_threads.clear();
     if(m_post_result)

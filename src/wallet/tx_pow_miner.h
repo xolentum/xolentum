@@ -25,10 +25,12 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#pragma once
 #include <boost/logic/tribool_fwd.hpp>
 #include <atomic>
 #include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/difficulty.h"
+#include "math_helper.h"
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -57,14 +59,13 @@ namespace cryptonote{
       void worker();
       //used by thread to submit correct hash
       epee::critical_section m_state_lock;
-      uint32 m_starter_nonce;
+      uint32_t m_starter_nonce;
       boost::thread::attributes m_attrs;
       difficulty_type m_diffic;
       volatile uint32_t m_stop;
       //used by threads on index management and counter
       epee::critical_section m_threads_lock;
       std::list<boost::thread> m_threads;
-      volatile uint32_t m_threads;
       volatile uint32_t m_thread_index;
       volatile uint32_t m_threads_active;
       std::atomic<bool> m_post_result;

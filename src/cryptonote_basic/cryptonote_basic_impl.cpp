@@ -79,7 +79,7 @@ namespace cryptonote {
   //-----------------------------------------------------------------------------------------------
   bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
 
-    if(version >= 3)
+    if(version >= HF_VERSION_BLOCK_REWARD_2)
     reward = BLOCK_REWARD_V2;
     else
     reward = BLOCK_REWARD;
@@ -178,7 +178,7 @@ namespace cryptonote {
         info.has_payment_id = false;
       }
       else {
-        LOG_PRINT_L1("Wrong address prefix: " << prefix << ", expected " << address_prefix 
+        LOG_PRINT_L1("Wrong address prefix: " << prefix << ", expected " << address_prefix
           << " or " << integrated_address_prefix
           << " or " << subaddress_prefix);
         return false;

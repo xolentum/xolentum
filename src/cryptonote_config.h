@@ -156,8 +156,9 @@
 //have some chain established before it can be used
 #define HF_VERSION_LONG_TERM_BLOCK_WEIGHT       2
 #define HF_VERSION_EFFECTIVE_SHORT_TERM_MEDIAN_IN_PENALTY 2
-#define HF_VERSION_TX_POW_ENABLE                3
-#define HF_VERSION_TX_POW_MANDATORY             4
+#define HF_VERSION_BLOCK_REWARD_2               3
+#define HF_VERSION_TX_POW_ENABLE                4
+#define HF_VERSION_TX_POW_MANDATORY             5
 
 #define HASH_OF_HASHES_STEP                     512
 
