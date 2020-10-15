@@ -32,6 +32,7 @@
 
 #include <memory>
 
+#include <boost/serialization/library_version_type.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/serialization/list.hpp>

@@ -29,6 +29,7 @@
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #pragma once
+#include <boost/serialization/library_version_type.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/function/function_fwd.hpp>
 #include <boost/serialization/serialization.hpp>
