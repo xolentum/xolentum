@@ -64,7 +64,7 @@ namespace cryptonote{
     uint32_t nonce = m_starter_nonce + th_local_index;
     cryptonote::transaction tx=m_tx;
     crypto::hash hash;
-    ++m_threads_active;
+    boost::interprocess::ipcdetail::atomic_inc32(&m_threads_active);
     while(!m_stop)
     {
       tx.nonce=nonce;
@@ -83,7 +83,7 @@ namespace cryptonote{
       }
       nonce+=m_threads_total;
     }
-    --m_threads_active;
+    boost::interprocess::ipcdetail::atomic_dec32(&m_threads_active);
   }
   void tx_pow_miner::terminate(){
     stop_signal();
