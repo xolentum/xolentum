@@ -21,7 +21,8 @@ RUN set -ex && \
         bzip2 \
         xsltproc \
         gperf \
-        unzip
+        unzip \
+	docbook-xsl
 
 WORKDIR /usr/local
 
@@ -116,14 +117,14 @@ RUN set -ex \
     && make install
 
 # Udev
-ARG UDEV_VERSION=v3.2.9
-ARG UDEV_HASH=2ab887ec67afd15eb9b0849467f1f9c036a2b6c8
+ARG UDEV_VERSION=v3.2.8
+ARG UDEV_HASH=d69f3f28348123ab7fa0ebac63ec2fd16800c5e0
 RUN set -ex \
     && git clone https://github.com/gentoo/eudev -b ${UDEV_VERSION} \
     && cd eudev \
     && test `git rev-parse HEAD` = ${UDEV_HASH} || exit 1 \
     && ./autogen.sh \
-    && ./configure --disable-gudev --disable-introspection --disable-hwdb --disable-manpages --disable-shared \
+    && ./configure --disable-introspection --disable-hwdb --disable-manpages --disable-shared \
     && make \
     && make install
 
