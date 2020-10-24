@@ -32,7 +32,7 @@
 
 #include <memory>
 
-#ifdef _WIN32
+#if BOOST_VERSION >= 107400
 #include <boost/serialization/library_version_type.hpp>
 #endif
 #include <boost/program_options/options_description.hpp>
