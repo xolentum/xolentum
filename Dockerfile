@@ -1,7 +1,7 @@
 # Multistage docker build, requires docker 17.05
 
 # builder stage
-FROM ubuntu:16.04 as builder
+FROM ubuntu:18.04 as builder
 
 RUN set -ex && \
     apt-get update && \
@@ -21,7 +21,8 @@ RUN set -ex && \
         bzip2 \
         xsltproc \
         gperf \
-        unzip
+        unzip \
+	docbook-xsl
 
 WORKDIR /usr/local
 
@@ -123,7 +124,7 @@ RUN set -ex \
     && cd eudev \
     && test `git rev-parse HEAD` = ${UDEV_HASH} || exit 1 \
     && ./autogen.sh \
-    && ./configure --disable-gudev --disable-introspection --disable-hwdb --disable-manpages --disable-shared \
+    && ./configure --disable-introspection --disable-hwdb --disable-manpages --disable-shared \
     && make \
     && make install
 
@@ -171,15 +172,15 @@ COPY . .
 ENV USE_SINGLE_BUILDDIR=1
 ARG NPROC
 RUN set -ex && \
-    git submodule init && git submodule update && \
+    git submodule init && \
     rm -rf build && \
     if [ -z "$NPROC" ] ; \
-    then make -j$(nproc) release-static ; \
-    else make -j$NPROC release-static ; \
+    then make -j$(nproc) release-static-docker ; \
+    else make -j$NPROC release-static-docker ; \
     fi
 
 # runtime stage
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 RUN set -ex && \
     apt-get update && \
