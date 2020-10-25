@@ -105,6 +105,10 @@ release-all:
 release-static:
 	mkdir -p $(builddir)/release
 	cd $(builddir)/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D CMAKE_BUILD_TYPE=release $(topdir) && $(MAKE)
+	
+release-static-docker:
+	mkdir -p $(builddir)/release
+	cd $(builddir)/release && cmake -D STATIC=ON -D ARCH="x86-64" -D BUILD_64=ON -D MANUAL_SUBMODULES=1 -D CMAKE_BUILD_TYPE=release $(topdir) && $(MAKE)
 
 coverage:
 	mkdir -p $(builddir)/debug
