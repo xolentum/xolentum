@@ -21,8 +21,7 @@ RUN set -ex && \
         bzip2 \
         xsltproc \
         gperf \
-        unzip \
-	docbook-xsl
+        unzip
 
 WORKDIR /usr/local
 
@@ -124,7 +123,7 @@ RUN set -ex \
     && cd eudev \
     && test `git rev-parse HEAD` = ${UDEV_HASH} || exit 1 \
     && ./autogen.sh \
-    && ./configure --disable-introspection --disable-hwdb --disable-manpages --disable-shared \
+    && ./configure --disable-gudev --disable-introspection --disable-hwdb --disable-manpages --disable-shared \
     && make \
     && make install
 
@@ -172,7 +171,7 @@ COPY . .
 ENV USE_SINGLE_BUILDDIR=1
 ARG NPROC
 RUN set -ex && \
-    git submodule init && \
+    git submodule init && git submodule update && \
     rm -rf build && \
     if [ -z "$NPROC" ] ; \
     then make -j$(nproc) release-static ; \
@@ -209,4 +208,4 @@ EXPOSE 13580
 # switch to user xolentum
 USER xolentum
 
-ENTRYPOINT ["xolentumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=13579", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=13580", "--non-interactive", "--confirm-external-bind"]
+ENTRYPOINT ["xolentumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=18080", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=18081", "--non-interactive", "--confirm-external-bind"]
