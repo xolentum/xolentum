@@ -4,7 +4,8 @@
 FROM ubuntu:18.04 as builder
 
 RUN set -ex && \
-    apt-get update && \
+    apt-get update -y && \
+    apt-get upgrade -y && \
     apt-get --no-install-recommends --yes install \
         ca-certificates \
         cmake \
