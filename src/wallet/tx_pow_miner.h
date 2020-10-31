@@ -39,6 +39,7 @@ namespace cryptonote{
     class tx_pow_miner{
     public:
       tx_pow_miner();
+      tx_pow_miner(const uint32_t n_threads);
       ~tx_pow_miner();
       /**
       *@brief start tx pow mining
@@ -54,6 +55,10 @@ namespace cryptonote{
       *@brief block the current thread for the mining result
       */
       void wait_for_result(cryptonote::transaction& tx);
+      /*
+      *@brief set number of mining threads
+      */
+      void set_total_threads(const uint32_t n_threads);
     private:
       void stop_signal();
       void worker();

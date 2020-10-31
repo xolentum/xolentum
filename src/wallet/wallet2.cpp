@@ -1,4 +1,5 @@
 // Copyright (c) 2014-2020, The Monero Project
+// Copyright (c) 2020, The Xolentum Project
 //
 // All rights reserved.
 //
@@ -39,6 +40,7 @@
 #include <boost/asio/ip/address.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/preprocessor/stringize.hpp>
+#include <boost/interprocess/detail/atomic.hpp>
 #include <openssl/evp.h>
 #include "include_base_utils.h"
 using namespace epee;
@@ -302,6 +304,7 @@ struct options {
   const command_line::arg_descriptor<bool> no_dns = {"no-dns", tools::wallet2::tr("Do not use DNS"), false};
   const command_line::arg_descriptor<bool> offline = {"offline", tools::wallet2::tr("Do not connect to a daemon, nor use DNS"), false};
   const command_line::arg_descriptor<std::string> extra_entropy = {"extra-entropy", tools::wallet2::tr("File containing extra entropy to initialize the PRNG (any data, aim for 256 bits of entropy to be useful, wihch typically means more than 256 bits of data)")};
+  const command_line::arg_descriptor<uint32_t> mining_threads = {"mining-threads", tools::wallet2::tr("Number of threads for mining a transaction"),boost::thread::hardware_concurrency()};
 };
 
 void do_prepare_file_names(const std::string& file_path, std::string& keys_file, std::string& wallet_file, std::string &mms_file)
@@ -350,7 +353,9 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   const bool stagenet = command_line::get_arg(vm, opts.stagenet);
   const network_type nettype = testnet ? TESTNET : stagenet ? STAGENET : MAINNET;
   const uint64_t kdf_rounds = command_line::get_arg(vm, opts.kdf_rounds);
+  const uint32_t mining_threads = command_line::get_arg(vm,opts.mining_threads);
   THROW_WALLET_EXCEPTION_IF(kdf_rounds == 0, tools::error::wallet_internal_error, "KDF rounds must not be 0");
+  THROW_WALLET_EXCEPTION_IF(mining_threads == 0, tools::error::wallet_internal_error, "Mining threads must not be 0");
 
   const bool use_proxy = command_line::has_arg(vm, opts.proxy);
   auto daemon_address = command_line::get_arg(vm, opts.daemon_address);
@@ -502,6 +507,7 @@ std::unique_ptr<tools::wallet2> make_basic(const boost::program_options::variabl
   wallet->get_message_store().set_options(vm);
   wallet->device_name(device_name);
   wallet->device_derivation_path(device_derivation_path);
+  wallet->set_mining_threads(mining_threads);
 
   if (command_line::get_arg(vm, opts.no_dns))
     wallet->enable_dns(false);
@@ -1256,6 +1262,7 @@ void wallet2::init_options(boost::program_options::options_description& desc_par
   command_line::add_arg(desc_params, opts.no_dns);
   command_line::add_arg(desc_params, opts.offline);
   command_line::add_arg(desc_params, opts.extra_entropy);
+  command_line::add_arg(desc_params, opts.mining_threads);
 }
 
 std::pair<std::unique_ptr<wallet2>, tools::password_container> wallet2::make_from_json(const boost::program_options::variables_map& vm, bool unattended, const std::string& json_file, const std::function<boost::optional<tools::password_container>(const char *, bool)> &password_prompter)
@@ -6454,7 +6461,7 @@ void wallet2::commit_tx(pending_tx& ptx)
   using namespace cryptonote;
   if(ptx.tx.version>=2){
     LOG_PRINT_L1("Mining is started to produce PoW needed for transaction submission");
-    tx_pow_miner miner;
+    tx_pow_miner miner(m_mining_threads);
     miner.start(ptx.tx,TX_POW_DIFF_V1);
     miner.wait_for_result(ptx.tx);
     LOG_PRINT_L1("Nonce= "<<ptx.tx.nonce);
@@ -13790,4 +13797,8 @@ std::pair<size_t, uint64_t> wallet2::estimate_tx_size_and_weight(bool use_rct, i
   return std::make_pair(size, weight);
 }
 //----------------------------------------------------------------------------------------------------
+void wallet2::set_mining_threads(uint32_t n_threads){
+  THROW_WALLET_EXCEPTION_IF(n_threads == 0, tools::error::wallet_internal_error, "Invalid n_threads");
+  m_mining_threads=n_threads;
+}
 }

@@ -31,10 +31,15 @@
 #include "misc_language.h"
 
 namespace cryptonote{
-  tx_pow_miner::tx_pow_miner():m_stop(0),
+  //Delegating constructor
+  tx_pow_miner::tx_pow_miner():tx_pow_miner(boost::thread::hardware_concurrency())
+  {
+  }
+  tx_pow_miner::tx_pow_miner(const uint32_t n_threads):m_stop(0),
   m_threads_active(0),
   m_post_result(false),
-  m_thread_index(0){
+  m_thread_index(0),
+  m_threads_total(n_threads){
     m_attrs.set_stack_size(THREAD_STACK_SIZE);
   }
   tx_pow_miner::~tx_pow_miner(){
@@ -50,7 +55,6 @@ namespace cryptonote{
     m_thread_index=0;
     //generate random for the starting nonce
     m_starter_nonce = crypto::rand<uint32_t>();
-    m_threads_total=boost::thread::hardware_concurrency();
     CRITICAL_REGION_LOCAL(m_threads_lock);//we are going to modify the threads structures, lock it down
     boost::interprocess::ipcdetail::atomic_write32(&m_stop, 0);
     boost::interprocess::ipcdetail::atomic_write32(&m_thread_index, 0);
@@ -106,5 +110,10 @@ namespace cryptonote{
       tx.nonce=m_starter_nonce;
       tx.invalidate_hashes();
     }
+  }
+  void tx_pow_miner::set_total_threads(const uint32_t n_threads){
+    if(m_threads_active)
+      throw std::runtime_error("Invalid operation: attempting to set total mining threads while it is already started");
+    m_threads_total=n_threads;
   }
 }
