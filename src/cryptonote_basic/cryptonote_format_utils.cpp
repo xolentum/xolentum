@@ -1129,10 +1129,10 @@ namespace cryptonote
     //PoW hash for a tx will be just a CN(prune(tx))
     std::stringstream ss;
     binary_archive<true> ba(ss);
-    CHECK_AND_ASSERT_MES(const_cast<cryptonote::transaction&>(t).serialize_base(ba),true,"Could not serialize pruned tx for PoW");
+    const_cast<cryptonote::transaction&>(t).serialize_base(ba);
     std::string pruned = ss.str();
     //we got the blob here
-    cn_fast_hash(pruned.c_str(),pruned.size(),res);
+    cn_slow_hash(pruned.c_str(),pruned.size(),res);
     return true;
   }
   //---------------------------------------------------------------

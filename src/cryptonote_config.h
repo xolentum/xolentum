@@ -180,7 +180,7 @@
 #define DEFAULT_MIXIN                           4
 #define DEFAULT_RINGSIZE                        DEFAULT_MIXIN + 1
 
-#define TX_POW_DIFF_V1                          1000
+#define TX_POW_DIFF_V1                          2000
 
 // New constants are intended to go here
 namespace config

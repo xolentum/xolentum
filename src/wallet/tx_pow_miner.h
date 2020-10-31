@@ -45,7 +45,7 @@ namespace cryptonote{
       *
       *@param transaction itself
       */
-      void start(cryptonote::transaction& tx,difficulty_type difficulty);
+      void start(const cryptonote::transaction& tx,difficulty_type difficulty);
       /**
       *@brief stop mining.
       */

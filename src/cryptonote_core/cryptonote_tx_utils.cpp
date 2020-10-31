@@ -213,7 +213,12 @@ bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_ge
       msout->c.clear();
     }
 
-    tx.version = tx_pow?2:1;
+    if(tx_pow){
+      LOG_PRINT_L2("Enabling tx pow for this tx");
+      tx.version = 2;
+    }
+    else
+      tx.version = 1;
     tx.unlock_time = unlock_time;
 
     tx.extra = extra;
@@ -587,7 +592,7 @@ bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_ge
           additional_tx_keys.push_back(keypair::generate(sender_account_keys.get_device()).sec);
       }
 
-      bool r = construct_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys, rct, rct_config, msout,tx_pow);
+      bool r = construct_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys, rct, rct_config, msout,true,tx_pow);
       hwdev.close_tx();
       return r;
     } catch(...) {

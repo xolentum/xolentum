@@ -40,7 +40,7 @@ namespace cryptonote{
   tx_pow_miner::~tx_pow_miner(){
     try{terminate();}catch(...){}
   }
-  void tx_pow_miner::start(cryptonote::transaction& tx,difficulty_type difficulty){
+  void tx_pow_miner::start(const cryptonote::transaction& tx,difficulty_type difficulty){
     if(m_threads_active)
       throw std::runtime_error("Invalid operation: attempting to start miner while it is already started");
     //copy the data into the instance
@@ -102,7 +102,9 @@ namespace cryptonote{
       epee::misc_utils::sleep_no_w(100);
     }
     m_threads.clear();
-    if(m_post_result)
+    if(m_post_result){
       tx.nonce=m_starter_nonce;
+      tx.invalidate_hashes();
+    }
   }
 }

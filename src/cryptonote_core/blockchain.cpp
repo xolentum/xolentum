@@ -3904,7 +3904,7 @@ leave:
           return_tx_to_pool(txs);
           goto leave;
         }
-        if(check_tx_pow(tx,tvc)){
+        if(!check_tx_pow(tx,tvc)){
           add_block_as_invalid(bl, id);
           MERROR_VER("Invalid PoW in transaction with id "<<tx_id);
           MERROR_VER("Block with id " << id << " added as invalid because of invalid PoW in transactions");

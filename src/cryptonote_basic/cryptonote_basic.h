@@ -168,18 +168,11 @@ namespace cryptonote
     std::vector<tx_out> vout;
     //extra
     std::vector<uint8_t> extra;
-    //nonce
-    uint32_t nonce;
-
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
       if(version == 0|| CURRENT_TRANSACTION_VERSION < version) return false;
       VARINT_FIELD(unlock_time)
-      if(version>=2){
-        //include nonce for PoW
-        VARINT_FIELD(nonce);
-      }
       FIELD(vin)
       FIELD(vout)
       FIELD(extra)
@@ -194,7 +187,6 @@ namespace cryptonote
       vin.clear();
       vout.clear();
       extra.clear();
-      nonce=0;
     }
   };
 
@@ -207,6 +199,8 @@ namespace cryptonote
     mutable std::atomic<bool> blob_size_valid;
 
   public:
+    //nonce
+    uint32_t nonce;
     std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
     rct::rctSig rct_signatures;
 
@@ -248,6 +242,10 @@ namespace cryptonote
 
       FIELDS(*static_cast<transaction_prefix *>(this))
 
+      if(version>=2){
+        FIELD(nonce);
+      }
+
       if (std::is_same<Archive<W>, binary_archive<W>>())
         prefix_size = getpos(ar) - start_pos;
 
@@ -283,6 +281,10 @@ namespace cryptonote
     {
       FIELDS(*static_cast<transaction_prefix *>(this))
 
+      if(version>=2){
+        FIELD(nonce)
+      }
+
       {
         ar.tag("rct_signatures");
         if (!vin.empty())
@@ -311,7 +313,8 @@ namespace cryptonote
     rct_signatures(t.rct_signatures),
     pruned(t.pruned),
     unprunable_size(t.unprunable_size.load()),
-    prefix_size(t.prefix_size.load())
+    prefix_size(t.prefix_size.load()),
+    nonce(0)
   {
     if (t.is_hash_valid())
     {
@@ -383,6 +386,7 @@ namespace cryptonote
     pruned = false;
     unprunable_size = 0;
     prefix_size = 0;
+    nonce=0;
   }
 
   inline
