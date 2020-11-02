@@ -62,6 +62,10 @@ namespace cryptonote{
     {
       m_threads.push_back(boost::thread(m_attrs, boost::bind(&tx_pow_miner::worker, this)));
     }
+    //Wait all threads booted up
+    while(m_thread_index<m_threads_total){
+      epee::misc_utils::sleep_no_w(100);
+    }
   }
   void tx_pow_miner::worker(){
     uint32_t th_local_index = boost::interprocess::ipcdetail::atomic_inc32(&m_thread_index);
@@ -85,7 +89,7 @@ namespace cryptonote{
         CRITICAL_REGION_END();
         stop_signal();//stop the miner
       }
-      nonce+=m_threads_total;
+      nonce+=th_local_index;
     }
     boost::interprocess::ipcdetail::atomic_dec32(&m_threads_active);
   }
