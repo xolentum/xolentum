@@ -5210,7 +5210,7 @@ void Blockchain::cache_block_template(const block &b, const cryptonote::account_
 bool Blockchain::check_tx_pow(const cryptonote::transaction& tx,cryptonote::tx_verification_context& tvc){
   const uint8_t hf_version=get_current_hard_fork_version();
   if(tx.version<2){
-    const bool r=hf_version<=HF_VERSION_TX_POW_ENABLE;
+    const bool r=(hf_version<=HF_VERSION_TX_POW_ENABLE);
     if(!r){
       tvc.m_verifivation_failed=false;
     }
@@ -5226,6 +5226,7 @@ bool Blockchain::check_tx_pow(const cryptonote::transaction& tx,cryptonote::tx_v
   if(!r){
     tvc.m_verifivation_failed=true;
     tvc.m_bad_pow=true;
+    LOG_PRINT_L2("verification failed");
   }
   return r;
 }

@@ -153,7 +153,7 @@ namespace cryptonote
       return false;
     }
 
-    if(m_blockchain.get_current_hard_fork_version()>=HF_VERSION_TX_POW_ENABLE){
+    if(version>=HF_VERSION_TX_POW_ENABLE){
       if(!m_blockchain.check_tx_pow(tx,tvc)){
         LOG_PRINT_L1("PoW verification failed");
         return false;

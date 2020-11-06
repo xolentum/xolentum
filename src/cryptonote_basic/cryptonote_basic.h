@@ -242,12 +242,12 @@ namespace cryptonote
 
       FIELDS(*static_cast<transaction_prefix *>(this))
 
+      if (std::is_same<Archive<W>, binary_archive<W>>())
+        prefix_size = getpos(ar) - start_pos;
+
       if(version>=2){
         FIELD(nonce);
       }
-
-      if (std::is_same<Archive<W>, binary_archive<W>>())
-        prefix_size = getpos(ar) - start_pos;
 
       {
         ar.tag("rct_signatures");
@@ -314,7 +314,7 @@ namespace cryptonote
     pruned(t.pruned),
     unprunable_size(t.unprunable_size.load()),
     prefix_size(t.prefix_size.load()),
-    nonce(0)
+    nonce(t.nonce)
   {
     if (t.is_hash_valid())
     {
@@ -360,6 +360,7 @@ namespace cryptonote
     pruned = t.pruned;
     unprunable_size = t.unprunable_size.load();
     prefix_size = t.prefix_size.load();
+    nonce=t.nonce;
     return *this;
   }
 

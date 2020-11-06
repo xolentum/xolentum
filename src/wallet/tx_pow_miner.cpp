@@ -81,13 +81,13 @@ namespace cryptonote{
       memset(hash.data, 0xff, sizeof(hash.data));
       calculate_transaction_hash_pow(tx,hash);
       if(check_hash(hash,m_diffic)){
+        stop_signal();//stop the miner
         //we need to publish this value
         CRITICAL_REGION_BEGIN(m_state_lock);
         //set the value
         m_starter_nonce=nonce;
         m_post_result=true;
         CRITICAL_REGION_END();
-        stop_signal();//stop the miner
       }
       nonce+=th_local_index;
     }
