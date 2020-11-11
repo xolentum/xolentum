@@ -29,7 +29,7 @@
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #pragma once
-#ifdef _WIN32
+#if BOOST_VERSION >= 107400
 #include <boost/serialization/library_version_type.hpp>
 #endif
 #include <boost/asio/io_service.hpp>
