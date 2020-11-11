@@ -111,6 +111,7 @@ namespace cryptonote
   bool get_transaction_hash(const transaction& t, crypto::hash& res);
   bool get_transaction_hash(const transaction& t, crypto::hash& res, size_t& blob_size);
   bool get_transaction_hash(const transaction& t, crypto::hash& res, size_t* blob_size);
+  bool calculate_transaction_hash_pow(const transaction& t, crypto::hash& res);
   bool calculate_transaction_prunable_hash(const transaction& t, const cryptonote::blobdata *blob, crypto::hash& res);
   crypto::hash get_transaction_prunable_hash(const transaction& t, const cryptonote::blobdata *blob = NULL);
   bool calculate_transaction_hash(const transaction& t, crypto::hash& res, size_t* blob_size);

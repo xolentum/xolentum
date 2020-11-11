@@ -446,8 +446,8 @@ namespace cryptonote
     res.tx_pool_size = m_core.get_pool_transactions_count(!restricted);
     res.alt_blocks_count = restricted ? 0 : m_core.get_blockchain_storage().get_alternative_blocks_count();
     uint64_t total_conn = restricted ? 0 : m_p2p.get_public_connections_count();
-    res.outgoing_connections_count = restricted ? 0 : m_p2p.get_public_outgoing_connections_count();
-    res.incoming_connections_count = restricted ? 0 : (total_conn - res.outgoing_connections_count);
+    res.outgoing_connections_count = m_p2p.get_public_outgoing_connections_count();
+    res.incoming_connections_count = (total_conn - res.outgoing_connections_count);
     res.rpc_connections_count = restricted ? 0 : get_connections_count();
     res.white_peerlist_size = restricted ? 0 : m_p2p.get_public_white_peers_count();
     res.grey_peerlist_size = restricted ? 0 : m_p2p.get_public_gray_peers_count();
@@ -483,7 +483,7 @@ namespace cryptonote
     if (restricted)
       res.database_size = round_up(res.database_size, 5ull* 1024 * 1024 * 1024);
     res.update_available = restricted ? false : m_core.is_update_available();
-    res.version = restricted ? "" : MONERO_VERSION_FULL;
+    res.version = MONERO_VERSION_FULL;
 
     res.status = CORE_RPC_STATUS_OK;
     return true;
@@ -1166,6 +1166,8 @@ namespace cryptonote
         add_reason(reason, "fee too low");
       if ((res.too_few_outputs = tvc.m_too_few_outputs))
         add_reason(reason, "too few outputs");
+      if((res.bad_pow=tvc.m_bad_pow))
+        add_reason(reason, "Bad PoW");
       const std::string punctuation = reason.empty() ? "" : ": ";
       if (tvc.m_verifivation_failed)
       {

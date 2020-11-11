@@ -3107,7 +3107,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       }
     }
 
-    const size_t max_tx_version = 1;
+    const size_t max_tx_version = 2;
     if (tx.version > max_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
@@ -3892,6 +3892,27 @@ leave:
     {
       // validate that transaction inputs and the keys spending them are correct.
       tx_verification_context tvc;
+      //check the transaction PoW here
+      const uint8_t hf_version=get_current_hard_fork_version();
+      if(hf_version>=HF_VERSION_TX_POW_ENABLE){
+        //make tx verification fail if tx version is not 2 in 4th fork
+        if(tx.version<2&&hf_version>=HF_VERSION_TX_POW_MANDATORY){
+          add_block_as_invalid(bl, id);
+          MERROR_VER("Wrong tx version in transaction with id "<<tx_id);
+          MERROR_VER("Block with id " << id << " added as invalid because of wrong tx version in transactions");
+          bvc.m_verifivation_failed = true;
+          return_tx_to_pool(txs);
+          goto leave;
+        }
+        if(!check_tx_pow(tx,tvc)){
+          add_block_as_invalid(bl, id);
+          MERROR_VER("Invalid PoW in transaction with id "<<tx_id);
+          MERROR_VER("Block with id " << id << " added as invalid because of invalid PoW in transactions");
+          bvc.m_verifivation_failed = true;
+          return_tx_to_pool(txs);
+          goto leave;
+        }
+      }
       if(!check_tx_inputs(tx, tvc))
       {
         MERROR_VER("Block with id: " << id  << " has at least one transaction (id: " << tx_id << ") with wrong inputs.");
@@ -5186,6 +5207,29 @@ void Blockchain::cache_block_template(const block &b, const cryptonote::account_
   m_btc_valid = true;
 }
 
+bool Blockchain::check_tx_pow(const cryptonote::transaction& tx,cryptonote::tx_verification_context& tvc){
+  const uint8_t hf_version=get_current_hard_fork_version();
+  if(tx.version<2){
+    const bool r=(hf_version<=HF_VERSION_TX_POW_ENABLE);
+    if(!r){
+      tvc.m_verifivation_failed=false;
+    }
+    return r; //allow v1 tx on fork 3 but not after fork 4
+  }
+  crypto::hash tx_proof_of_work;
+  //clear hash to 0xFF so in case the hash function fails to PoW verification
+  //will also fail
+  memset(tx_proof_of_work.data, 0xff, sizeof(tx_proof_of_work.data));
+  //ignore status check
+  calculate_transaction_hash_pow(tx,tx_proof_of_work);
+  const bool r=check_hash(tx_proof_of_work,TX_POW_DIFF_V1);
+  if(!r){
+    tvc.m_verifivation_failed=true;
+    tvc.m_bad_pow=true;
+    LOG_PRINT_L2("verification failed");
+  }
+  return r;
+}
 namespace cryptonote {
 template bool Blockchain::get_transactions(const std::vector<crypto::hash>&, std::vector<transaction>&, std::vector<crypto::hash>&) const;
 template bool Blockchain::get_split_transactions_blobs(const std::vector<crypto::hash>&, std::vector<std::tuple<crypto::hash, cryptonote::blobdata, crypto::hash, cryptonote::blobdata>>&, std::vector<crypto::hash>&) const;

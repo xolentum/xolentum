@@ -1,21 +1,21 @@
 // Copyright (c) 2014-2020, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
+//
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #pragma once
@@ -171,7 +171,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if(version == 0) return false;
+      if(version == 0|| CURRENT_TRANSACTION_VERSION < version) return false;
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
@@ -199,6 +199,8 @@ namespace cryptonote
     mutable std::atomic<bool> blob_size_valid;
 
   public:
+    //nonce
+    uint32_t nonce;
     std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
     rct::rctSig rct_signatures;
 
@@ -243,6 +245,10 @@ namespace cryptonote
       if (std::is_same<Archive<W>, binary_archive<W>>())
         prefix_size = getpos(ar) - start_pos;
 
+      if(version>=2){
+        FIELD(nonce);
+      }
+
       {
         ar.tag("rct_signatures");
         if (!vin.empty())
@@ -275,6 +281,10 @@ namespace cryptonote
     {
       FIELDS(*static_cast<transaction_prefix *>(this))
 
+      if(version>=2){
+        FIELD(nonce)
+      }
+
       {
         ar.tag("rct_signatures");
         if (!vin.empty())
@@ -303,7 +313,8 @@ namespace cryptonote
     rct_signatures(t.rct_signatures),
     pruned(t.pruned),
     unprunable_size(t.unprunable_size.load()),
-    prefix_size(t.prefix_size.load())
+    prefix_size(t.prefix_size.load()),
+    nonce(t.nonce)
   {
     if (t.is_hash_valid())
     {
@@ -349,6 +360,7 @@ namespace cryptonote
     pruned = t.pruned;
     unprunable_size = t.unprunable_size.load();
     prefix_size = t.prefix_size.load();
+    nonce=t.nonce;
     return *this;
   }
 
@@ -375,6 +387,7 @@ namespace cryptonote
     pruned = false;
     unprunable_size = 0;
     prefix_size = 0;
+    nonce=0;
   }
 
   inline

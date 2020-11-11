@@ -980,13 +980,13 @@ namespace cryptonote
       case 12:
         return "xolentum";
       case 9:
-        return "millinero";
+        return "millitum";
       case 6:
-        return "micronero";
+        return "microtum";
       case 3:
-        return "nanonero";
+        return "nanotum";
       case 0:
-        return "piconero";
+        return "picotum";
       default:
         ASSERT_MES_AND_THROW("Invalid decimal point specification: " << decimal_point);
     }
@@ -1122,6 +1122,18 @@ namespace cryptonote
     crypto::hash res = cn_fast_hash(hashes, sizeof(hashes));
     t.set_hash(res);
     return res;
+  }
+  //---------------------------------------------------------------
+  bool calculate_transaction_hash_pow(const transaction& t, crypto::hash& res)
+  {
+    //PoW hash for a tx will be just a CN(prune(tx))
+    std::stringstream ss;
+    binary_archive<true> ba(ss);
+    const_cast<cryptonote::transaction&>(t).serialize_base(ba);
+    std::string pruned = ss.str();
+    //we got the blob here
+    cn_slow_hash(pruned.c_str(),pruned.size(),res);
+    return true;
   }
   //---------------------------------------------------------------
   bool calculate_transaction_hash(const transaction& t, crypto::hash& res, size_t* blob_size)

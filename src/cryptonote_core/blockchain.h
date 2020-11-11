@@ -1042,6 +1042,11 @@ namespace cryptonote
      */
     void flush_invalid_blocks();
 
+    /**
+    * @brief perform tx pow check
+    */
+    bool check_tx_pow(const cryptonote::transaction& tx,cryptonote::tx_verification_context& tvc);
+
 #ifndef IN_UNIT_TESTS
   private:
 #endif
