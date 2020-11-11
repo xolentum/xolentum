@@ -190,7 +190,7 @@ namespace config
   uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 43;
   uint16_t const P2P_DEFAULT_PORT = 13579;
   uint16_t const RPC_DEFAULT_PORT = 13580;
-  uint16_t const ZMQ_RPC_DEFAULT_PORT = 55553;
+  uint16_t const ZMQ_RPC_DEFAULT_PORT = 13581;
   boost::uuids::uuid const NETWORK_ID = { {
       0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x18, 0x42, 0x00, 0x69, 0x13, 0x15, 0x14, 0x15
     } }; // Mainnet
@@ -218,9 +218,9 @@ namespace config
     uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 185;
     uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 251;
     uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 43;
-    uint16_t const P2P_DEFAULT_PORT = 44441;
-    uint16_t const RPC_DEFAULT_PORT = 44442;
-    uint16_t const ZMQ_RPC_DEFAULT_PORT = 44443;
+    uint16_t const P2P_DEFAULT_PORT = 23579;
+    uint16_t const RPC_DEFAULT_PORT = 23580;
+    uint16_t const ZMQ_RPC_DEFAULT_PORT = 23581;
     boost::uuids::uuid const NETWORK_ID = { {
         0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x17, 0x31, 0x00, 0x82, 0x12, 0x12, 0x12, 0x16
       } }; // Testnet
@@ -233,9 +233,9 @@ namespace config
     uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 185;
     uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 251;
     uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 43;
-    uint16_t const P2P_DEFAULT_PORT = 33331;
-    uint16_t const RPC_DEFAULT_PORT = 33332;
-    uint16_t const ZMQ_RPC_DEFAULT_PORT = 33333;
+    uint16_t const P2P_DEFAULT_PORT = 33579;
+    uint16_t const RPC_DEFAULT_PORT = 33580;
+    uint16_t const ZMQ_RPC_DEFAULT_PORT = 33581;
     boost::uuids::uuid const NETWORK_ID = { {
         0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x17, 0x31, 0x00, 0x12, 0x12, 0x12, 0xA1, 0x16
       } }; // Stagenet
