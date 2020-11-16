@@ -33,6 +33,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(wallet_sources
   wallet2.cpp
   wallet2_multisig.cpp
+  wallet2_light_wallet.cpp
   wallet_args.cpp
   ringdb.cpp
   tx_pow_miner.cpp
