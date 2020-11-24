@@ -553,6 +553,15 @@ class Daemon(object):
             'id': '0'
         }
         return self.rpc.send_json_rpc_request(flush_cache)
+    def sync_txpool(self):
+        sync_txpool = {
+            'method': 'sync_txpool',
+            'params': {
+            },
+            'jsonrpc': '2.0',
+            'id': '0'
+        }
+        return self.rpc.send_json_rpc_request(sync_txpool)
 
     def rpc_access_info(self, client):
         rpc_access_info = {
