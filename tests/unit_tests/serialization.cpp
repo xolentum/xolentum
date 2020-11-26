@@ -1,21 +1,21 @@
 // Copyright (c) 2014-2019, The Monero Project
-//
+// 
 // All rights reserved.
-//
+// 
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-//
+// 
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-//
+// 
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-//
+// 
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-//
+// 
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -25,7 +25,7 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
+// 
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #include <cstring>
@@ -636,46 +636,6 @@ TEST(Serialization, serializes_ringct_types)
   ASSERT_TRUE(clsag0.D == clsag1.D);
 }
 
-TEST(Serialization, key_encryption_transition)
-{
-  const cryptonote::network_type nettype = cryptonote::TESTNET;
-  tools::wallet2 w(nettype);
-  const boost::filesystem::path wallet_file = unit_test::data_dir / "wallet_9svHk1";
-  const boost::filesystem::path key_file = unit_test::data_dir / "wallet_9svHk1.keys";
-  const boost::filesystem::path temp_wallet_file = unit_test::data_dir / "wallet_9svHk1_temp";
-  const boost::filesystem::path temp_key_file = unit_test::data_dir / "wallet_9svHk1_temp.keys";
-  string password = "test";
-  bool r = false;
-
-  // Copy the original files for this test
-  boost::filesystem::copy(wallet_file,temp_wallet_file);
-  boost::filesystem::copy(key_file,temp_key_file);
-
-  try
-  {
-    // Key transition
-    w.load(temp_wallet_file.string(), password); // legacy decryption method
-    ASSERT_TRUE(w.get_load_info().is_legacy_key_encryption);
-    const crypto::secret_key view_secret_key = w.get_account().get_keys().m_view_secret_key;
-
-    w.rewrite(temp_wallet_file.string(), password); // transition to new key format
-
-    w.load(temp_wallet_file.string(), password); // new decryption method
-    ASSERT_FALSE(w.get_load_info().is_legacy_key_encryption);
-    ASSERT_EQ(w.get_account().get_keys().m_view_secret_key,view_secret_key);
-
-    r = true;
-  }
-  catch (const exception& e)
-  {}
-
-  // Remove the temporary files
-  boost::filesystem::remove(temp_wallet_file);
-  boost::filesystem::remove(temp_key_file);
-
-  ASSERT_TRUE(r);
-}
-
 TEST(Serialization, portability_wallet)
 {
   const cryptonote::network_type nettype = cryptonote::TESTNET;
@@ -692,7 +652,7 @@ TEST(Serialization, portability_wallet)
   {}
   ASSERT_TRUE(r);
   /*
-  fields of tools::wallet2 to be checked:
+  fields of tools::wallet2 to be checked: 
     std::vector<crypto::hash>                                       m_blockchain
     std::vector<transfer_details>                                   m_transfers               // TODO
     cryptonote::account_public_address                              m_account_public_address
@@ -858,7 +818,7 @@ TEST(Serialization, portability_outputs)
   {}
   ASSERT_TRUE(r);
   /*
-  fields of tools::wallet2::transfer_details to be checked:
+  fields of tools::wallet2::transfer_details to be checked: 
     uint64_t                        m_block_height
     cryptonote::transaction_prefix  m_tx                        // TODO
     crypto::hash                    m_txid
@@ -946,7 +906,7 @@ TEST(Serialization, portability_unsigned_tx)
     ar >> exported_txs;
     r = true;
   }
-  catch (...)
+  catch (...)  
   {}
   ASSERT_TRUE(r);
   /*
@@ -963,7 +923,7 @@ TEST(Serialization, portability_unsigned_tx)
     uint64_t                                      unlock_time
     bool                                          use_rct
     std::vector<cryptonote::tx_destination_entry> dests
-
+  
   fields of cryptonote::tx_source_entry to be checked:
     std::vector<std::pair<uint64_t, rct::ctkey>>  outputs
     size_t                                        real_output
@@ -972,7 +932,7 @@ TEST(Serialization, portability_unsigned_tx)
     uint64_t                                      amount
     bool                                          rct
     rct::key                                      mask
-
+  
   fields of cryptonote::tx_destination_entry to be checked:
     uint64_t                amount
     account_public_address  addr
@@ -1003,7 +963,7 @@ TEST(Serialization, portability_unsigned_tx)
   // tcd.sources[0].{real_output, real_out_tx_key, real_output_in_tx_index, amount, rct, mask}
   ASSERT_TRUE(tse.real_output == 4);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
-  ASSERT_TRUE(tse.real_output_in_tx_index == 1);
+  ASSERT_TRUE(tse.real_output_in_tx_index == 1); 
   ASSERT_TRUE(tse.amount == 11066009260865);
   ASSERT_TRUE(tse.rct);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
@@ -1101,7 +1061,7 @@ TEST(Serialization, portability_signed_tx)
   fields of tools::wallet2::signed_tx_set to be checked:
     std::vector<pending_tx>         ptx
     std::vector<crypto::key_image>  key_images
-
+  
   fields of tools::walllet2::pending_tx to be checked:
     cryptonote::transaction                       tx                  // TODO
     uint64_t                                      dust
@@ -1158,7 +1118,7 @@ TEST(Serialization, portability_signed_tx)
   // ptx.construction_data.sources[0].{real_output, real_out_tx_key, real_output_in_tx_index, amount, rct, mask}
   ASSERT_TRUE(tse.real_output == 4);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.real_out_tx_key) == "4d86c7ba1c285fe4bc1cd7b54ba894fa89fa02fc6b0bbeea67d53251acd14a05");
-  ASSERT_TRUE(tse.real_output_in_tx_index == 1);
+  ASSERT_TRUE(tse.real_output_in_tx_index == 1); 
   ASSERT_TRUE(tse.amount == 11066009260865);
   ASSERT_TRUE(tse.rct);
   ASSERT_TRUE(epee::string_tools::pod_to_hex(tse.mask) == "789bafff169ef206aa21219342c69ca52ce1d78d776c10b21d14bdd960fc7703");
