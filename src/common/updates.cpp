@@ -44,8 +44,11 @@ namespace tools
 
     MDEBUG("Checking updates for " << buildtag << " " << software);
 
-    // All four MoneroPulse domains have DNSSEC on and valid
-    static const std::vector<std::string> dns_urls = { };
+    static const std::vector<std::string> dns_urls = {
+      "vercheck.xol.junichi2000.jp.eu.org",
+      "vercheck.xolentum.org",
+      "vercheck.xol-pulse.jp.eu.org"
+    };
 
     if (!tools::dns_utils::load_txt_records_from_dns(records, dns_urls))
       return false;
@@ -94,19 +97,20 @@ namespace tools
 
   std::string get_update_url(const std::string &software, const std::string &subdir, const std::string &buildtag, const std::string &version, bool user)
   {
-    const char *base = user ? "https://www.xolentum.org/downloads/" : "https://www.xolentum.org/updates/";
-#ifdef _WIN32
-    static const char *extension = strncmp(buildtag.c_str(), "source", 6) ? (strncmp(buildtag.c_str(), "install-", 8) ? ".zip" : ".exe") : ".tar.bz2";
-#else
-    static const char extension[] = ".tar.bz2";
-#endif
-
+    if(user){
+      return "https://github.com/xolentum/xolentum/releases/tag/v"+version;
+    }
+    std::string base = "https://github.com/xolentum/xolentum/";
+    if(buildtag=="source"){
+      return base+"archive/v"+version+".tar.gz";
+    }
+    else{
+      base+="releases/download/";
+    }
     std::string url;
 
     url =  base;
-    if (!subdir.empty())
-      url += subdir + "/";
-    url = url + software + "-" + buildtag + "-v" + version + extension;
+    url = url + software + "_v" + version +"_"+buildtag + ".zip";
     return url;
   }
 }
