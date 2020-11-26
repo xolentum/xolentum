@@ -269,10 +269,6 @@ namespace crypto {
     ec_point D;
     ec_point X;
     ec_point Y;
-    hash sep; // domain separation
-    ec_point R;
-    ec_point A;
-    ec_point B;
   };
 
   // Used in v1/v2 tx proofs
@@ -281,6 +277,10 @@ namespace crypto {
     ec_point D;
     ec_point X;
     ec_point Y;
+    hash sep; // domain separation
+    ec_point R;
+    ec_point A;
+    ec_point B;
   };
 
   void crypto_ops::generate_signature(const hash &prefix_hash, const public_key &pub, const secret_key &sec, signature &sig) {

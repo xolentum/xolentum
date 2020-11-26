@@ -9938,6 +9938,7 @@ bool wallet2::check_tx_proof(const cryptonote::transaction &tx, const cryptonote
   else if (is_out) version = 2; // OutProofV2
   else if (sig_str.substr(7,2) == "V1") version = 1; // InProofV1  const size_t header_len = header.size();
 
+  const size_t header_len = header.size();
   THROW_WALLET_EXCEPTION_IF(sig_str.size() < header_len || sig_str.substr(0, header_len) != header, error::wallet_internal_error,
     "Signature header check error");
 
