@@ -906,7 +906,7 @@ namespace tools
         }
       }
       else if (!do_not_relay)
-        m_wallet->commit_tx(ptx_vector);
+        m_wallet->commit_tx(ptx_vector,(uint64_t)(m_wallet->get_min_tx_pow_diff()*1.3));
 
       // populate response with tx hashes
       for (auto & ptx : ptx_vector)
@@ -1348,7 +1348,7 @@ namespace tools
     {
       for (auto &ptx: ptx_vector)
       {
-        m_wallet->commit_tx(ptx);
+        m_wallet->commit_tx(ptx,(uint64_t)(m_wallet->get_min_tx_pow_diff()*1.3));
         res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
       }
     }
@@ -1554,7 +1554,7 @@ namespace tools
 
     try
     {
-      m_wallet->commit_tx(ptx);
+      m_wallet->commit_tx(ptx,(uint64_t)(m_wallet->get_min_tx_pow_diff()*1.3));
     }
     catch(const std::exception &e)
     {
@@ -4109,7 +4109,7 @@ namespace tools
     {
       for (auto &ptx: txs.m_ptx)
       {
-        m_wallet->commit_tx(ptx);
+        m_wallet->commit_tx(ptx,(uint64_t)(m_wallet->get_min_tx_pow_diff()*1.3));
         res.tx_hash_list.push_back(epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(ptx.tx)));
       }
     }

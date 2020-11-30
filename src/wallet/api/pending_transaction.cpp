@@ -128,7 +128,7 @@ bool PendingTransactionImpl::commit(const std::string &filename, bool overwrite)
 
         while (!m_pending_tx.empty()) {
             auto & ptx = m_pending_tx.back();
-            m_wallet.m_wallet->commit_tx(ptx);
+            m_wallet.m_wallet->commit_tx(ptx,m_wallet.m_wallet->get_min_tx_pow_diff());
             // if no exception, remove element from vector
             m_pending_tx.pop_back();
         } // TODO: extract method;
@@ -265,4 +265,3 @@ std::vector<std::string> PendingTransactionImpl::signersKeys() const {
 }
 
 namespace Bitmonero = Xolentum;
-

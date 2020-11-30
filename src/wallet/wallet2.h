@@ -54,6 +54,7 @@
 #include "rpc/core_rpc_server_commands_defs.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "cryptonote_core/cryptonote_tx_utils.h"
+#include "cryptonote_basic/cryptonote_basic.h"
 #include "common/unordered_containers_boost_serialization.h"
 #include "common/util.h"
 #include "crypto/chacha.h"
@@ -830,8 +831,8 @@ namespace tools
       std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs,
       uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, cryptonote::transaction& tx, pending_tx &ptx, const rct::RCTConfig &rct_config);
 
-    void commit_tx(pending_tx& ptx_vector);
-    void commit_tx(std::vector<pending_tx>& ptx_vector);
+    void commit_tx(pending_tx& ptx_vector,cryptonote::difficulty_type diff);
+    void commit_tx(std::vector<pending_tx>& ptx_vector,cryptonote::difficulty_type diff);
     bool save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename) const;
     std::string dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) const;
     std::string save_multisig_tx(multisig_tx_set txs);
@@ -1388,6 +1389,7 @@ namespace tools
     *@brief set total number mining threads
     */
     void set_mining_threads(uint32_t n_threads=1);
+    uint64_t get_min_tx_pow_diff() const {return TX_POW_DIFF_V1;};
     static std::string get_default_daemon_address() { CRITICAL_REGION_LOCAL(default_daemon_address_lock); return default_daemon_address; }
   private:
     /*!
