@@ -5233,7 +5233,7 @@ bool Blockchain::check_tx_pow(const cryptonote::transaction& tx,cryptonote::tx_v
   memset(tx_proof_of_work.data, 0xff, sizeof(tx_proof_of_work.data));
   //ignore status check
   calculate_transaction_hash_pow(tx,tx_proof_of_work);
-  const bool r=check_hash(tx_proof_of_work,TX_POW_DIFF_V1);
+  const bool r=check_hash(tx_proof_of_work,calculateTxPowDifficulty(tx,hf_version));
   if(!r){
     tvc.m_verifivation_failed=true;
     tvc.m_bad_pow=true;

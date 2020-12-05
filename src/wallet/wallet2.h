@@ -833,7 +833,9 @@ namespace tools
       uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, cryptonote::transaction& tx, pending_tx &ptx, const rct::RCTConfig &rct_config);
 
     void commit_tx(pending_tx& ptx_vector,cryptonote::difficulty_type diff);
+    void commit_tx(pending_tx& ptx_vector){commit_tx(ptx_vector,get_min_tx_pow_diff(ptx_vector.tx));};
     void commit_tx(std::vector<pending_tx>& ptx_vector,cryptonote::difficulty_type diff);
+    void commit_tx(std::vector<pending_tx>& ptx_vector);
     bool save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename) const;
     std::string dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) const;
     std::string save_multisig_tx(multisig_tx_set txs);
@@ -1390,7 +1392,7 @@ namespace tools
     *@brief set total number mining threads
     */
     void set_mining_threads(uint32_t n_threads=1);
-    uint64_t get_min_tx_pow_diff() const {return TX_POW_DIFF_V1;};
+    cryptonote::difficulty_type get_min_tx_pow_diff(const cryptonote::transaction& tx);
     static std::string get_default_daemon_address() { CRITICAL_REGION_LOCAL(default_daemon_address_lock); return default_daemon_address; }
   private:
     /*!

@@ -1571,7 +1571,7 @@ bool simple_wallet::submit_multisig_main(const std::vector<std::string> &args, b
     // actually commit the transactions
     for (auto &ptx: txs.m_ptx)
     {
-      m_wallet->commit_tx(ptx,m_wallet->get_min_tx_pow_diff());
+      m_wallet->commit_tx(ptx);
       success_msg_writer(true) << tr("Transaction successfully submitted, transaction ") << get_transaction_hash(ptx.tx) << ENDL
           << tr("You can check its status by using the `show_transfers` command.");
     }
@@ -7420,7 +7420,7 @@ bool simple_wallet::sweep_single(const std::vector<std::string> &args_)
     }
     else
     {
-      m_wallet->commit_tx(ptx_vector[0],m_wallet->get_min_tx_pow_diff());
+      m_wallet->commit_tx(ptx_vector[0]);
       success_msg_writer(true) << tr("Money successfully sent, transaction: ") << get_transaction_hash(ptx_vector[0].tx);
     }
 
@@ -10265,7 +10265,7 @@ void simple_wallet::commit_or_save(std::vector<tools::wallet2::pending_tx>& ptx_
     }
     else
     {
-      m_wallet->commit_tx(ptx,m_wallet->get_min_tx_pow_diff());
+      m_wallet->commit_tx(ptx);
       success_msg_writer(true) << tr("Transaction successfully submitted, transaction ") << get_transaction_hash(ptx.tx) << ENDL
       << tr("You can check its status by using the `show_transfers` command.");
     }

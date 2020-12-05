@@ -183,6 +183,19 @@ namespace cryptonote {
     return next_difficulty;
   }
 
+  difficulty_type calculateTxPowDifficulty(const cryptonote::transaction& tx,const uint8_t block_version){
+      if(block_version<2)return 1;
+      uint64_t baseDiff=TX_POW_DIFF_V1;
+      const uint64_t TX_DIFF_MIN=baseDiff;
+      const uint64_t TX_DIFF_INPUT_C=1000;
+      baseDiff+=TX_DIFF_INPUT_C/tx.vin.size();
+      baseDiff=baseDiff*0.8f;
+      float OI_RATIO=(float)tx.vout.size()/tx.vin.size();
+      OI_RATIO/=2;
+      baseDiff=baseDiff*OI_RATIO;
+      return baseDiff>TX_DIFF_MIN?baseDiff:TX_DIFF_MIN;
+  }
+
   std::string hex(difficulty_type v)
   {
     static const char chars[] = "0123456789abcdef";

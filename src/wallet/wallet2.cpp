@@ -5772,7 +5772,7 @@ void wallet2::commit_tx(pending_tx& ptx,cryptonote::difficulty_type diff)
 {
   using namespace cryptonote;
   if(ptx.tx.version>=2){
-    THROW_WALLET_EXCEPTION_IF(diff<get_min_tx_pow_diff(), error::wallet_internal_error, "TX difficulty specified is too low");
+    THROW_WALLET_EXCEPTION_IF(diff<get_min_tx_pow_diff(ptx.tx), error::wallet_internal_error, "TX difficulty specified is too low");
     LOG_PRINT_L1("Mining is started to produce PoW needed for transaction submission");
     tx_pow_miner miner(m_mining_threads);
     miner.start(ptx.tx,diff);
@@ -5863,6 +5863,13 @@ void wallet2::commit_tx(std::vector<pending_tx>& ptx_vector,cryptonote::difficul
   for (auto & ptx : ptx_vector)
   {
     commit_tx(ptx,diff);
+  }
+}
+void wallet2::commit_tx(std::vector<pending_tx>& ptx_vector)
+{
+  for (auto & ptx : ptx_vector)
+  {
+    commit_tx(ptx);
   }
 }
 //----------------------------------------------------------------------------------------------------
@@ -11919,5 +11926,14 @@ std::pair<size_t, uint64_t> wallet2::estimate_tx_size_and_weight(bool use_rct, i
 void wallet2::set_mining_threads(uint32_t n_threads){
   THROW_WALLET_EXCEPTION_IF(n_threads == 0, tools::error::wallet_internal_error, "Invalid n_threads");
   m_mining_threads=n_threads;
+}
+//---------------------------------------------------------------------------------------------------
+difficulty_type wallet2::get_min_tx_pow_diff(const cryptonote::transaction& tx){
+  if(use_fork_rules(HF_VERSION_TX_POW_ENABLE)){
+    return calculateTxPowDifficulty(tx,HF_VERSION_TX_POW_ENABLE);
+  }
+  else{
+    return 1;
+  }
 }
 }
