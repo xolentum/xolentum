@@ -1090,9 +1090,6 @@ namespace cryptonote
   //---------------------------------------------------------------
   crypto::hash get_pruned_transaction_hash(const transaction& t, const crypto::hash &pruned_data_hash)
   {
-    // v1 transactions hash the entire blob
-    CHECK_AND_ASSERT_THROW_MES(t.version > 1, "Hash for pruned v1 tx cannot be calculated");
-
     // v2 transactions hash different parts together, than hash the set of those hashes
     crypto::hash hashes[3];
 
@@ -1105,6 +1102,9 @@ namespace cryptonote
     {
       std::stringstream ss;
       binary_archive<true> ba(ss);
+      if(t.version>=2){
+        ba.serialize_uint(t.nonce);
+      }
       const size_t inputs = t.vin.size();
       const size_t outputs = t.vout.size();
       bool r = tt.rct_signatures.serialize_rctsig_base(ba, inputs, outputs);

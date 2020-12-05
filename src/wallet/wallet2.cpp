@@ -5768,13 +5768,14 @@ crypto::hash wallet2::get_payment_id(const pending_tx &ptx) const
 
 //----------------------------------------------------------------------------------------------------
 // take a pending tx and actually send it to the daemon
-void wallet2::commit_tx(pending_tx& ptx)
+void wallet2::commit_tx(pending_tx& ptx,cryptonote::difficulty_type diff)
 {
   using namespace cryptonote;
   if(ptx.tx.version>=2){
+    THROW_WALLET_EXCEPTION_IF(diff<get_min_tx_pow_diff(), error::wallet_internal_error, "TX difficulty specified is too low");
     LOG_PRINT_L1("Mining is started to produce PoW needed for transaction submission");
     tx_pow_miner miner(m_mining_threads);
-    miner.start(ptx.tx,TX_POW_DIFF_V1);
+    miner.start(ptx.tx,diff);
     miner.wait_for_result(ptx.tx);
     LOG_PRINT_L1("Nonce= "<<ptx.tx.nonce);
   }
@@ -5857,11 +5858,11 @@ void wallet2::commit_tx(pending_tx& ptx)
             << "Please, wait for confirmation for your balance to be unlocked.");
 }
 
-void wallet2::commit_tx(std::vector<pending_tx>& ptx_vector)
+void wallet2::commit_tx(std::vector<pending_tx>& ptx_vector,cryptonote::difficulty_type diff)
 {
   for (auto & ptx : ptx_vector)
   {
-    commit_tx(ptx);
+    commit_tx(ptx,diff);
   }
 }
 //----------------------------------------------------------------------------------------------------

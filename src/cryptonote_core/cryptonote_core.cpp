@@ -232,7 +232,7 @@ namespace cryptonote
               m_checkpoints_path(""),
               m_last_dns_checkpoints_update(0),
               m_last_json_checkpoints_update(0),
-              m_disable_dns_checkpoints(true),
+              m_disable_dns_checkpoints(false),
               m_update_download(0),
               m_nettype(UNDEFINED),
               m_update_available(false)
@@ -1852,7 +1852,7 @@ namespace cryptonote
       return true;
 
     MCERROR("updates", "Download/update not implemented yet");
-    return false;
+    return true;
   }
   //-----------------------------------------------------------------------------------------------
   bool core::check_disk_space()
