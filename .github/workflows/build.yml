@@ -16,19 +16,20 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
-    - uses: eine/setup-msys2@v0
+    - name: Install Xolentum dependencies
+      uses: eine/setup-msys2@v2
       with:
         update: true
-      env:
-        ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-    - name: Install Xolentum dependencies
-      run: msys2do pacman -S --needed --noconfirm mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium mingw-w64-x86_64-hidapi mingw-w64-x86_64-protobuf-c mingw-w64-x86_64-libusb git
+        install: mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium mingw-w64-x86_64-hidapi mingw-w64-x86_64-protobuf-c mingw-w64-x86_64-libusb git
     - name: Build
-      run: msys2do make release-static-win64 -j2
+      run: make release-static-win64 -j2
 
   build-ubuntu:
     runs-on: ubuntu-latest

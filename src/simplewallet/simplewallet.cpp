@@ -124,7 +124,7 @@ typedef cryptonote::simple_wallet sw;
 
 #define SCOPED_WALLET_UNLOCK() SCOPED_WALLET_UNLOCK_ON_BAD_PASSWORD(return true;)
 
-#define PRINT_USAGE(usage_help_advanced) fail_msg_writer() << boost::format(tr("usage: %s")) % usage_help_advanced;
+#define PRINT_USAGE(usage_help) fail_msg_writer() << boost::format(tr("usage: %s")) % usage_help;
 
 #define LONG_PAYMENT_ID_SUPPORT_CHECK() \
   do { \
@@ -275,8 +275,8 @@ namespace
   const char* USAGE_STOP_MINING_FOR_RPC("stop_mining_for_rpc");
   const char* USAGE_SHOW_QR_CODE("show_qr_code [<subaddress_index>]");
   const char* USAGE_VERSION("version");
-  const char* USAGE_HELP_ADVANCED("help_advanced [<command>]");
-  const char* USAGE_HELP("help");
+  const char* USAGE_HELP("help [<command> | all]");
+  const char* USAGE_APROPOS("apropos <keyword> [<keyword> ...]");
 
   std::string input_line(const std::string& prompt, bool yesno = false)
   {
@@ -2313,7 +2313,7 @@ bool simple_wallet::on_unknown_command(const std::vector<std::string> &args)
 {
   if (args[0] == "exit" || args[0] == "q") // backward compat
     return false;
-  fail_msg_writer() << boost::format(tr("Unknown command '%s', try 'help_advanced'")) % args.front();
+  fail_msg_writer() << boost::format(tr("Unknown command '%s', try 'help'")) % args.front();
   return true;
 }
 
@@ -3045,37 +3045,39 @@ bool simple_wallet::set_export_format(const std::vector<std::string> &args/* = s
 
 bool simple_wallet::help(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
 {
-  message_writer() << "";
-  message_writer() << tr("Commands:");
-  message_writer() << "";
-  message_writer() << tr("\"welcome\" - Read welcome message.");
-  message_writer() << tr("\"donate <amount>\" - Donate XOL to the development team.");
-  message_writer() << tr("\"balance\" - Show balance.");
-  message_writer() << tr("\"address new\" - Create new subaddress.");
-  message_writer() << tr("\"address all\" - Show all addresses.");
-  message_writer() << tr("\"transfer <address> <amount>\" - Send XOL to an address.");
-  message_writer() << tr("\"show_transfers [in|out|pending|failed|pool]\" - Show transactions.");
-  message_writer() << tr("\"sweep_all <address>\" - Send whole balance to another wallet.");
-  message_writer() << tr("\"seed\" - Show secret 25 words that can be used to recover this wallet.");
-  message_writer() << tr("\"refresh\" - Synchronize wallet with the Xolentum network.");
-  message_writer() << tr("\"status\" - Check current status of wallet.");
-  message_writer() << tr("\"version\" - Check software version.");
-  message_writer() << tr("\"help_advanced\" - Show list with more available commands.");
-  message_writer() << tr("\"save\" - Save wallet.");
-  message_writer() << tr("\"exit\" - Exit wallet.");
-  message_writer() << "";
-  return true;
-}
-
-bool simple_wallet::help_advanced(const std::vector<std::string> &args/* = std::vector<std::string>()*/)
-{
   if(args.empty())
+  {
+    message_writer() << "";
+    message_writer() << tr("Important commands:");
+    message_writer() << "";
+    message_writer() << tr("\"welcome\" - Show welcome message.");
+    message_writer() << tr("\"help all\" - Show the list of all available commands.");
+    message_writer() << tr("\"help <command>\" - Show a command's documentation.");
+    message_writer() << tr("\"apropos <keyword>\" - Show commands related to a keyword.");
+    message_writer() << "";
+    message_writer() << tr("\"wallet_info\" - Show wallet main address and other info.");
+    message_writer() << tr("\"balance\" - Show balance.");
+    message_writer() << tr("\"address all\" - Show all addresses.");
+    message_writer() << tr("\"address new\" - Create new subaddress.");
+    message_writer() << tr("\"transfer <address> <amount>\" - Send XMR to an address.");
+    message_writer() << tr("\"show_transfers [in|out|pending|failed|pool]\" - Show transactions.");
+    message_writer() << tr("\"sweep_all <address>\" - Send whole balance to another wallet.");
+    message_writer() << tr("\"seed\" - Show secret 25 words that can be used to recover this wallet.");
+    message_writer() << tr("\"refresh\" - Synchronize wallet with the Monero network.");
+    message_writer() << tr("\"status\" - Check current status of wallet.");
+    message_writer() << tr("\"version\" - Check software version.");
+    message_writer() << tr("\"exit\" - Exit wallet.");
+    message_writer() << "";
+    message_writer() << tr("\"donate <amount>\" - Donate XMR to the development team.");
+    message_writer() << "";
+  }
+  else if ((args.size() == 1) && (args.front() == "all"))
   {
     success_msg_writer() << get_commands_str();
   }
   else if ((args.size() == 2) && (args.front() == "mms"))
   {
-    // Little hack to be able to do "help_advanced mms <subcommand>"
+    // Little hack to be able to do "help mms <subcommand>"
     std::vector<std::string> mms_args(1, args.front() + " " + args.back());
     success_msg_writer() << get_command_usage(mms_args);
   }
@@ -3083,6 +3085,33 @@ bool simple_wallet::help_advanced(const std::vector<std::string> &args/* = std::
   {
     success_msg_writer() << get_command_usage(args);
   }
+  return true;
+}
+
+bool simple_wallet::apropos(const std::vector<std::string> &args)
+{
+  if (args.empty())
+  {
+    PRINT_USAGE(USAGE_APROPOS);
+    return true;
+  }
+  const std::vector<std::string>& command_list = m_cmd_binder.get_command_list(args);
+  if (command_list.empty())
+  {
+    fail_msg_writer() << tr("No commands found mentioning keyword(s)");
+    return true;
+  }
+
+  success_msg_writer() << "";
+  for(auto const& command:command_list)
+  {
+    std::vector<std::string> cmd;
+    cmd.push_back(command);
+    std::pair<std::string, std::string> documentation = m_cmd_binder.get_documentation(cmd);
+    success_msg_writer() << "  " << documentation.first;
+  }
+  success_msg_writer() << "";
+
   return true;
 }
 
@@ -3469,7 +3498,7 @@ simple_wallet::simple_wallet()
                               "<subcommand> is one of:\n"
                               "  init, info, signer, list, next, sync, transfer, delete, send, receive, export, note, show, set, help\n"
                               "  send_signer_config, start_auto_config, stop_auto_config, auto_config, config_checksum\n"
-                              "Get help about a subcommand with: help_advanced mms <subcommand>"));
+                              "Get help about a subcommand with: help mms <subcommand>, or help mms <subcommand>"));
   m_cmd_binder.set_handler("mms init",
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::mms, _1),
                            tr(USAGE_MMS_INIT),
@@ -3627,14 +3656,14 @@ simple_wallet::simple_wallet()
                           boost::bind(&simple_wallet::on_command, this, &simple_wallet::show_qr_code, _1),
                           tr(USAGE_SHOW_QR_CODE),
                           tr("Show address as QR code"));
-  m_cmd_binder.set_handler("help_advanced",
-                           boost::bind(&simple_wallet::on_command, this, &simple_wallet::help_advanced, _1),
-                           tr(USAGE_HELP_ADVANCED),
-                           tr("Show the help section or the documentation about a <command>."));
   m_cmd_binder.set_handler("help",
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::help, _1),
                            tr(USAGE_HELP),
-                           tr("Show simplified list of available commands."));
+                           tr("Show the help section or the documentation about a <command>."));
+  m_cmd_binder.set_handler("apropos",
+                           boost::bind(&simple_wallet::on_command, this, &simple_wallet::apropos, _1),
+                           tr(USAGE_APROPOS),
+                           tr("Search all command descriptions for keyword(s)"));
   m_cmd_binder.set_unknown_command_handler(boost::bind(&simple_wallet::on_command, this, &simple_wallet::on_unknown_command, _1));
   m_cmd_binder.set_empty_command_handler(boost::bind(&simple_wallet::on_empty_command, this));
   m_cmd_binder.set_cancel_handler(boost::bind(&simple_wallet::on_cancelled_command, this));
@@ -4786,8 +4815,8 @@ boost::optional<epee::wipeable_string> simple_wallet::new_wallet(const boost::pr
     tr("Your wallet has been generated!\n"
     "To start synchronizing with the daemon, use the \"refresh\" command.\n"
     "Use the \"help\" command to see a simplified list of available commands.\n"
-    "Use the \"help_advanced\" command to see an advanced list of available commands.\n"
-    "Use \"help_advanced <command>\" to see a command's documentation.\n"
+    "Use \"help all\" command to see the list of all available commands.\n"
+    "Use \"help <command>\" to see a command's documentation.\n"
     "Always use the \"exit\" command when closing xolentum-wallet-cli to save \n"
     "your current session's state. Otherwise, you might need to synchronize \n"
     "your wallet again (your wallet keys are NOT at risk in any case).\n")
@@ -5047,8 +5076,8 @@ boost::optional<epee::wipeable_string> simple_wallet::open_wallet(const boost::p
   success_msg_writer() <<
     "**********************************************************************\n" <<
     tr("Use the \"help\" command to see a simplified list of available commands.\n") <<
-    tr("Use the \"help_advanced\" command to see an advanced list of available commands.\n") <<
-    tr("Use \"help_advanced <command>\" to see a command's documentation.\n") <<
+    tr("Use \"help all\" to see the list of all available commands.\n") <<
+    tr("Use \"help <command>\" to see a command's documentation.\n") <<
     "**********************************************************************";
   return password;
 }
@@ -7349,6 +7378,32 @@ bool simple_wallet::sweep_single(const std::vector<std::string> &args_)
       else
       {
         success_msg_writer(true) << tr("Unsigned transaction(s) successfully written to file: ") << "multisig_xolentum_tx";
+      }
+    }
+    else if (m_wallet->get_account().get_device().has_tx_cold_sign())
+    {
+      try
+      {
+        tools::wallet2::signed_tx_set signed_tx;
+        std::vector<cryptonote::address_parse_info> dsts_info;
+        dsts_info.push_back(info);
+
+        if (!cold_sign_tx(ptx_vector, signed_tx, dsts_info, [&](const tools::wallet2::signed_tx_set &tx){ return accept_loaded_tx(tx); })){
+          fail_msg_writer() << tr("Failed to cold sign transaction with HW wallet");
+          return true;
+        }
+
+        commit_or_save(signed_tx.ptx, m_do_not_relay);
+        success_msg_writer(true) << tr("Money successfully sent, transaction: ") << get_transaction_hash(ptx_vector[0].tx);
+      }
+      catch (const std::exception& e)
+      {
+        handle_transfer_exception(std::current_exception(), m_wallet->is_trusted_daemon());
+      }
+      catch (...)
+      {
+        LOG_ERROR("Unknown error");
+        fail_msg_writer() << tr("unknown error");
       }
     }
     else if (m_wallet->watch_only())
@@ -11120,7 +11175,7 @@ void simple_wallet::mms_help(const std::vector<std::string> &args)
 {
   if (args.size() > 1)
   {
-    fail_msg_writer() << tr("Usage: help_advanced mms [<subcommand>]");
+    fail_msg_writer() << tr("Usage: help mms [<subcommand>]");
     return;
   }
   std::vector<std::string> help_args;
