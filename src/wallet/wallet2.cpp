@@ -5776,6 +5776,7 @@ void wallet2::commit_tx(pending_tx& ptx,cryptonote::difficulty_type diff)
     LOG_PRINT_L1("Mining is started to produce PoW needed for transaction submission");
     tx_pow_miner miner(m_mining_threads);
     miner.start(ptx.tx,diff);
+    LOG_PRINT_L1("Miner started");
     miner.wait_for_result(ptx.tx);
     LOG_PRINT_L1("Nonce= "<<ptx.tx.nonce);
   }
