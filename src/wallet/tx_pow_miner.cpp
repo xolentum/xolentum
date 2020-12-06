@@ -63,7 +63,7 @@ namespace cryptonote{
       m_threads.push_back(boost::thread(m_attrs, boost::bind(&tx_pow_miner::worker, this)));
     }
     //Wait all threads booted up
-    while(m_thread_index<m_threads_total){
+    while(m_threads_active<m_threads_total){
       epee::misc_utils::sleep_no_w(100);
     }
   }
