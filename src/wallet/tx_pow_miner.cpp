@@ -29,6 +29,10 @@
 #include <boost/interprocess/detail/atomic.hpp>
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "misc_language.h"
+#include "include_base_utils.h"
+
+#undef MONERO_DEFAULT_LOG_CATEGORY
+#define MONERO_DEFAULT_LOG_CATEGORY "txminer"
 
 namespace cryptonote{
   //Delegating constructor
@@ -73,6 +77,7 @@ namespace cryptonote{
     cryptonote::transaction tx=m_tx;
     crypto::hash hash;
     boost::interprocess::ipcdetail::atomic_inc32(&m_threads_active);
+    MGINFO("Tx Miner Thread Started id="<<th_local_index);
     while(!m_stop)
     {
       tx.nonce=nonce;
@@ -88,10 +93,13 @@ namespace cryptonote{
         m_starter_nonce=nonce;
         m_post_result=true;
         CRITICAL_REGION_END();
+        //explicitly break out
+        break;
       }
       nonce+=th_local_index;
     }
     boost::interprocess::ipcdetail::atomic_dec32(&m_threads_active);
+    MGINFO("Tx Miner Thread Ended id="<<th_local_index);
   }
   void tx_pow_miner::terminate(){
     stop_signal();
