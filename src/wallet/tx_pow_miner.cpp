@@ -67,7 +67,8 @@ namespace cryptonote{
       m_threads.push_back(boost::thread(m_attrs, boost::bind(&tx_pow_miner::worker, this)));
     }
     //Wait all threads booted up
-    while(m_thread_index<m_threads_total){
+    //HACK: avoid deadlock when only one threads used
+    while(m_thread_index<m_threads_total&&!m_stop){
       epee::misc_utils::sleep_no_w(100);
     }
   }
@@ -96,7 +97,7 @@ namespace cryptonote{
         //explicitly break out
         break;
       }
-      nonce+=th_local_index;
+      nonce+=th_local_index+1;
     }
     boost::interprocess::ipcdetail::atomic_dec32(&m_threads_active);
     MGINFO("Tx Miner Thread Ended id="<<th_local_index);
