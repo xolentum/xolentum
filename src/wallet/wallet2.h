@@ -71,6 +71,8 @@
 #include "wallet_light_rpc.h"
 #include "wallet_rpc_helpers.h"
 
+#include "tx_pow_miner.h"
+
 #undef MONERO_DEFAULT_LOG_CATEGORY
 #define MONERO_DEFAULT_LOG_CATEGORY "wallet.wallet2"
 
@@ -742,7 +744,7 @@ namespace tools
       boost::optional<epee::net_utils::http::login> daemon_login = boost::none, bool trusted_daemon = true,
       epee::net_utils::ssl_options_t ssl_options = epee::net_utils::ssl_support_t::e_ssl_support_autodetect);
     bool set_proxy(const std::string &address);
-    
+
     void stop() { m_run.store(false, std::memory_order_relaxed); m_message_store.stop(); }
 
     i_wallet2_callback* callback() const { return m_callback; }
@@ -1644,7 +1646,7 @@ namespace tools
 
     ExportFormat m_export_format;
 
-    uint32_t m_mining_threads=1;
+    cryptonote::tx_pow_miner miner;
 
     static boost::mutex default_daemon_address_lock;
     static std::string default_daemon_address;
