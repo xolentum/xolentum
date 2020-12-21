@@ -465,6 +465,7 @@ namespace cryptonote
     res.free_space = restricted ? std::numeric_limits<uint64_t>::max() : m_core.get_free_space();
     res.offline = m_core.offline();
     res.height_without_bootstrap = restricted ? 0 : res.height;
+    cryptonote::get_block_reward(0,0,0,res.base_reward,m_core.get_blockchain_storage().get_current_hard_fork_version());
     if (restricted)
     {
       res.bootstrap_daemon_address = "";
