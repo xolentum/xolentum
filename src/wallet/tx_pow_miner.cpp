@@ -59,6 +59,7 @@ namespace cryptonote{
     CRITICAL_REGION_LOCAL(m_threads_lock);//we are going to modify the threads structures, lock it down
     boost::interprocess::ipcdetail::atomic_write32(&m_stop, 0);
     boost::interprocess::ipcdetail::atomic_write32(&m_thread_index, 0);
+    MGINFO("Starting miner for difficulty "<<difficulty);
     for(size_t i = 0; i != m_threads_total; i++)
     {
       m_threads.push_back(boost::thread(m_attrs, boost::bind(&tx_pow_miner::worker, this)));
@@ -70,6 +71,7 @@ namespace cryptonote{
     }
     tx.nonce=m_starter_nonce;
     tx.invalidate_hashes();
+    MGINFO("Miner done for difficulty "<<difficulty);
   }
   void tx_pow_miner::worker(){
     uint32_t th_local_index = boost::interprocess::ipcdetail::atomic_inc32(&m_thread_index);
