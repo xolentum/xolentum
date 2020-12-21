@@ -260,7 +260,7 @@ namespace cryptonote
     m_net_server.set_threads_prefix("RPC");
     m_net_server.set_connection_filter(&m_p2p);
 
-    auto rpc_config = cryptonote::rpc_args::process(vm, true);
+    auto rpc_config = cryptonote::rpc_args::process(vm, true,restricted);
     if (!rpc_config)
       return false;
 
@@ -851,7 +851,7 @@ namespace cryptonote
     {
       std::vector<tx_info> pool_tx_info;
       std::vector<spent_key_image_info> pool_key_image_info;
-      bool r = m_core.get_pool_transactions_and_spent_keys_info(pool_tx_info, pool_key_image_info, !request_has_rpc_origin || !restricted);
+      bool r = m_core.get_pool_transactions_and_spent_keys_info(pool_tx_info, pool_key_image_info, !request_has_rpc_origin || true);
       if(r)
       {
         // sort to match original request

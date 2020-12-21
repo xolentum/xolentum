@@ -129,7 +129,7 @@ namespace cryptonote
       command_line::add_arg(desc, arg.rpc_ssl_allow_any_cert);
   }
 
-  boost::optional<rpc_args> rpc_args::process(const boost::program_options::variables_map& vm, const bool any_cert_option)
+  boost::optional<rpc_args> rpc_args::process(const boost::program_options::variables_map& vm, const bool any_cert_option,const bool restricted_rpc)
   {
     const descriptors arg{};
     rpc_args config{};
@@ -213,9 +213,9 @@ namespace cryptonote
     auto access_control_origins_input = command_line::get_arg(vm, arg.rpc_access_control_origins);
     if (!access_control_origins_input.empty())
     {
-      if (!config.login)
+      if (!config.login&&!restricted_rpc)
       {
-        LOG_ERROR(arg.rpc_access_control_origins.name  << tr(" requires RPC server password --") << arg.rpc_login.name << tr(" cannot be empty"));
+        LOG_ERROR(arg.rpc_access_control_origins.name  << tr(" requires RPC server password in unrestricted RPC--") << arg.rpc_login.name << tr(" cannot be empty"));
         return boost::none;
       }
 
