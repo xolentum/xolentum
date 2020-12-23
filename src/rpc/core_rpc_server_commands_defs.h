@@ -35,7 +35,7 @@
 #include "cryptonote_protocol/cryptonote_protocol_defs.h"
 #include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/difficulty.h"
-#include "crypto/hash.h"
+#include "crypto/crypto.h"
 #include "rpc/rpc_handler.h"
 #include "common/varint.h"
 #include "common/perf_timer.h"
@@ -88,7 +88,7 @@ namespace cryptonote
 // advance which version they will stop working with
 // Don't go over 32767 for any of these
 #define CORE_RPC_VERSION_MAJOR 3
-#define CORE_RPC_VERSION_MINOR 1
+#define CORE_RPC_VERSION_MINOR 2
 #define MAKE_CORE_RPC_VERSION(major,minor) (((major)<<16)|(minor))
 #define CORE_RPC_VERSION MAKE_CORE_RPC_VERSION(CORE_RPC_VERSION_MAJOR, CORE_RPC_VERSION_MINOR)
 
@@ -2576,6 +2576,43 @@ namespace cryptonote
     {
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_response_base)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_VALIDATE_ADDRESS
+  {
+    struct request_t: public rpc_access_request_base
+    {
+      std::string address;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE_PARENT(rpc_request_base)
+        KV_SERIALIZE(address)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t: public rpc_access_response_base
+    {
+      bool is_valid;
+      std::string address_type;
+      std::string network_type;
+      crypto::public_key view_public_key;
+      crypto::public_key spend_public_key;
+      crypto::hash8 payment_id;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE_PARENT(rpc_response_base)
+        KV_SERIALIZE(is_valid);
+        if(is_valid){
+          KV_SERIALIZE(address_type);
+          KV_SERIALIZE(network_type);
+          KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(view_public_key);
+          KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(spend_public_key);
+          KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(payment_id);
+        }
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;

@@ -3192,6 +3192,49 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_validate_address(const COMMAND_RPC_VALIDATE_ADDRESS::request req,COMMAND_RPC_VALIDATE_ADDRESS::response& res,epee::json_rpc::error& error_resp, const connection_context *ctx)
+  {
+    RPC_TRACKER(validate_address);
+    CHECK_PAYMENT(req, res, COST_PER_VALIDATE_ADDRESS);
+
+    if(req.address.empty()){
+      error_resp.code=CORE_RPC_ERROR_CODE_WRONG_PARAM;
+      error_resp.message="Missing address";
+      return false;
+    }
+    cryptonote::address_parse_info info;
+    static const struct { cryptonote::network_type type; const char *stype; } net_types[] = {
+      { cryptonote::MAINNET, "mainnet" },
+      { cryptonote::TESTNET, "testnet" },
+      { cryptonote::STAGENET, "stagenet" },
+    };
+    for (const auto &net_type: net_types)
+    {
+      res.is_valid = cryptonote::get_account_address_from_str(info, net_type.type, req.address);
+      if (res.is_valid)
+      {
+        if(info.has_payment_id)
+        {
+          res.address_type="integrated";
+        }
+        else if(info.is_subaddress){
+          res.address_type="subaddress";
+        }
+        else{
+          res.address_type="standard";
+        }
+        res.network_type = net_type.stype;
+        res.spend_public_key=info.address.m_spend_public_key;
+        res.view_public_key=info.address.m_view_public_key;
+        res.payment_id=info.payment_id;
+	res.status = CORE_RPC_STATUS_OK;
+        return true;
+      }
+    }
+    res.is_valid = false;
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
   const command_line::arg_descriptor<std::string, false, true, 2> core_rpc_server::arg_rpc_bind_port = {
       "rpc-bind-port"
     , "Port for RPC server"
