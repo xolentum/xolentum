@@ -1865,6 +1865,7 @@ namespace cryptonote
     response.pow_hash = fill_pow_hash ? string_tools::pod_to_hex(get_block_longhash(&(m_core.get_blockchain_storage()), blk, height, 0)) : "";
     response.long_term_weight = m_core.get_blockchain_storage().get_db().get_block_long_term_weight(height);
     response.miner_tx_hash = string_tools::pod_to_hex(cryptonote::get_transaction_hash(blk.miner_tx));
+    response.already_generated_coins=m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height-1);
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------

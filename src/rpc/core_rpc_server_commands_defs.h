@@ -973,6 +973,7 @@ namespace cryptonote
       std::string pow_hash;
       uint64_t long_term_weight;
       std::string miner_tx_hash;
+      uint64_t already_generated_coins;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(major_version)
@@ -997,6 +998,7 @@ namespace cryptonote
         KV_SERIALIZE(pow_hash)
         KV_SERIALIZE_OPT(long_term_weight, (uint64_t)0)
         KV_SERIALIZE(miner_tx_hash)
+        KV_SERIALIZE(already_generated_coins)
       END_KV_SERIALIZE_MAP()
   };
 
