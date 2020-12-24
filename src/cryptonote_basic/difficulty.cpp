@@ -191,7 +191,7 @@ namespace cryptonote {
       baseDiff+=TX_DIFF_INPUT_C/tx.vin.size();
       baseDiff=baseDiff*0.8f;
       float OI_RATIO=(float)tx.vout.size()/tx.vin.size();
-      OI_RATIO/=2;
+      OI_RATIO*=2;
       baseDiff=baseDiff*OI_RATIO;
       return baseDiff>TX_DIFF_MIN?baseDiff:TX_DIFF_MIN;
   }

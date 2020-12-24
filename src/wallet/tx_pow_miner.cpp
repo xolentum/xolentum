@@ -29,6 +29,10 @@
 #include <boost/interprocess/detail/atomic.hpp>
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "misc_language.h"
+#include "include_base_utils.h"
+
+#undef MONERO_DEFAULT_LOG_CATEGORY
+#define MONERO_DEFAULT_LOG_CATEGORY "txminer"
 
 namespace cryptonote{
   //Delegating constructor
@@ -37,35 +41,37 @@ namespace cryptonote{
   }
   tx_pow_miner::tx_pow_miner(const uint32_t n_threads):m_stop(0),
   m_threads_active(0),
-  m_post_result(false),
   m_thread_index(0),
   m_threads_total(n_threads){
     m_attrs.set_stack_size(THREAD_STACK_SIZE);
   }
   tx_pow_miner::~tx_pow_miner(){
-    try{terminate();}catch(...){}
   }
-  void tx_pow_miner::start(const cryptonote::transaction& tx,difficulty_type difficulty){
+  void tx_pow_miner::mine(cryptonote::transaction& tx,difficulty_type difficulty){
     if(m_threads_active)
       throw std::runtime_error("Invalid operation: attempting to start miner while it is already started");
     //copy the data into the instance
     m_diffic=difficulty;
     m_tx=tx;
-    m_post_result=false;
     m_thread_index=0;
     //generate random for the starting nonce
     m_starter_nonce = crypto::rand<uint32_t>();
     CRITICAL_REGION_LOCAL(m_threads_lock);//we are going to modify the threads structures, lock it down
     boost::interprocess::ipcdetail::atomic_write32(&m_stop, 0);
     boost::interprocess::ipcdetail::atomic_write32(&m_thread_index, 0);
+    MGINFO("Starting miner for difficulty "<<difficulty);
     for(size_t i = 0; i != m_threads_total; i++)
     {
       m_threads.push_back(boost::thread(m_attrs, boost::bind(&tx_pow_miner::worker, this)));
     }
-    //Wait all threads booted up
-    while(m_threads_active<m_threads_total){
-      epee::misc_utils::sleep_no_w(100);
+    //wait all threads done
+    while(!m_threads.empty()){
+      m_threads.back().join();
+      m_threads.pop_back();
     }
+    tx.nonce=m_starter_nonce;
+    tx.invalidate_hashes();
+    MGINFO("Miner done for difficulty "<<difficulty);
   }
   void tx_pow_miner::worker(){
     uint32_t th_local_index = boost::interprocess::ipcdetail::atomic_inc32(&m_thread_index);
@@ -73,6 +79,7 @@ namespace cryptonote{
     cryptonote::transaction tx=m_tx;
     crypto::hash hash;
     boost::interprocess::ipcdetail::atomic_inc32(&m_threads_active);
+    MGINFO("Tx Miner Thread Started id="<<th_local_index);
     while(!m_stop)
     {
       tx.nonce=nonce;
@@ -86,34 +93,17 @@ namespace cryptonote{
         CRITICAL_REGION_BEGIN(m_state_lock);
         //set the value
         m_starter_nonce=nonce;
-        m_post_result=true;
         CRITICAL_REGION_END();
+        //explicitly break out
+        break;
       }
-      nonce+=th_local_index;
+      nonce+=th_local_index+1;
     }
     boost::interprocess::ipcdetail::atomic_dec32(&m_threads_active);
-  }
-  void tx_pow_miner::terminate(){
-    stop_signal();
-    while (m_threads_active > 0)
-    {
-      epee::misc_utils::sleep_no_w(100);
-    }
-    m_threads.clear();
+    MGINFO("Tx Miner Thread Ended id="<<th_local_index);
   }
   void tx_pow_miner::stop_signal(){
     boost::interprocess::ipcdetail::atomic_write32(&m_stop, 1);
-  }
-  void tx_pow_miner::wait_for_result(cryptonote::transaction& tx){
-    while (m_threads_active > 0)
-    {
-      epee::misc_utils::sleep_no_w(100);
-    }
-    m_threads.clear();
-    if(m_post_result){
-      tx.nonce=m_starter_nonce;
-      tx.invalidate_hashes();
-    }
   }
   void tx_pow_miner::set_total_threads(const uint32_t n_threads){
     if(m_threads_active)

@@ -46,15 +46,7 @@ namespace cryptonote{
       *
       *@param transaction itself
       */
-      void start(const cryptonote::transaction& tx,difficulty_type difficulty);
-      /**
-      *@brief stop mining.
-      */
-      void terminate();
-      /**
-      *@brief block the current thread for the mining result
-      */
-      void wait_for_result(cryptonote::transaction& tx);
+      void mine(cryptonote::transaction& tx,difficulty_type difficulty);
       /*
       *@brief set number of mining threads
       */
@@ -73,7 +65,6 @@ namespace cryptonote{
       std::list<boost::thread> m_threads;
       volatile uint32_t m_thread_index;
       volatile uint32_t m_threads_active;
-      std::atomic<bool> m_post_result;
       cryptonote::transaction m_tx;
       volatile uint32_t m_threads_total;
     };

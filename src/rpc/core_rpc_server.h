@@ -183,6 +183,7 @@ namespace cryptonote
         MAP_JON_RPC_WE_IF("rpc_access_tracking", on_rpc_access_tracking,        COMMAND_RPC_ACCESS_TRACKING, !m_restricted)
         MAP_JON_RPC_WE_IF("rpc_access_data",     on_rpc_access_data,            COMMAND_RPC_ACCESS_DATA, !m_restricted)
         MAP_JON_RPC_WE_IF("rpc_access_account",  on_rpc_access_account,         COMMAND_RPC_ACCESS_ACCOUNT, !m_restricted)
+        MAP_JON_RPC_WE("validate_address",         on_validate_address,         COMMAND_RPC_VALIDATE_ADDRESS)
       END_JSON_RPC_MAP()
     END_URI_MAP2()
 
@@ -259,6 +260,8 @@ namespace cryptonote
     bool on_rpc_access_data(const COMMAND_RPC_ACCESS_DATA::request& req, COMMAND_RPC_ACCESS_DATA::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
     bool on_rpc_access_account(const COMMAND_RPC_ACCESS_ACCOUNT::request& req, COMMAND_RPC_ACCESS_ACCOUNT::response& res, epee::json_rpc::error& error_resp, const connection_context *ctx = NULL);
     //-----------------------
+    bool on_validate_address(const COMMAND_RPC_VALIDATE_ADDRESS::request req,COMMAND_RPC_VALIDATE_ADDRESS::response& res,epee::json_rpc::error& error_resp, const connection_context *ctx=NULL);
+    //---------------------
 
 private:
     bool check_core_busy();

@@ -293,6 +293,8 @@ namespace nodetool
   private:
     const std::vector<std::string> m_seed_nodes_list =
     {
+      "seed.xol-pulse.jp.eu.org",
+      "seed.xol.junichi2000.jp.eu.org"
     };
 
     bool islimitup=false;
