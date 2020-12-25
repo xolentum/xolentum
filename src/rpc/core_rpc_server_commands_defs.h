@@ -2590,7 +2590,7 @@ namespace cryptonote
       std::string address;
 
       BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE_PARENT(rpc_request_base)
+        KV_SERIALIZE_PARENT(rpc_access_request_base)
         KV_SERIALIZE(address)
       END_KV_SERIALIZE_MAP()
     };
@@ -2606,7 +2606,7 @@ namespace cryptonote
       crypto::hash8 payment_id;
 
       BEGIN_KV_SERIALIZE_MAP()
-        KV_SERIALIZE_PARENT(rpc_response_base)
+        KV_SERIALIZE_PARENT(rpc_access_response_base)
         KV_SERIALIZE(is_valid);
         if(is_valid){
           KV_SERIALIZE(address_type);
