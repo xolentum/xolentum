@@ -3225,10 +3225,10 @@ namespace cryptonote
           res.address_type="standard";
         }
         res.network_type = net_type.stype;
-        res.spend_public_key=info.address.m_spend_public_key;
-        res.view_public_key=info.address.m_view_public_key;
-        res.payment_id=info.payment_id;
-	res.status = CORE_RPC_STATUS_OK;
+        res.spend_public_key=epee::string_tools::pod_to_hex(info.address.m_spend_public_key);
+        res.view_public_key=epee::string_tools::pod_to_hex(info.address.m_view_public_key);
+        res.payment_id=epee::string_tools::pod_to_hex(info.payment_id);
+	      res.status = CORE_RPC_STATUS_OK;
         return true;
       }
     }

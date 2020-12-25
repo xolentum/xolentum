@@ -2601,9 +2601,9 @@ namespace cryptonote
       bool is_valid;
       std::string address_type;
       std::string network_type;
-      crypto::public_key view_public_key;
-      crypto::public_key spend_public_key;
-      crypto::hash8 payment_id;
+      std::string view_public_key;
+      std::string spend_public_key;
+      std::string payment_id;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_access_response_base)
@@ -2611,9 +2611,9 @@ namespace cryptonote
         if(is_valid){
           KV_SERIALIZE(address_type);
           KV_SERIALIZE(network_type);
-          KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(view_public_key);
-          KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(spend_public_key);
-          KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(payment_id);
+          KV_SERIALIZE(view_public_key);
+          KV_SERIALIZE(spend_public_key);
+          KV_SERIALIZE(payment_id);
         }
       END_KV_SERIALIZE_MAP()
     };
