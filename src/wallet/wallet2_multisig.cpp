@@ -383,7 +383,7 @@ namespace tools{
       m_account.finalize_multisig(spend_public_key);
 
       m_multisig_signers = signers;
-      std::sort(m_multisig_signers.begin(), m_multisig_signers.end(), [](const crypto::public_key &e0, const crypto::public_key &e1){ return memcmp(&e0, &e1, sizeof(e0)); });
+      std::sort(m_multisig_signers.begin(), m_multisig_signers.end(), [](const crypto::public_key &e0, const crypto::public_key &e1){ return memcmp(&e0, &e1, sizeof(e0)) < 0; });
 
       ++m_multisig_rounds_passed;
       m_multisig_derivations.clear();
@@ -742,10 +742,11 @@ namespace tools{
 
     // save as binary
     std::ostringstream oss;
-    boost::archive::portable_binary_oarchive ar(oss);
+    binary_archive<true> ar(oss);
     try
     {
-      ar << txs;
+      if (!::serialization::serialize(ar, txs))
+        return std::string();
     }
     catch (...)
     {
@@ -809,13 +810,29 @@ namespace tools{
       LOG_PRINT_L0("Failed to decrypt multisig tx data: " << e.what());
       return false;
     }
+    bool loaded = false;
     try
     {
       std::istringstream iss(multisig_tx_st);
-      boost::archive::portable_binary_iarchive ar(iss);
-      ar >> exported_txs;
+      binary_archive<false> ar(iss);
+      if (::serialization::serialize(ar, exported_txs))
+        if (::serialization::check_stream_state(ar))
+          loaded = true;
     }
-    catch (...)
+    catch (...) {}
+    try
+    {
+      if (!loaded && m_load_deprecated_formats)
+      {
+        std::istringstream iss(multisig_tx_st);
+        boost::archive::portable_binary_iarchive ar(iss);
+        ar >> exported_txs;
+        loaded = true;
+      }
+    }
+    catch(...) {}
+
+    if (!loaded)
     {
       LOG_PRINT_L0("Failed to parse multisig tx data");
       return false;
@@ -861,8 +878,8 @@ namespace tools{
         const crypto::hash txid = get_transaction_hash(ptx.tx);
         if (store_tx_info())
         {
-          m_tx_keys.insert(std::make_pair(txid, ptx.tx_key));
-          m_additional_tx_keys.insert(std::make_pair(txid, ptx.additional_tx_keys));
+          m_tx_keys[txid] = ptx.tx_key;
+          m_additional_tx_keys[txid] = ptx.additional_tx_keys;
         }
       }
     }
@@ -982,8 +999,8 @@ namespace tools{
         const crypto::hash txid = get_transaction_hash(ptx.tx);
         if (store_tx_info())
         {
-          m_tx_keys.insert(std::make_pair(txid, ptx.tx_key));
-          m_additional_tx_keys.insert(std::make_pair(txid, ptx.additional_tx_keys));
+          m_tx_keys[txid] = ptx.tx_key;
+          m_additional_tx_keys[txid] = ptx.additional_tx_keys;
         }
         txids.push_back(txid);
       }
@@ -1174,8 +1191,8 @@ namespace tools{
     }
 
     std::stringstream oss;
-    boost::archive::portable_binary_oarchive ar(oss);
-    ar << info;
+    binary_archive<true> ar(oss);
+    CHECK_AND_ASSERT_THROW_MES(::serialization::serialize(ar, info), "Failed to serialize multisig data");
 
     const cryptonote::account_public_address &keys = get_account().get_keys().m_account_address;
     std::string header;
@@ -1245,10 +1262,26 @@ namespace tools{
       seen.insert(signer);
 
       std::string body(data, headerlen);
-      std::istringstream iss(body);
       std::vector<tools::wallet2::multisig_info> i;
-      boost::archive::portable_binary_iarchive ar(iss);
-      ar >> i;
+
+      bool loaded = false;
+      try
+      {
+        std::istringstream iss(body);
+        binary_archive<false> ar(iss);
+        if (::serialization::serialize(ar, i))
+          if (::serialization::check_stream_state(ar))
+            loaded = true;
+      }
+      catch(...) {}
+      if (!loaded && m_load_deprecated_formats)
+      {
+        std::istringstream iss(body);
+        boost::archive::portable_binary_iarchive ar(iss);
+        ar >> i;
+        loaded = true;
+      }
+      CHECK_AND_ASSERT_THROW_MES(loaded, "Failed to load output data");
       MINFO(boost::format("%u outputs found") % boost::lexical_cast<std::string>(i.size()));
       info.push_back(std::move(i));
     }
@@ -1285,7 +1318,7 @@ namespace tools{
     // sort by signer
     if (!info.empty() && !info.front().empty())
     {
-      std::sort(info.begin(), info.end(), [](const std::vector<tools::wallet2::multisig_info> &i0, const std::vector<tools::wallet2::multisig_info> &i1){ return memcmp(&i0[0].m_signer, &i1[0].m_signer, sizeof(i0[0].m_signer)); });
+      std::sort(info.begin(), info.end(), [](const std::vector<tools::wallet2::multisig_info> &i0, const std::vector<tools::wallet2::multisig_info> &i1){ return memcmp(&i0[0].m_signer, &i1[0].m_signer, sizeof(i0[0].m_signer)) < 0; });
     }
 
     // first pass to determine where to detach the blockchain
