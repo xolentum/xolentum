@@ -1865,7 +1865,7 @@ namespace cryptonote
     response.pow_hash = fill_pow_hash ? string_tools::pod_to_hex(get_block_longhash(&(m_core.get_blockchain_storage()), blk, height, 0)) : "";
     response.long_term_weight = m_core.get_blockchain_storage().get_db().get_block_long_term_weight(height);
     response.miner_tx_hash = string_tools::pod_to_hex(cryptonote::get_transaction_hash(blk.miner_tx));
-    response.already_generated_coins=m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height-1);
+    response.already_generated_coins=m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height);
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -3225,10 +3225,10 @@ namespace cryptonote
           res.address_type="standard";
         }
         res.network_type = net_type.stype;
-        res.spend_public_key=info.address.m_spend_public_key;
-        res.view_public_key=info.address.m_view_public_key;
-        res.payment_id=info.payment_id;
-	res.status = CORE_RPC_STATUS_OK;
+        res.spend_public_key=epee::string_tools::pod_to_hex(info.address.m_spend_public_key);
+        res.view_public_key=epee::string_tools::pod_to_hex(info.address.m_view_public_key);
+        res.payment_id=epee::string_tools::pod_to_hex(info.payment_id);
+	      res.status = CORE_RPC_STATUS_OK;
         return true;
       }
     }
