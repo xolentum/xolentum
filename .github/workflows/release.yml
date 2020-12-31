@@ -3,7 +3,7 @@ name: release
 on: 
   push:
     branches:
-      - v0.2.0.0
+      - master
 
 jobs:
   release-macos:
