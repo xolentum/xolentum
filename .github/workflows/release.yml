@@ -3,7 +3,7 @@ name: release
 on: 
   push:
     branches:
-      - master
+      - v0.2.0.0
 
 jobs:
   release-macos:
@@ -38,6 +38,7 @@ jobs:
         update: true
         install: mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium mingw-w64-x86_64-hidapi mingw-w64-x86_64-protobuf-c mingw-w64-x86_64-libusb git
     - name: Build
+
       run: USE_SINGLE_DIR=1 make release-static-win64 -j2
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@master
@@ -61,8 +62,9 @@ jobs:
     - name: Update apt
       run: sudo apt update
     - name: Install Xolentum dependencies
-      run: sudo apt -y install build-essential cmake libboost-all-dev miniupnpc libunbound-dev graphviz doxygen libunwind8-dev pkg-config libssl-dev libzmq3-dev libsodium-dev libhidapi-dev libnorm-dev libusb-1.0-0-dev libpgm-dev libprotobuf-dev protobuf-compiler
+      run: sudo apt-get install xz-utils g++ libtool-bin autoconf automake build-essential cmake pkg-config pcsc-tools pcscd libpcsclite1 libudev-dev libhidapi-dev libzmq3-dev libunbound-dev libboost-all-dev libusb-1.0-0-dev libusb-dev libssl-dev libsodium-dev libcurl4-openssl-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libhidapi-libusb0 libnorm-dev libpgm-dev
     - name: Build
+
       run: USE_SINGLE_DIR=1 make release-static-linux-x86_64 -j3
     - name: Upload Linux artifacts
       uses: actions/upload-artifact@master
