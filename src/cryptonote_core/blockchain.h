@@ -29,6 +29,9 @@
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
 #pragma once
+#if BOOST_VERSION >= 107400
+#include <boost/serialization/library_version_type.hpp>
+#endif
 #include <boost/asio/io_service.hpp>
 #include <boost/function/function_fwd.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -985,7 +988,7 @@ namespace cryptonote
     bool get_txpool_tx_meta(const crypto::hash& txid, txpool_tx_meta_t &meta) const;
     bool get_txpool_tx_blob(const crypto::hash& txid, cryptonote::blobdata &bd, relay_category tx_category) const;
     cryptonote::blobdata get_txpool_tx_blob(const crypto::hash& txid, relay_category tx_category) const;
-    bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)>, bool include_blob = false, relay_category tx_category = relay_category::broadcasted) const;
+    bool for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata_ref*)>, bool include_blob = false, relay_category tx_category = relay_category::broadcasted) const;
     bool txpool_tx_matches_category(const crypto::hash& tx_hash, relay_category category);
 
     bool is_within_compiled_block_hash_area() const { return is_within_compiled_block_hash_area(m_db->height()); }
@@ -1038,6 +1041,11 @@ namespace cryptonote
      * @brief flush the invalid blocks set
      */
     void flush_invalid_blocks();
+
+    /**
+    * @brief perform tx pow check
+    */
+    bool check_tx_pow(const cryptonote::transaction& tx,cryptonote::tx_verification_context& tvc);
 
 #ifndef IN_UNIT_TESTS
   private:

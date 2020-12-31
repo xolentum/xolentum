@@ -232,7 +232,7 @@ namespace cryptonote
               m_checkpoints_path(""),
               m_last_dns_checkpoints_update(0),
               m_last_json_checkpoints_update(0),
-              m_disable_dns_checkpoints(true),
+              m_disable_dns_checkpoints(false),
               m_update_download(0),
               m_nettype(UNDEFINED),
               m_update_available(false)
@@ -826,7 +826,7 @@ namespace cryptonote
     bad_semantics_txes_lock.unlock();
 
     uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
-    const size_t max_tx_version = 1;
+    const size_t max_tx_version = 2;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
       MERROR_VER("Bad tx version (" << tx.version << ", max is " << max_tx_version << ")");
@@ -1687,9 +1687,8 @@ namespace cryptonote
         << "You can set the level of process detailization through \"set_log <level|categories>\" command," << ENDL
         << "where <level> is between 0 (no details) and 4 (very verbose), or custom category based levels (eg, *:WARNING)." << ENDL
         << ENDL
-        << "Use the \"help\" command to see a simplified list of available commands." << ENDL
-        << "Use the \"help_advanced\" command to see an advanced list of available commands." << ENDL
-        << "Use \"help_advanced <command>\" to see a command's documentation." << ENDL
+        << "Use the \"help\" command to see the list of available commands." << ENDL
+        << "Use \"help <command>\" to see a command's documentation." << ENDL
         << "**********************************************************************" << ENDL);
 
       m_starter_message_showed = true;
@@ -1853,7 +1852,7 @@ namespace cryptonote
       return true;
 
     MCERROR("updates", "Download/update not implemented yet");
-    return false;
+    return true;
   }
   //-----------------------------------------------------------------------------------------------
   bool core::check_disk_space()

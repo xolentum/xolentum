@@ -32,12 +32,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(wallet_sources
   wallet2.cpp
+  wallet2_multisig.cpp
+  wallet2_light_wallet.cpp
   wallet_args.cpp
   ringdb.cpp
+  tx_pow_miner.cpp
   node_rpc_proxy.cpp
   message_store.cpp
   message_transporter.cpp
   wallet_rpc_payments.cpp
+  gamma_picker.cpp
 )
 
 set(wallet_private_headers
@@ -48,10 +52,12 @@ set(wallet_private_headers
   wallet_rpc_server_commands_defs.h
   wallet_rpc_server_error_codes.h
   ringdb.h
+  tx_pow_miner.h
   node_rpc_proxy.h
   message_store.h
   message_transporter.h
-  wallet_rpc_helpers.h)
+  wallet_rpc_helpers.h
+  gamma_picker.h)
 
 monero_private_headers(wallet
   ${wallet_private_headers})

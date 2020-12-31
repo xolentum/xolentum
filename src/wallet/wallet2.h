@@ -1,4 +1,5 @@
 // Copyright (c) 2014-2020, The Monero Project
+// Copyright (c) 2020, The Xolentum Project
 //
 // All rights reserved.
 //
@@ -32,6 +33,9 @@
 
 #include <memory>
 
+#if BOOST_VERSION >= 107400
+#include <boost/serialization/library_version_type.hpp>
+#endif
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/serialization/list.hpp>
@@ -45,11 +49,12 @@
 #include "cryptonote_basic/account.h"
 #include "cryptonote_basic/account_boost_serialization.h"
 #include "cryptonote_basic/cryptonote_basic_impl.h"
-#include "net/http_client.h"
+#include "net/http.h"
 #include "storages/http_abstract_invoke.h"
 #include "rpc/core_rpc_server_commands_defs.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
 #include "cryptonote_core/cryptonote_tx_utils.h"
+#include "cryptonote_basic/cryptonote_basic.h"
 #include "common/unordered_containers_boost_serialization.h"
 #include "common/util.h"
 #include "crypto/chacha.h"
@@ -65,6 +70,8 @@
 #include "message_store.h"
 #include "wallet_light_rpc.h"
 #include "wallet_rpc_helpers.h"
+
+#include "tx_pow_miner.h"
 
 #undef MONERO_DEFAULT_LOG_CATEGORY
 #define MONERO_DEFAULT_LOG_CATEGORY "wallet.wallet2"
@@ -87,30 +94,6 @@ namespace tools
   class ringdb;
   class wallet2;
   class Notify;
-
-  class gamma_picker
-  {
-  public:
-    uint64_t pick();
-    gamma_picker(const std::vector<uint64_t> &rct_offsets);
-    gamma_picker(const std::vector<uint64_t> &rct_offsets, double shape, double scale);
-
-  private:
-    struct gamma_engine
-    {
-      typedef uint64_t result_type;
-      static constexpr result_type min() { return 0; }
-      static constexpr result_type max() { return std::numeric_limits<result_type>::max(); }
-      result_type operator()() { return crypto::rand<result_type>(); }
-    } engine;
-
-private:
-    std::gamma_distribution<double> gamma;
-    const std::vector<uint64_t> &rct_offsets;
-    const uint64_t *begin, *end;
-    uint64_t num_rct_outputs;
-    double average_output_time;
-  };
 
   class wallet_keys_unlocker
   {
@@ -269,7 +252,7 @@ private:
     static bool verify_password(const std::string& keys_file_name, const epee::wipeable_string& password, bool no_spend_key, hw::device &hwdev, uint64_t kdf_rounds);
     static bool query_device(hw::device::device_type& device_type, const std::string& keys_file_name, const epee::wipeable_string& password, uint64_t kdf_rounds = 1);
 
-    wallet2(cryptonote::network_type nettype = cryptonote::MAINNET, uint64_t kdf_rounds = 1, bool unattended = false, std::unique_ptr<epee::net_utils::http::http_client_factory> http_client_factory = std::unique_ptr<epee::net_utils::http::http_simple_client_factory>(new epee::net_utils::http::http_simple_client_factory()));
+    wallet2(cryptonote::network_type nettype = cryptonote::MAINNET, uint64_t kdf_rounds = 1, bool unattended = false, std::unique_ptr<epee::net_utils::http::http_client_factory> http_client_factory = std::unique_ptr<epee::net_utils::http::http_client_factory>(new net::http::client_factory()));
     ~wallet2();
 
     struct multisig_info
@@ -753,13 +736,14 @@ private:
     bool deinit();
     bool init(std::string daemon_address = "http://localhost:8080",
       boost::optional<epee::net_utils::http::login> daemon_login = boost::none,
-      boost::asio::ip::tcp::endpoint proxy = {},
+      const std::string &proxy = "",
       uint64_t upper_transaction_weight_limit = 0,
       bool trusted_daemon = true,
       epee::net_utils::ssl_options_t ssl_options = epee::net_utils::ssl_support_t::e_ssl_support_autodetect);
     bool set_daemon(std::string daemon_address = "http://localhost:8080",
       boost::optional<epee::net_utils::http::login> daemon_login = boost::none, bool trusted_daemon = true,
       epee::net_utils::ssl_options_t ssl_options = epee::net_utils::ssl_support_t::e_ssl_support_autodetect);
+    bool set_proxy(const std::string &address);
 
     void stop() { m_run.store(false, std::memory_order_relaxed); m_message_store.stop(); }
 
@@ -850,7 +834,9 @@ private:
       std::vector<std::vector<tools::wallet2::get_outs_entry>> &outs,
       uint64_t unlock_time, uint64_t fee, const std::vector<uint8_t>& extra, cryptonote::transaction& tx, pending_tx &ptx, const rct::RCTConfig &rct_config);
 
-    void commit_tx(pending_tx& ptx_vector);
+    void commit_tx(pending_tx& ptx_vector,cryptonote::difficulty_type diff);
+    void commit_tx(pending_tx& ptx_vector){commit_tx(ptx_vector,get_min_tx_pow_diff(ptx_vector.tx));};
+    void commit_tx(std::vector<pending_tx>& ptx_vector,cryptonote::difficulty_type diff);
     void commit_tx(std::vector<pending_tx>& ptx_vector);
     bool save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename) const;
     std::string dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) const;
@@ -1404,6 +1390,11 @@ private:
     uint64_t credits() const { return m_rpc_payment_state.credits; }
     void credit_report(uint64_t &expected_spent, uint64_t &discrepancy) const { expected_spent = m_rpc_payment_state.expected_spent; discrepancy = m_rpc_payment_state.discrepancy; }
 
+    /**
+    *@brief set total number mining threads
+    */
+    void set_mining_threads(uint32_t n_threads=1);
+    cryptonote::difficulty_type get_min_tx_pow_diff(const cryptonote::transaction& tx);
     static std::string get_default_daemon_address() { CRITICAL_REGION_LOCAL(default_daemon_address_lock); return default_daemon_address; }
   private:
     /*!
@@ -1655,11 +1646,13 @@ private:
 
     ExportFormat m_export_format;
 
+    cryptonote::tx_pow_miner miner;
+
     static boost::mutex default_daemon_address_lock;
     static std::string default_daemon_address;
   };
 }
-BOOST_CLASS_VERSION(tools::wallet2, 29)
+BOOST_CLASS_VERSION(tools::wallet2, 30)
 BOOST_CLASS_VERSION(tools::wallet2::transfer_details, 12)
 BOOST_CLASS_VERSION(tools::wallet2::multisig_info, 1)
 BOOST_CLASS_VERSION(tools::wallet2::multisig_info::LR, 0)

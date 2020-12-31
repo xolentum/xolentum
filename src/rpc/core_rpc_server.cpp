@@ -260,7 +260,7 @@ namespace cryptonote
     m_net_server.set_threads_prefix("RPC");
     m_net_server.set_connection_filter(&m_p2p);
 
-    auto rpc_config = cryptonote::rpc_args::process(vm, true);
+    auto rpc_config = cryptonote::rpc_args::process(vm, true,restricted);
     if (!rpc_config)
       return false;
 
@@ -446,11 +446,11 @@ namespace cryptonote
     res.tx_pool_size = m_core.get_pool_transactions_count(!restricted);
     res.alt_blocks_count = restricted ? 0 : m_core.get_blockchain_storage().get_alternative_blocks_count();
     uint64_t total_conn = restricted ? 0 : m_p2p.get_public_connections_count();
-    res.outgoing_connections_count = restricted ? 0 : m_p2p.get_public_outgoing_connections_count();
-    res.incoming_connections_count = restricted ? 0 : (total_conn - res.outgoing_connections_count);
-    res.rpc_connections_count = restricted ? 0 : get_connections_count();
-    res.white_peerlist_size = restricted ? 0 : m_p2p.get_public_white_peers_count();
-    res.grey_peerlist_size = restricted ? 0 : m_p2p.get_public_gray_peers_count();
+    res.outgoing_connections_count = m_p2p.get_public_outgoing_connections_count();
+    res.incoming_connections_count = (total_conn - res.outgoing_connections_count);
+    res.rpc_connections_count = get_connections_count();
+    res.white_peerlist_size =  m_p2p.get_public_white_peers_count();
+    res.grey_peerlist_size =  m_p2p.get_public_gray_peers_count();
 
     cryptonote::network_type net_type = nettype();
     res.mainnet = net_type == MAINNET;
@@ -465,6 +465,7 @@ namespace cryptonote
     res.free_space = restricted ? std::numeric_limits<uint64_t>::max() : m_core.get_free_space();
     res.offline = m_core.offline();
     res.height_without_bootstrap = restricted ? 0 : res.height;
+    cryptonote::get_block_reward(0,0,0,res.base_reward,m_core.get_blockchain_storage().get_current_hard_fork_version());
     if (restricted)
     {
       res.bootstrap_daemon_address = "";
@@ -483,7 +484,7 @@ namespace cryptonote
     if (restricted)
       res.database_size = round_up(res.database_size, 5ull* 1024 * 1024 * 1024);
     res.update_available = restricted ? false : m_core.is_update_available();
-    res.version = restricted ? "" : MONERO_VERSION_FULL;
+    res.version = MONERO_VERSION_FULL;
 
     res.status = CORE_RPC_STATUS_OK;
     return true;
@@ -771,7 +772,8 @@ namespace cryptonote
       outkey.mask = epee::string_tools::pod_to_hex(i.mask);
       outkey.unlocked = i.unlocked;
       outkey.height = i.height;
-      outkey.txid = epee::string_tools::pod_to_hex(i.txid);
+      if (req.get_txid)
+        outkey.txid = epee::string_tools::pod_to_hex(i.txid);
     }
 
     res.status = CORE_RPC_STATUS_OK;
@@ -850,7 +852,7 @@ namespace cryptonote
     {
       std::vector<tx_info> pool_tx_info;
       std::vector<spent_key_image_info> pool_key_image_info;
-      bool r = m_core.get_pool_transactions_and_spent_keys_info(pool_tx_info, pool_key_image_info, !request_has_rpc_origin || !restricted);
+      bool r = m_core.get_pool_transactions_and_spent_keys_info(pool_tx_info, pool_key_image_info, !request_has_rpc_origin || true);
       if(r)
       {
         // sort to match original request
@@ -1166,6 +1168,8 @@ namespace cryptonote
         add_reason(reason, "fee too low");
       if ((res.too_few_outputs = tvc.m_too_few_outputs))
         add_reason(reason, "too few outputs");
+      if((res.bad_pow=tvc.m_bad_pow))
+        add_reason(reason, "Bad PoW");
       const std::string punctuation = reason.empty() ? "" : ": ";
       if (tvc.m_verifivation_failed)
       {
@@ -1861,6 +1865,7 @@ namespace cryptonote
     response.pow_hash = fill_pow_hash ? string_tools::pod_to_hex(get_block_longhash(&(m_core.get_blockchain_storage()), blk, height, 0)) : "";
     response.long_term_weight = m_core.get_blockchain_storage().get_db().get_block_long_term_weight(height);
     response.miner_tx_hash = string_tools::pod_to_hex(cryptonote::get_transaction_hash(blk.miner_tx));
+    response.already_generated_coins=m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height);
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -2380,14 +2385,13 @@ namespace cryptonote
     {
       for (const auto &str: req.txids)
       {
-        cryptonote::blobdata txid_data;
-        if(!epee::string_tools::parse_hexstr_to_binbuff(str, txid_data))
+        crypto::hash txid;
+        if(!epee::string_tools::hex_to_pod(str, txid))
         {
           failed = true;
         }
         else
         {
-          crypto::hash txid = *reinterpret_cast<const crypto::hash*>(txid_data.data());
           txids.push_back(txid);
         }
       }
@@ -2484,6 +2488,7 @@ namespace cryptonote
     std::pair<boost::multiprecision::uint128_t, boost::multiprecision::uint128_t> amounts = m_core.get_coinbase_tx_sum(req.height, req.count);
     store_128(amounts.first, res.emission_amount, res.wide_emission_amount, res.emission_amount_top64);
     store_128(amounts.second, res.fee_amount, res.wide_fee_amount, res.fee_amount_top64);
+    res.status = CORE_RPC_STATUS_OK;
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -2744,15 +2749,14 @@ namespace cryptonote
     res.status = "";
     for (const auto &str: req.txids)
     {
-      cryptonote::blobdata txid_data;
-      if(!epee::string_tools::parse_hexstr_to_binbuff(str, txid_data))
+      crypto::hash txid;
+      if(!epee::string_tools::hex_to_pod(str, txid))
       {
         if (!res.status.empty()) res.status += ", ";
         res.status += std::string("invalid transaction id: ") + str;
         failed = true;
         continue;
       }
-      crypto::hash txid = *reinterpret_cast<const crypto::hash*>(txid_data.data());
 
       cryptonote::blobdata txblob;
       if (m_core.get_pool_transaction(txid, txblob, relay_category::legacy))
@@ -3189,6 +3193,49 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_validate_address(const COMMAND_RPC_VALIDATE_ADDRESS::request req,COMMAND_RPC_VALIDATE_ADDRESS::response& res,epee::json_rpc::error& error_resp, const connection_context *ctx)
+  {
+    RPC_TRACKER(validate_address);
+    CHECK_PAYMENT(req, res, COST_PER_VALIDATE_ADDRESS);
+
+    if(req.address.empty()){
+      error_resp.code=CORE_RPC_ERROR_CODE_WRONG_PARAM;
+      error_resp.message="Missing address";
+      return false;
+    }
+    cryptonote::address_parse_info info;
+    static const struct { cryptonote::network_type type; const char *stype; } net_types[] = {
+      { cryptonote::MAINNET, "mainnet" },
+      { cryptonote::TESTNET, "testnet" },
+      { cryptonote::STAGENET, "stagenet" },
+    };
+    for (const auto &net_type: net_types)
+    {
+      res.is_valid = cryptonote::get_account_address_from_str(info, net_type.type, req.address);
+      if (res.is_valid)
+      {
+        if(info.has_payment_id)
+        {
+          res.address_type="integrated";
+        }
+        else if(info.is_subaddress){
+          res.address_type="subaddress";
+        }
+        else{
+          res.address_type="standard";
+        }
+        res.network_type = net_type.stype;
+        res.spend_public_key=epee::string_tools::pod_to_hex(info.address.m_spend_public_key);
+        res.view_public_key=epee::string_tools::pod_to_hex(info.address.m_view_public_key);
+        res.payment_id=epee::string_tools::pod_to_hex(info.payment_id);
+	      res.status = CORE_RPC_STATUS_OK;
+        return true;
+      }
+    }
+    res.is_valid = false;
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
   const command_line::arg_descriptor<std::string, false, true, 2> core_rpc_server::arg_rpc_bind_port = {
       "rpc-bind-port"
     , "Port for RPC server"

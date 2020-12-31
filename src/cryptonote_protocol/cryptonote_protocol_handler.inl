@@ -1745,7 +1745,6 @@ skip:
     if(!m_core.find_blockchain_supplement(arg.block_ids, !arg.prune, r))
     {
       LOG_ERROR_CCONTEXT("Failed to handle NOTIFY_REQUEST_CHAIN.");
-      drop_connection(context, false, false);
       return 1;
     }
     MLOG_P2P_MESSAGE("-->>NOTIFY_RESPONSE_CHAIN_ENTRY: m_start_height=" << r.start_height << ", m_total_height=" << r.total_height << ", m_block_ids.size()=" << r.m_block_ids.size());
@@ -2342,8 +2341,7 @@ skip:
       MGINFO_YELLOW(ENDL << "**********************************************************************" << ENDL
         << "You are now synchronized with the network. You may now start xolentum-wallet-cli." << ENDL
         << ENDL
-        << "Use the \"help\" command to see a simplified list of available commands." << ENDL
-        << "Use the \"help_advanced\" command to see an advanced list of available commands." << ENDL
+        << "Use the \"help\" command to see the list of available commands." << ENDL
         << "**********************************************************************");
       m_sync_timer.pause();
       if (ELPP->vRegistry()->allowed(el::Level::Info, "sync-info"))

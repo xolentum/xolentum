@@ -1295,7 +1295,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
     size_t count = 0;
     size_t max_i = timestamps.size()-1;
     // get difficulties and timestamps from most recent blocks in alt chain
-    for (const auto bei: boost::adaptors::reverse(alt_chain))
+    for (const auto &bei: boost::adaptors::reverse(alt_chain))
     {
       timestamps[max_i - count] = bei.bl.timestamp;
       cumulative_difficulties[max_i - count] = bei.cumulative_difficulty;
@@ -2109,7 +2109,7 @@ bool Blockchain::get_alternative_blocks(std::vector<block>& blocks) const
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
 
   blocks.reserve(m_db->get_alt_block_count());
-  m_db->for_all_alt_blocks([&blocks](const crypto::hash &blkid, const cryptonote::alt_block_data_t &data, const cryptonote::blobdata *blob) {
+  m_db->for_all_alt_blocks([&blocks](const crypto::hash &blkid, const cryptonote::alt_block_data_t &data, const cryptonote::blobdata_ref *blob) {
     if (!blob)
     {
       MERROR("No blob, but blobs were requested");
@@ -3107,7 +3107,7 @@ bool Blockchain::check_tx_inputs(transaction& tx, tx_verification_context &tvc, 
       }
     }
 
-    const size_t max_tx_version = 1;
+    const size_t max_tx_version = 2;
     if (tx.version > max_tx_version)
     {
       MERROR_VER("transaction version " << (unsigned)tx.version << " is higher than max accepted version " << max_tx_version);
@@ -3892,6 +3892,27 @@ leave:
     {
       // validate that transaction inputs and the keys spending them are correct.
       tx_verification_context tvc;
+      //check the transaction PoW here
+      const uint8_t hf_version=get_current_hard_fork_version();
+      if(hf_version>=HF_VERSION_TX_POW_ENABLE){
+        //make tx verification fail if tx version is not 2 in 4th fork
+        if(tx.version<2&&hf_version>=HF_VERSION_TX_POW_MANDATORY){
+          add_block_as_invalid(bl, id);
+          MERROR_VER("Wrong tx version in transaction with id "<<tx_id);
+          MERROR_VER("Block with id " << id << " added as invalid because of wrong tx version in transactions");
+          bvc.m_verifivation_failed = true;
+          return_tx_to_pool(txs);
+          goto leave;
+        }
+        if(!check_tx_pow(tx,tvc)){
+          add_block_as_invalid(bl, id);
+          MERROR_VER("Invalid PoW in transaction with id "<<tx_id);
+          MERROR_VER("Block with id " << id << " added as invalid because of invalid PoW in transactions");
+          bvc.m_verifivation_failed = true;
+          return_tx_to_pool(txs);
+          goto leave;
+        }
+      }
       if(!check_tx_inputs(tx, tvc))
       {
         MERROR_VER("Block with id: " << id  << " has at least one transaction (id: " << tx_id << ") with wrong inputs.");
@@ -4164,6 +4185,9 @@ bool Blockchain::update_next_cumulative_weight_limit(uint64_t *long_term_effecti
 //------------------------------------------------------------------
 bool Blockchain::add_new_block(const block& bl, block_verification_context& bvc)
 {
+  try
+  {
+
   LOG_PRINT_L3("Blockchain::" << __func__);
   crypto::hash id = get_block_hash(bl);
   CRITICAL_REGION_LOCAL(m_tx_pool);//to avoid deadlock lets lock tx_pool for whole add/reorganize process
@@ -4191,6 +4215,14 @@ bool Blockchain::add_new_block(const block& bl, block_verification_context& bvc)
 
   rtxn_guard.stop();
   return handle_block_to_main_chain(bl, id, bvc);
+
+  }
+  catch (const std::exception &e)
+  {
+    LOG_ERROR("Exception at [add_new_block], what=" << e.what());
+    bvc.m_verifivation_failed = true;
+    return false;
+  }
 }
 //------------------------------------------------------------------
 //TODO: Refactor, consider returning a failure height and letting
@@ -4222,7 +4254,7 @@ void Blockchain::check_against_checkpoints(const checkpoints& points, bool enfor
       }
       else
       {
-        LOG_ERROR("WARNING: local blockchain failed to pass a MoneroPulse checkpoint, and you could be on a fork. You should either sync up from scratch, OR download a fresh blockchain bootstrap, OR enable checkpoint enforcing with the --enforce-dns-checkpointing command-line option");
+        LOG_ERROR("WARNING: local blockchain failed to pass a Xol-Pulse checkpoint, and you could be on a fork. You should either sync up from scratch, OR download a fresh blockchain bootstrap, OR enable checkpoint enforcing with the --enforce-dns-checkpointing command-line option");
       }
     }
   }
@@ -4903,7 +4935,7 @@ cryptonote::blobdata Blockchain::get_txpool_tx_blob(const crypto::hash& txid, re
   return m_db->get_txpool_tx_blob(txid, tx_category);
 }
 
-bool Blockchain::for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata*)> f, bool include_blob, relay_category tx_category) const
+bool Blockchain::for_all_txpool_txes(std::function<bool(const crypto::hash&, const txpool_tx_meta_t&, const cryptonote::blobdata_ref*)> f, bool include_blob, relay_category tx_category) const
 {
   return m_db->for_all_txpool_txes(f, include_blob, tx_category);
 }
@@ -4974,7 +5006,7 @@ std::vector<std::pair<Blockchain::block_extended_info,std::vector<crypto::hash>>
 
   blocks_ext_by_hash alt_blocks;
   alt_blocks.reserve(m_db->get_alt_block_count());
-  m_db->for_all_alt_blocks([&alt_blocks](const crypto::hash &blkid, const cryptonote::alt_block_data_t &data, const cryptonote::blobdata *blob) {
+  m_db->for_all_alt_blocks([&alt_blocks](const crypto::hash &blkid, const cryptonote::alt_block_data_t &data, const cryptonote::blobdata_ref *blob) {
     if (!blob)
     {
       MERROR("No blob, but blobs were requested");
@@ -5186,6 +5218,29 @@ void Blockchain::cache_block_template(const block &b, const cryptonote::account_
   m_btc_valid = true;
 }
 
+bool Blockchain::check_tx_pow(const cryptonote::transaction& tx,cryptonote::tx_verification_context& tvc){
+  const uint8_t hf_version=get_current_hard_fork_version();
+  if(tx.version<2){
+    const bool r=(hf_version<=HF_VERSION_TX_POW_ENABLE);
+    if(!r){
+      tvc.m_verifivation_failed=false;
+    }
+    return r; //allow v1 tx on fork 3 but not after fork 4
+  }
+  crypto::hash tx_proof_of_work;
+  //clear hash to 0xFF so in case the hash function fails to PoW verification
+  //will also fail
+  memset(tx_proof_of_work.data, 0xff, sizeof(tx_proof_of_work.data));
+  //ignore status check
+  calculate_transaction_hash_pow(tx,tx_proof_of_work);
+  const bool r=check_hash(tx_proof_of_work,calculateTxPowDifficulty(tx,hf_version));
+  if(!r){
+    tvc.m_verifivation_failed=true;
+    tvc.m_bad_pow=true;
+    LOG_PRINT_L2("verification failed");
+  }
+  return r;
+}
 namespace cryptonote {
 template bool Blockchain::get_transactions(const std::vector<crypto::hash>&, std::vector<transaction>&, std::vector<crypto::hash>&) const;
 template bool Blockchain::get_split_transactions_blobs(const std::vector<crypto::hash>&, std::vector<std::tuple<crypto::hash, cryptonote::blobdata, crypto::hash, cryptonote::blobdata>>&, std::vector<crypto::hash>&) const;

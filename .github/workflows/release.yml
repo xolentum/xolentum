@@ -12,34 +12,38 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
-    - name: Update brew and install Xolentum dependencies
-      run: brew update && brew install boost hidapi zmq libpgm miniupnpc ldns expat libunwind-headers protobuf
+    - name: Install Xolentum dependencies
+      run: HOMEBREW_NO_AUTO_UPDATE=1 brew install boost hidapi zmq libpgm miniupnpc ldns expat libunwind-headers protobuf
     - name: Build
-      run: USE_SINGLE_DIR=1 make release-static  -j3
+      run: USE_SINGLE_DIR=1 make release-static-mac-x86_64  -j3
     - name: Upload Mac artifacts
       uses: actions/upload-artifact@master
       with:
-        name: MacOS
+        name: mac-x64
         path: 'build/**/**/**/bin/xolentum*'
 
 
   release-windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
-    - uses: eine/setup-msys2@v0
+    - name: Install Xolentum dependencies
+      uses: eine/setup-msys2@v2
       with:
         update: true
-    - name: Install Xolentum dependencies
-      run: msys2do pacman -S --needed --noconfirm mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium mingw-w64-x86_64-hidapi mingw-w64-x86_64-protobuf-c mingw-w64-x86_64-libusb git
+        install: mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium mingw-w64-x86_64-hidapi mingw-w64-x86_64-protobuf-c mingw-w64-x86_64-libusb git
     - name: Build
-      run: msys2do USE_SINGLE_DIR=1 make release-static-win64 -j2
+
+      run: USE_SINGLE_DIR=1 make release-static-win64 -j2
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@master
       with:
-        name: Windows
+        name: win-x64
         path: 'build/**/**/**/bin/xolentum*'
 
   release-ubuntu:
@@ -60,9 +64,10 @@ jobs:
     - name: Install Xolentum dependencies
       run: sudo apt-get install xz-utils g++ libtool-bin autoconf automake build-essential cmake pkg-config pcsc-tools pcscd libpcsclite1 libudev-dev libhidapi-dev libzmq3-dev libunbound-dev libboost-all-dev libusb-1.0-0-dev libusb-dev libssl-dev libsodium-dev libcurl4-openssl-dev libminiupnpc-dev libunwind8-dev liblzma-dev libreadline6-dev libldns-dev libexpat1-dev libgtest-dev doxygen graphviz libhidapi-libusb0 libnorm-dev libpgm-dev
     - name: Build
-      run: USE_SINGLE_DIR=1 make release-static -j3
+
+      run: USE_SINGLE_DIR=1 make release-static-linux-x86_64 -j3
     - name: Upload Linux artifacts
       uses: actions/upload-artifact@master
       with:
-        name: Linux
+        name: linux-x64
         path: 'build/**/**/**/bin/xolentum*'

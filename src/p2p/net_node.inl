@@ -622,6 +622,9 @@ namespace nodetool
       full_addrs.insert("168.138.200.216:13579"); // @sakura
       full_addrs.insert("161.97.81.2:13579"); //@greywolf
       full_addrs.insert("64.140.150.22:13579"); //@zarlo
+      full_addrs.insert("144.126.197.72:13579"); //@Austin
+      full_addrs.insert("104.248.252.199:13579"); //@Austin
+      full_addrs.insert("68.183.207.163:13579"); //@Austin
     }
     return full_addrs;
   }

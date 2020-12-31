@@ -42,7 +42,7 @@
 #define CRYPTONOTE_MAX_TX_PER_BLOCK                     0x10000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
 #define CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW            60
-#define CURRENT_TRANSACTION_VERSION                     1
+#define CURRENT_TRANSACTION_VERSION                     2
 #define CURRENT_BLOCK_MAJOR_VERSION                     1
 #define CURRENT_BLOCK_MINOR_VERSION                     0
 #define CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT              60*60*2
@@ -156,6 +156,9 @@
 //have some chain established before it can be used
 #define HF_VERSION_LONG_TERM_BLOCK_WEIGHT       2
 #define HF_VERSION_EFFECTIVE_SHORT_TERM_MEDIAN_IN_PENALTY 2
+#define HF_VERSION_BLOCK_REWARD_2               3
+#define HF_VERSION_TX_POW_ENABLE                4
+#define HF_VERSION_TX_POW_MANDATORY             5
 
 #define HASH_OF_HASHES_STEP                     512
 
@@ -177,6 +180,8 @@
 #define DEFAULT_MIXIN                           4
 #define DEFAULT_RINGSIZE                        DEFAULT_MIXIN + 1
 
+#define TX_POW_DIFF_V1                          2000
+
 // New constants are intended to go here
 namespace config
 {
@@ -187,10 +192,10 @@ namespace config
 
   uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 185;
   uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 251;
-  uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 43;
+  uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 155;
   uint16_t const P2P_DEFAULT_PORT = 13579;
   uint16_t const RPC_DEFAULT_PORT = 13580;
-  uint16_t const ZMQ_RPC_DEFAULT_PORT = 55553;
+  uint16_t const ZMQ_RPC_DEFAULT_PORT = 13581;
   boost::uuids::uuid const NETWORK_ID = { {
       0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x18, 0x42, 0x00, 0x69, 0x13, 0x15, 0x14, 0x15
     } }; // Mainnet
@@ -207,6 +212,7 @@ namespace config
   const unsigned char HASH_KEY_RPC_PAYMENT_NONCE = 0x58;
   const unsigned char HASH_KEY_MEMORY = 'k';
   const unsigned char HASH_KEY_MULTISIG[] = {'M', 'u', 'l', 't' , 'i', 's', 'i', 'g', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+  const unsigned char HASH_KEY_TXPROOF_V2[] = "TXPROOF_V2";
 
   // Hash domain separators
   const unsigned char HASH_KEY_CLSAG_ROUND[] = "CLSAG_round";
@@ -215,12 +221,12 @@ namespace config
 
   namespace testnet
   {
-    uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 185;
-    uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 251;
-    uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 43;
-    uint16_t const P2P_DEFAULT_PORT = 44441;
-    uint16_t const RPC_DEFAULT_PORT = 44442;
-    uint16_t const ZMQ_RPC_DEFAULT_PORT = 44443;
+    uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 23480;
+    uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 12666;
+    uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 27034;
+    uint16_t const P2P_DEFAULT_PORT = 23579;
+    uint16_t const RPC_DEFAULT_PORT = 23580;
+    uint16_t const ZMQ_RPC_DEFAULT_PORT = 23581;
     boost::uuids::uuid const NETWORK_ID = { {
         0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x17, 0x31, 0x00, 0x82, 0x12, 0x12, 0x12, 0x16
       } }; // Testnet
@@ -230,12 +236,12 @@ namespace config
 
   namespace stagenet
   {
-    uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 185;
-    uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 251;
-    uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 43;
-    uint16_t const P2P_DEFAULT_PORT = 33331;
-    uint16_t const RPC_DEFAULT_PORT = 33332;
-    uint16_t const ZMQ_RPC_DEFAULT_PORT = 33333;
+    uint64_t const CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 20152;
+    uint64_t const CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 9210;
+    uint64_t const CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 23578;
+    uint16_t const P2P_DEFAULT_PORT = 33579;
+    uint16_t const RPC_DEFAULT_PORT = 33580;
+    uint16_t const ZMQ_RPC_DEFAULT_PORT = 33581;
     boost::uuids::uuid const NETWORK_ID = { {
         0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x66, 0x17, 0x31, 0x00, 0x12, 0x12, 0x12, 0xA1, 0x16
       } }; // Stagenet

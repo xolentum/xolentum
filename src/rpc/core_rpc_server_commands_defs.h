@@ -35,7 +35,7 @@
 #include "cryptonote_protocol/cryptonote_protocol_defs.h"
 #include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/difficulty.h"
-#include "crypto/hash.h"
+#include "crypto/crypto.h"
 #include "rpc/rpc_handler.h"
 #include "common/varint.h"
 #include "common/perf_timer.h"
@@ -88,7 +88,7 @@ namespace cryptonote
 // advance which version they will stop working with
 // Don't go over 32767 for any of these
 #define CORE_RPC_VERSION_MAJOR 3
-#define CORE_RPC_VERSION_MINOR 1
+#define CORE_RPC_VERSION_MINOR 2
 #define MAKE_CORE_RPC_VERSION(major,minor) (((major)<<16)|(minor))
 #define CORE_RPC_VERSION MAKE_CORE_RPC_VERSION(CORE_RPC_VERSION_MAJOR, CORE_RPC_VERSION_MINOR)
 
@@ -590,6 +590,7 @@ namespace cryptonote
       bool fee_too_low;
       bool too_few_outputs;
       bool sanity_check_failed;
+      bool bad_pow;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_access_response_base)
@@ -604,6 +605,7 @@ namespace cryptonote
         KV_SERIALIZE(fee_too_low)
         KV_SERIALIZE(too_few_outputs)
         KV_SERIALIZE(sanity_check_failed)
+        KV_SERIALIZE(bad_pow);
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
@@ -663,6 +665,7 @@ namespace cryptonote
       uint64_t rpc_connections_count;
       uint64_t white_peerlist_size;
       uint64_t grey_peerlist_size;
+      uint64_t base_reward;
       bool mainnet;
       bool testnet;
       bool stagenet;
@@ -701,6 +704,7 @@ namespace cryptonote
         KV_SERIALIZE(rpc_connections_count)
         KV_SERIALIZE(white_peerlist_size)
         KV_SERIALIZE(grey_peerlist_size)
+        KV_SERIALIZE(base_reward);
         KV_SERIALIZE(mainnet)
         KV_SERIALIZE(testnet)
         KV_SERIALIZE(stagenet)
@@ -969,6 +973,7 @@ namespace cryptonote
       std::string pow_hash;
       uint64_t long_term_weight;
       std::string miner_tx_hash;
+      uint64_t already_generated_coins;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(major_version)
@@ -993,6 +998,7 @@ namespace cryptonote
         KV_SERIALIZE(pow_hash)
         KV_SERIALIZE_OPT(long_term_weight, (uint64_t)0)
         KV_SERIALIZE(miner_tx_hash)
+        KV_SERIALIZE(already_generated_coins)
       END_KV_SERIALIZE_MAP()
   };
 
@@ -2572,6 +2578,43 @@ namespace cryptonote
     {
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_response_base)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_VALIDATE_ADDRESS
+  {
+    struct request_t: public rpc_access_request_base
+    {
+      std::string address;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE_PARENT(rpc_access_request_base)
+        KV_SERIALIZE(address)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t: public rpc_access_response_base
+    {
+      bool is_valid;
+      std::string address_type;
+      std::string network_type;
+      std::string view_public_key;
+      std::string spend_public_key;
+      std::string payment_id;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE_PARENT(rpc_access_response_base)
+        KV_SERIALIZE(is_valid);
+        if(is_valid){
+          KV_SERIALIZE(address_type);
+          KV_SERIALIZE(network_type);
+          KV_SERIALIZE(view_public_key);
+          KV_SERIALIZE(spend_public_key);
+          KV_SERIALIZE(payment_id);
+        }
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
