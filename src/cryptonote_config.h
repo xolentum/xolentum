@@ -159,6 +159,8 @@
 #define HF_VERSION_BLOCK_REWARD_2               3
 #define HF_VERSION_TX_POW_ENABLE                4
 #define HF_VERSION_TX_POW_MANDATORY             5
+/*TODO: determine correct fork height*/
+#define HF_VERSION_DETERMINISTIC_UNLOCK_TIME    6
 
 #define HASH_OF_HASHES_STEP                     512
 
