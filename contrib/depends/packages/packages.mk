@@ -17,7 +17,6 @@ freebsd_packages = ncurses readline sodium
 
 linux_packages = eudev ncurses readline sodium $(hardware_packages)
 linux_native_packages = $(hardware_native_packages)
-qt_packages = qt
 
 ifeq ($(build_tests),ON)
 packages += gtest
@@ -33,4 +32,3 @@ mingw32_native_packages = $(hardware_native_packages)
 ifneq ($(build_os),darwin)
 darwin_native_packages += native_cctools native_cdrkit native_libdmg-hfsplus
 endif
-
