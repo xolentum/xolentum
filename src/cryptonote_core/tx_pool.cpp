@@ -976,8 +976,8 @@ namespace cryptonote
       txi.max_used_block_id_hash = epee::string_tools::pod_to_hex(meta.max_used_block_id);
       txi.last_failed_height = meta.last_failed_height;
       txi.last_failed_id_hash = epee::string_tools::pod_to_hex(meta.last_failed_id);
-      // In restricted mode we do not include this data:
-      txi.receive_time = include_sensitive_data ? meta.receive_time : 0;
+			//TODO: should the exposure under restricted mode be made optional?
+      txi.receive_time = meta.receive_time;
       txi.relayed = meta.relayed;
       // In restricted mode we do not include this data:
       txi.last_relayed_time = (include_sensitive_data && !meta.dandelionpp_stem) ? meta.last_relayed_time : 0;

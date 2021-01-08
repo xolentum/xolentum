@@ -445,7 +445,7 @@ namespace cryptonote
     res.tx_count = m_core.get_blockchain_storage().get_total_transactions() - res.height; //without coinbase
     res.tx_pool_size = m_core.get_pool_transactions_count(!restricted);
     res.alt_blocks_count = restricted ? 0 : m_core.get_blockchain_storage().get_alternative_blocks_count();
-    uint64_t total_conn = restricted ? 0 : m_p2p.get_public_connections_count();
+    uint64_t total_conn = m_p2p.get_public_connections_count();
     res.outgoing_connections_count = m_p2p.get_public_outgoing_connections_count();
     res.incoming_connections_count = (total_conn - res.outgoing_connections_count);
     res.rpc_connections_count = get_connections_count();
