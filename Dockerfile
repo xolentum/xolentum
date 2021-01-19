@@ -188,26 +188,5 @@ RUN set -ex && \
     apt-get --no-install-recommends --yes install ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt
+    
 COPY --from=builder /src/build/release/bin /usr/local/bin/
-
-# Create xolentum user
-RUN adduser --system --group --disabled-password xolentum && \
-	mkdir -p /wallet /home/xolentum/.xolentum && \
-	chown -R xolentum:xolentum /home/xolentum/.xolentum && \
-	chown -R xolentum:xolentum /wallet
-
-# Contains the blockchain
-VOLUME /home/xolentum/.xolentum
-
-# Generate your wallet via accessing the container and run:
-# cd /wallet
-# xolentum-wallet-cli
-VOLUME /wallet
-
-EXPOSE 13579
-EXPOSE 13580
-
-# switch to user xolentum
-USER xolentum
-
-ENTRYPOINT ["xolentumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=13579", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=13580", "--non-interactive", "--confirm-external-bind"]
