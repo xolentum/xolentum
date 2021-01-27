@@ -445,7 +445,7 @@ namespace cryptonote
     res.tx_count = m_core.get_blockchain_storage().get_total_transactions() - res.height; //without coinbase
     res.tx_pool_size = m_core.get_pool_transactions_count(!restricted);
     res.alt_blocks_count = restricted ? 0 : m_core.get_blockchain_storage().get_alternative_blocks_count();
-    uint64_t total_conn = restricted ? 0 : m_p2p.get_public_connections_count();
+    uint64_t total_conn = m_p2p.get_public_connections_count();
     res.outgoing_connections_count = m_p2p.get_public_outgoing_connections_count();
     res.incoming_connections_count = (total_conn - res.outgoing_connections_count);
     res.rpc_connections_count = get_connections_count();
@@ -1878,7 +1878,7 @@ namespace cryptonote
     response.pow_hash = fill_pow_hash ? string_tools::pod_to_hex(get_block_longhash(&(m_core.get_blockchain_storage()), blk, height, 0)) : "";
     response.long_term_weight = m_core.get_blockchain_storage().get_db().get_block_long_term_weight(height);
     response.miner_tx_hash = string_tools::pod_to_hex(cryptonote::get_transaction_hash(blk.miner_tx));
-    response.already_generated_coins=m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height-1);
+    response.already_generated_coins=m_core.get_blockchain_storage().get_db().get_block_already_generated_coins(height);
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -3238,10 +3238,10 @@ namespace cryptonote
           res.address_type="standard";
         }
         res.network_type = net_type.stype;
-        res.spend_public_key=info.address.m_spend_public_key;
-        res.view_public_key=info.address.m_view_public_key;
-        res.payment_id=info.payment_id;
-	res.status = CORE_RPC_STATUS_OK;
+        res.spend_public_key=epee::string_tools::pod_to_hex(info.address.m_spend_public_key);
+        res.view_public_key=epee::string_tools::pod_to_hex(info.address.m_view_public_key);
+        res.payment_id=epee::string_tools::pod_to_hex(info.payment_id);
+	      res.status = CORE_RPC_STATUS_OK;
         return true;
       }
     }
