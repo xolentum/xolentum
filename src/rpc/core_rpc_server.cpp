@@ -628,6 +628,8 @@ namespace cryptonote
           return false;
       }
 
+      //sort it in descending order
+      std::sort(blks.begin(), blks.end(),[](const block& a,const block& b){return a.timestamp>b.timestamp;});
       res.blks_hashes.reserve(blks.size());
 
       for (auto const& blk: blks)
