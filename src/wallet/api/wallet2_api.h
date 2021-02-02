@@ -182,9 +182,11 @@ struct TransactionInfo
     virtual int  direction() const = 0;
     virtual bool isPending() const = 0;
     virtual bool isFailed() const = 0;
+    virtual bool isCoinbase() const = 0;
     virtual uint64_t amount() const = 0;
     virtual uint64_t fee() const = 0;
     virtual uint64_t blockHeight() const = 0;
+    virtual std::string description() const = 0
     virtual std::set<uint32_t> subaddrIndex() const = 0;
     virtual uint32_t subaddrAccount() const = 0;
     virtual std::string label() const = 0;
@@ -208,6 +210,7 @@ struct TransactionHistory
     virtual TransactionInfo * transaction(const std::string &id) const = 0;
     virtual std::vector<TransactionInfo*> getAll() const = 0;
     virtual void refresh() = 0;
+    virtual void setTxNote(const std::string &txid, const std::string &note) = 0;
 };
 
 /**
