@@ -224,7 +224,7 @@ namespace cryptonote
       *
       * @return true if the block was added to the main chain, otherwise false
       */
-     virtual bool handle_block_found(block& b, block_verification_context &bvc);
+     virtual bool handle_block_found(block& b, block_verification_context &bvc) override;
 
      /**
       * @copydoc Blockchain::create_block_template
