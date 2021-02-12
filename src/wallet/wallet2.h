@@ -1791,8 +1791,6 @@ namespace tools
 
     cryptonote::tx_pow_miner miner;
 
-    cryptonote::tx_pow_miner miner;
-
     static boost::mutex default_daemon_address_lock;
     static std::string default_daemon_address;
   };
