@@ -1193,7 +1193,7 @@ namespace tools{
     std::stringstream oss;
     binary_archive<true> ar(oss);
     CHECK_AND_ASSERT_THROW_MES(::serialization::serialize(ar, info), "Failed to serialize multisig data");
-
+    
     const cryptonote::account_public_address &keys = get_account().get_keys().m_account_address;
     std::string header;
     header += std::string((const char *)&keys.m_spend_public_key, sizeof(crypto::public_key));
