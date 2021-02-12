@@ -37,7 +37,6 @@
 #define CRYPTONOTE_DNS_TIMEOUT_MS                       20000
 
 #define CRYPTONOTE_MAX_BLOCK_NUMBER                     500000000
-#define CRYPTONOTE_GETBLOCKTEMPLATE_MAX_BLOCK_SIZE	196608 //size of block (bytes) that is the maximum that miners will produce
 #define CRYPTONOTE_MAX_TX_SIZE                          1000000
 #define CRYPTONOTE_MAX_TX_PER_BLOCK                     0x10000000
 #define CRYPTONOTE_PUBLIC_ADDRESS_TEXTBLOB_VER          0
@@ -117,7 +116,7 @@
 #define P2P_LOCAL_WHITE_PEERLIST_LIMIT                  1000
 #define P2P_LOCAL_GRAY_PEERLIST_LIMIT                   5000
 
-#define P2P_DEFAULT_CONNECTIONS_COUNT                   8
+#define P2P_DEFAULT_CONNECTIONS_COUNT                   12
 #define P2P_DEFAULT_HANDSHAKE_INTERVAL                  60           //secondes
 #define P2P_DEFAULT_PACKET_MAX_SIZE                     50000000     //50000000 bytes maximum packet size
 #define P2P_DEFAULT_PEERS_IN_HANDSHAKE                  250
@@ -143,7 +142,6 @@
 #define RPC_IP_FAILS_BEFORE_BLOCK                       3
 
 #define CRYPTONOTE_NAME                         "xolentum"
-#define CRYPTONOTE_POOLDATA_FILENAME            "poolstate.bin"
 #define CRYPTONOTE_BLOCKCHAINDATA_FILENAME      "data.mdb"
 #define CRYPTONOTE_BLOCKCHAINDATA_LOCK_FILENAME "lock.mdb"
 #define P2P_NET_DATA_FILENAME                   "p2pstate.bin"
@@ -159,6 +157,8 @@
 #define HF_VERSION_BLOCK_REWARD_2               3
 #define HF_VERSION_TX_POW_ENABLE                4
 #define HF_VERSION_TX_POW_MANDATORY             5
+/*TODO: determine correct fork height*/
+#define HF_VERSION_DETERMINISTIC_UNLOCK_TIME    6
 
 #define HASH_OF_HASHES_STEP                     512
 
@@ -218,6 +218,7 @@ namespace config
   const unsigned char HASH_KEY_CLSAG_ROUND[] = "CLSAG_round";
   const unsigned char HASH_KEY_CLSAG_AGG_0[] = "CLSAG_agg_0";
   const unsigned char HASH_KEY_CLSAG_AGG_1[] = "CLSAG_agg_1";
+  const char HASH_KEY_MESSAGE_SIGNING[] = "XolentumMessageSignature";
 
   namespace testnet
   {

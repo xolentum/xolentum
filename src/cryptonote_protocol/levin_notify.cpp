@@ -105,8 +105,8 @@ namespace levin
       return std::chrono::steady_clock::duration{crypto::rand_range(rep(0), range.count())};
     }
 
-    //! \return All outgoing connections supporting fragments in `connections`.
-    std::vector<boost::uuids::uuid> get_out_connections(connections& p2p)
+    //! \return Outgoing connections supporting fragments in `connections` filtered by remote blockchain height.
+    std::vector<boost::uuids::uuid> get_out_connections(connections& p2p, uint64_t min_blockchain_height)
     {
       std::vector<boost::uuids::uuid> outs;
       outs.reserve(connection_id_reserve_size);
@@ -115,8 +115,8 @@ namespace levin
          the reserve call so a strand is not used. Investigate if there is lots
          of waiting in here. */
 
-      p2p.foreach_connection([&outs] (detail::p2p_context& context) {
-        if (!context.m_is_income)
+      p2p.foreach_connection([&outs, min_blockchain_height] (detail::p2p_context& context) {
+        if (!context.m_is_income && context.m_remote_blockchain_height >= min_blockchain_height)
           outs.emplace_back(context.m_connection_id);
         return true;
       });
@@ -233,7 +233,7 @@ namespace levin
   {
     struct zone
     {
-      explicit zone(boost::asio::io_service& io_service, std::shared_ptr<connections> p2p, epee::byte_slice noise_in, bool is_public, bool pad_txs)
+      explicit zone(boost::asio::io_service& io_service, std::shared_ptr<connections> p2p, epee::byte_slice noise_in, epee::net_utils::zone zone, bool pad_txs)
         : p2p(std::move(p2p)),
           noise(std::move(noise_in)),
           next_epoch(io_service),
@@ -243,7 +243,7 @@ namespace levin
           channels(),
           flush_time(std::chrono::steady_clock::time_point::max()),
           connection_count(0),
-          is_public(is_public),
+          nzone(zone),
           pad_txs(pad_txs),
           fluffing(false)
       {
@@ -260,7 +260,7 @@ namespace levin
       std::deque<noise_channel> channels;  //!< Never touch after init; only update elements on `noise_channel.strand`
       std::chrono::steady_clock::time_point flush_time; //!< Next expected Dandelion++ fluff flush
       std::atomic<std::size_t> connection_count; //!< Only update in strand, can be read at any time
-      const bool is_public;                      //!< Zone is public ipv4/ipv6 connections
+      const epee::net_utils::zone nzone;         //!< Zone is public ipv4/ipv6 connections, or i2p or tor
       const bool pad_txs;                        //!< Pad txs to the next boundary for privacy
       bool fluffing;                             //!< Zone is in Dandelion++ fluff epoch
     };
@@ -297,7 +297,8 @@ namespace levin
         if (!channel.connection.is_nil())
           channel.queue.push_back(std::move(message_));
         else if (destination_ == 0 && zone_->connection_count == 0)
-          MWARNING("Unable to send transaction(s) over anonymity network - no available outbound connections");
+        MWARNING("Unable to send transaction(s) to " << epee::net_utils::zone_to_string(zone_->nzone) <<
+			             " - no available outbound connections");
       }
     };
 
@@ -409,7 +410,7 @@ namespace levin
         zone->p2p->foreach_connection([txs, now, &zone, &source, &in_duration, &out_duration, &next_flush, &available] (detail::p2p_context& context)
         {
           // When i2p/tor, only fluff to outbound connections
-           if (source != context.m_connection_id && (zone->is_public || !context.m_is_income))
+          if (source != context.m_connection_id && (zone->nzone == epee::net_utils::zone::public_ || !context.m_is_income))
            {
             available = true;
             if (context.fluff_txs.empty())
@@ -523,12 +524,7 @@ namespace levin
         if (!zone_ || !core_ || txs_.empty())
         return;
 
-        if (zone_->fluffing)
-        {
-          core_->on_transactions_relayed(epee::to_span(txs_), relay_method::fluff);
-          fluff_notify::run(std::move(zone_), epee::to_span(txs_), source_);
-        }
-        else // forward tx in stem
+        if (!zone_->fluffing)
         {
           core_->on_transactions_relayed(epee::to_span(txs_), relay_method::stem);
           for (int tries = 2; 0 < tries; tries--)
@@ -543,11 +539,14 @@ namespace levin
             }
 
             // connection list may be outdated, try again
-            update_channels::run(zone_, get_out_connections(*zone_->p2p));
+            update_channels::run(zone_, get_out_connections(*zone_->p2p, core_->get_target_blockchain_height()));
           }
 
           MERROR("Unable to send transaction(s) via Dandelion++ stem");
         }
+
+        core_->on_transactions_relayed(epee::to_span(txs_), relay_method::fluff);
+        fluff_notify::run(std::move(zone_), epee::to_span(txs_), source_);
       }
     };
 
@@ -576,7 +575,7 @@ namespace levin
 
         assert(zone_->strand.running_in_this_thread());
 
-        if (zone_->is_public)
+        if (zone_->nzone == epee::net_utils::zone::public_)
           MDEBUG("Starting new Dandelion++ epoch: " << (fluffing_ ? "fluff" : "stem"));
 
         zone_->map = std::move(map_);
@@ -590,8 +589,9 @@ namespace levin
     {
       std::shared_ptr<detail::zone> zone_;
       const std::size_t channel_;
+      const i_core_events* core_;
 
-      static void wait(const std::chrono::steady_clock::time_point start, std::shared_ptr<detail::zone> zone, const std::size_t index)
+      static void wait(const std::chrono::steady_clock::time_point start, std::shared_ptr<detail::zone> zone, const std::size_t index, const i_core_events* core)
       {
         if (!zone)
           return;
@@ -599,7 +599,7 @@ namespace levin
         noise_channel& channel = zone->channels.at(index);
         channel.next_noise.expires_at(start + noise_min_delay + random_duration(noise_delay_range));
         channel.next_noise.async_wait(
-          channel.strand.wrap(send_noise{std::move(zone), index})
+          channel.strand.wrap(send_noise{std::move(zone), index, core})
         );
       }
 
@@ -643,16 +643,18 @@ namespace levin
           {
             channel.active = nullptr;
             channel.connection = boost::uuids::nil_uuid();
+            auto height = core_->get_target_blockchain_height();
 
-            auto connections = get_out_connections(*zone_->p2p);
+            auto connections = get_out_connections(*zone_->p2p, height);
             if (connections.empty())
-              MWARNING("Lost all outbound connections to anonymity network - currently unable to send transaction(s)");
+              MWARNING("Unable to send transaction(s) to " << epee::net_utils::zone_to_string(zone_->nzone) <<
+           			        " - no suitable outbound connections at height " << height);
 
             zone_->strand.post(update_channels{zone_, std::move(connections)});
           }
         }
 
-        wait(start, std::move(zone_), channel_);
+        wait(start, std::move(zone_), channel_, core_);
       }
     };
 
@@ -664,6 +666,7 @@ namespace levin
       std::chrono::seconds min_epoch_;
       std::chrono::seconds epoch_range_;
       std::size_t count_;
+      const i_core_events* core_;
 
       //! \pre Should not be invoked within any strand to prevent blocking.
       void operator()(const boost::system::error_code error = {})
@@ -676,8 +679,9 @@ namespace levin
 
         const bool fluffing = crypto::rand_idx(unsigned(100)) < CRYPTONOTE_DANDELIONPP_FLUFF_PROBABILITY;
         const auto start = std::chrono::steady_clock::now();
+        auto connections = get_out_connections(*(zone_->p2p), core_->get_target_blockchain_height());
         zone_->strand.dispatch(
-          change_channels{zone_, net::dandelionpp::connection_map{get_out_connections(*(zone_->p2p)), count_}, fluffing}
+          change_channels{zone_, net::dandelionpp::connection_map{std::move(connections), count_}, fluffing}
         );
 
         detail::zone& alias = *zone_;
@@ -687,24 +691,25 @@ namespace levin
     };
   } // anonymous
 
-  notify::notify(boost::asio::io_service& service, std::shared_ptr<connections> p2p, epee::byte_slice noise, const bool is_public, const bool pad_txs)
-    : zone_(std::make_shared<detail::zone>(service, std::move(p2p), std::move(noise), is_public, pad_txs))
+  notify::notify(boost::asio::io_service& service, std::shared_ptr<connections> p2p, epee::byte_slice noise, epee::net_utils::zone zone, const bool pad_txs, i_core_events& core)
+    : zone_(std::make_shared<detail::zone>(service, std::move(p2p), std::move(noise), zone, pad_txs))
+    , core_(std::addressof(core))
   {
       if (!zone_->p2p)
         throw std::logic_error{"cryptonote::levin::notify cannot have nullptr p2p argument"};
 
       const bool noise_enabled = !zone_->noise.empty();
-      if (noise_enabled || is_public)
+      if (noise_enabled || zone == epee::net_utils::zone::public_)
       {
       const auto now = std::chrono::steady_clock::now();
       const auto min_epoch = noise_enabled ? noise_min_epoch : dandelionpp_min_epoch;
       const auto epoch_range = noise_enabled ? noise_epoch_range : dandelionpp_epoch_range;
       const std::size_t out_count = noise_enabled ? CRYPTONOTE_NOISE_CHANNELS : CRYPTONOTE_DANDELIONPP_STEMS;
 
-      start_epoch{zone_, min_epoch, epoch_range, out_count}();
+      start_epoch{zone_, min_epoch, epoch_range, out_count, core_}();
 
       for (std::size_t channel = 0; channel < zone_->channels.size(); ++channel)
-        send_noise::wait(now, zone_, channel);
+        send_noise::wait(now, zone_, channel, core_);
     }
   }
 
@@ -725,7 +730,7 @@ namespace levin
       return;
 
     zone_->strand.dispatch(
-      update_channels{zone_, get_out_connections(*(zone_->p2p))}
+      update_channels{zone_, get_out_connections(*(zone_->p2p), core_->get_target_blockchain_height())}
     );
   }
 
@@ -752,7 +757,7 @@ namespace levin
     zone_->flush_txs.cancel();
   }
 
-  bool notify::send_txs(std::vector<blobdata> txs, const boost::uuids::uuid& source, i_core_events& core, relay_method tx_relay)
+  bool notify::send_txs(std::vector<blobdata> txs, const boost::uuids::uuid& source, relay_method tx_relay)
   {
     if (txs.empty())
       return true;
@@ -784,7 +789,7 @@ namespace levin
         tx_relay = relay_method::local; // do not put into stempool embargo (hopefully not there already!).
       }
 
-      core.on_transactions_relayed(epee::to_span(txs), tx_relay);
+      core_->on_transactions_relayed(epee::to_span(txs), tx_relay);
 
       // Padding is not useful when using noise mode. Send as stem so receiver
       // forwards in Dandelion++ mode.
@@ -816,11 +821,11 @@ namespace levin
         case relay_method::stem:
         case relay_method::forward:
         case relay_method::local:
-          if (zone_->is_public)
+          if (zone_->nzone == epee::net_utils::zone::public_)
           {
             // this will change a local/forward tx to stem or fluff ...
             zone_->strand.dispatch(
-              dandelionpp_notify{zone_, std::addressof(core), std::move(txs), source}
+                dandelionpp_notify{zone_, core_, std::move(txs), source}
             );
             break;
           }
@@ -831,7 +836,7 @@ namespace levin
            routine. A "fluff" over i2p/tor is not the same as a "fluff" over
            ipv4/6. Marking it as "fluff" here will make the tx immediately
            visible externally from this node, which is not desired. */
-          core.on_transactions_relayed(epee::to_span(txs), tx_relay);
+          core_->on_transactions_relayed(epee::to_span(txs), tx_relay);
           zone_->strand.dispatch(fluff_notify{zone_, std::move(txs), source});
           break;
       }
