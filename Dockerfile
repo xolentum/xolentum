@@ -40,7 +40,10 @@ RUN set -ex \
     && tar -xzf cmake-${CMAKE_VERSION}.tar.gz \
     && cd cmake-${CMAKE_VERSION} \
     && ./configure \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make install
 
 ## Boost
@@ -53,7 +56,10 @@ RUN set -ex \
     && tar -xvf boost_${BOOST_VERSION}.tar.bz2 \
     && cd boost_${BOOST_VERSION} \
     && ./bootstrap.sh \
-    && ./b2 --build-type=minimal link=static runtime-link=static --with-chrono --with-date_time --with-filesystem --with-program_options --with-regex --with-serialization --with-system --with-thread --with-locale threading=multi threadapi=pthread cflags="$CFLAGS" cxxflags="$CXXFLAGS" stage
+    && if [ -z "$NPROC" ] ; \
+    then ./b2 --build-type=minimal link=static runtime-link=static --with-chrono --with-date_time --with-filesystem --with-program_options --with-regex --with-serialization --with-system --with-thread --with-locale threading=multi threadapi=pthread cflags="$CFLAGS" cxxflags="$CXXFLAGS" stage -j$(nproc) ; \
+    else ./b2 --build-type=minimal link=static runtime-link=static --with-chrono --with-date_time --with-filesystem --with-program_options --with-regex --with-serialization --with-system --with-thread --with-locale threading=multi threadapi=pthread cflags="$CFLAGS" cxxflags="$CXXFLAGS" stage -j$NPROC ; \
+    fi 
 ENV BOOST_ROOT /usr/local/boost_${BOOST_VERSION}
 
 # OpenSSL
@@ -65,8 +71,14 @@ RUN set -ex \
     && tar -xzf openssl-${OPENSSL_VERSION}.tar.gz \
     && cd openssl-${OPENSSL_VERSION} \
     && ./Configure linux-x86_64 no-shared --static "$CFLAGS" \
-    && make build_generated \
-    && make libcrypto.a \
+    && if [ -z "$NPROC" ] ; \
+    then make build_generated -j$(nproc) ; \
+    else make build_generated -j$NPROC ; \
+    fi \
+    && if [ -z "$NPROC" ] ; \
+    then make libcrypto.a -j$(nproc) ; \
+    else make libcrypto.a -j$NPROC ; \
+    fi \
     && make install
 ENV OPENSSL_ROOT_DIR=/usr/local/openssl-${OPENSSL_VERSION}
 
@@ -79,7 +91,10 @@ RUN set -ex \
     && test `git rev-parse HEAD` = ${ZMQ_HASH} || exit 1 \
     && ./autogen.sh \
     && ./configure --enable-static --disable-shared \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make install \
     && ldconfig
 
@@ -101,7 +116,10 @@ RUN set -ex \
     && tar -xzf readline-${READLINE_VERSION}.tar.gz \
     && cd readline-${READLINE_VERSION} \
     && ./configure \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make install
 
 # Sodium
@@ -113,7 +131,10 @@ RUN set -ex \
     && test `git rev-parse HEAD` = ${SODIUM_HASH} || exit 1 \
     && ./autogen.sh \
     && ./configure \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make check \
     && make install
 
@@ -126,7 +147,10 @@ RUN set -ex \
     && test `git rev-parse HEAD` = ${UDEV_HASH} || exit 1 \
     && ./autogen.sh \
     && ./configure --disable-introspection --disable-hwdb --disable-manpages --disable-shared \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make install
 
 # Libusb
@@ -138,7 +162,10 @@ RUN set -ex \
     && test `git rev-parse HEAD` = ${USB_HASH} || exit 1 \
     && ./autogen.sh \
     && ./configure --disable-shared \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make install
 
 # Hidapi
@@ -150,7 +177,10 @@ RUN set -ex \
     && test `git rev-parse HEAD` = ${HIDAPI_HASH} || exit 1 \
     && ./bootstrap \
     && ./configure --enable-static --disable-shared \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make install
 
 # Protobuf
@@ -163,7 +193,10 @@ RUN set -ex \
     && git submodule update --init --recursive \
     && ./autogen.sh \
     && ./configure --enable-static --disable-shared \
-    && make \
+    && if [ -z "$NPROC" ] ; \
+    then make -j$(nproc) ; \
+    else make -j$NPROC ; \
+    fi \
     && make install \
     && ldconfig
 
@@ -188,26 +221,5 @@ RUN set -ex && \
     apt-get --no-install-recommends --yes install ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt
+    
 COPY --from=builder /src/build/release/bin /usr/local/bin/
-
-# Create xolentum user
-RUN adduser --system --group --disabled-password xolentum && \
-	mkdir -p /wallet /home/xolentum/.xolentum && \
-	chown -R xolentum:xolentum /home/xolentum/.xolentum && \
-	chown -R xolentum:xolentum /wallet
-
-# Contains the blockchain
-VOLUME /home/xolentum/.xolentum
-
-# Generate your wallet via accessing the container and run:
-# cd /wallet
-# xolentum-wallet-cli
-VOLUME /wallet
-
-EXPOSE 13579
-EXPOSE 13580
-
-# switch to user xolentum
-USER xolentum
-
-ENTRYPOINT ["xolentumd", "--p2p-bind-ip=0.0.0.0", "--p2p-bind-port=13579", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=13580", "--non-interactive", "--confirm-external-bind"]

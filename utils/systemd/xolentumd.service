@@ -6,16 +6,15 @@ After=network.target
 User=xolentum
 Group=xolentum
 WorkingDirectory=~
-RuntimeDirectory=xolentum
-StateDirectory=monero
-LogsDirectory=monero
+StateDirectory=xolentum
+LogsDirectory=xolentum
 
 # Clearnet config
 #
-Type=forking
-PIDFile=/run/xolentum/xolentumd.pid
-ExecStart=/usr/bin/xolentumd --config-file /etc/xolentumd.conf \
-    --detach --pidfile /run/monero/xolentumd.pid
+Type=simple
+ExecStart=/usr/bin/xolentumd --config-file /etc/xolentumd.conf --non-interactive
+StandardOutput=null
+StandardError=null
 
 # Tor config
 #

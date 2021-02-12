@@ -644,10 +644,12 @@ bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_ge
     return true;
   }
   //---------------------------------------------------------------
-  void get_altblock_longhash(const block& b, crypto::hash& res, const uint64_t main_height, const uint64_t height, const uint64_t seed_height, const crypto::hash& seed_hash)
+  bool get_altblock_longhash(const block& b, crypto::hash& res, const uint64_t main_height, const uint64_t height, const uint64_t seed_height, const crypto::hash& seed_hash)
   {
     blobdata bd = get_block_hashing_blob(b);
-    rx_slow_hash(main_height, seed_height, seed_hash.data, bd.data(), bd.size(), res.data, 0, 1);
+    try { rx_slow_hash(main_height, seed_height, seed_hash.data, bd.data(), bd.size(), res.data, 0, 1); }
+    catch (const std::exception &e) { MERROR("Hashing error"); return false;}
+    return true;
   }
 
   bool get_block_longhash(const Blockchain *pbc, const block& b, crypto::hash& res, const uint64_t height, const int miners)
@@ -668,7 +670,8 @@ bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_ge
         seed_height = 0;
         main_height = 0;
       }
-      rx_slow_hash(main_height, seed_height, hash.data, bd.data(), bd.size(), res.data, miners, 0);
+      try { rx_slow_hash(main_height, seed_height, hash.data, bd.data(), bd.size(), res.data,  miners, 0); }
+      catch (const std::exception &e) { MERROR("Hashing error"); return false; }
     } else {
         cn_slow_hash(bd.data(), bd.size(), res);
     }
