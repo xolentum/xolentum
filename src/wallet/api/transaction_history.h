@@ -45,7 +45,6 @@ public:
     virtual TransactionInfo * transaction(const std::string &id) const;
     virtual std::vector<TransactionInfo*> getAll() const;
     virtual void refresh();
-    virtual void setTxNote(const std::string &txid, const std::string &note);
 
 private:
 
@@ -58,3 +57,4 @@ private:
 }
 
 namespace Bitmonero = Xolentum;
+

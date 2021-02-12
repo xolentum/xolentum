@@ -31,7 +31,7 @@ set(transfers_sources
 
 set(transfers_headers)
 
-monero_add_minimal_executable(transfers
+add_executable(transfers
   ${transfers_sources}
   ${transfers_headers})
 target_link_libraries(transfers

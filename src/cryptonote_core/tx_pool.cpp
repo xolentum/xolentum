@@ -976,8 +976,8 @@ namespace cryptonote
       txi.max_used_block_id_hash = epee::string_tools::pod_to_hex(meta.max_used_block_id);
       txi.last_failed_height = meta.last_failed_height;
       txi.last_failed_id_hash = epee::string_tools::pod_to_hex(meta.last_failed_id);
-			//TODO: should the exposure under restricted mode be made optional?
-      txi.receive_time = meta.receive_time;
+      // In restricted mode we do not include this data:
+      txi.receive_time = include_sensitive_data ? meta.receive_time : 0;
       txi.relayed = meta.relayed;
       // In restricted mode we do not include this data:
       txi.last_relayed_time = (include_sensitive_data && !meta.dandelionpp_stem) ? meta.last_relayed_time : 0;
@@ -1365,10 +1365,7 @@ namespace cryptonote
       txpool_tx_meta_t meta;
       if (!m_blockchain.get_txpool_tx_meta(sorted_it->second, meta))
       {
-        static bool warned = false;
-        if (!warned)
-          MERROR("  failed to find tx meta: " << sorted_it->second << " (will only print once)");
-        warned = true;
+        MERROR("  failed to find tx meta");
         continue;
       }
       LOG_PRINT_L2("Considering " << sorted_it->second << ", weight " << meta.weight << ", current block weight " << total_weight << "/" << max_total_weight << ", current coinbase " << print_money(best_coinbase) << ", relay method " << (unsigned)meta.get_relay_method());

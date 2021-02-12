@@ -224,7 +224,7 @@ namespace cryptonote
       *
       * @return true if the block was added to the main chain, otherwise false
       */
-     virtual bool handle_block_found(block& b, block_verification_context &bvc) override;
+     virtual bool handle_block_found(block& b, block_verification_context &bvc);
 
      /**
       * @copydoc Blockchain::create_block_template
@@ -664,7 +664,7 @@ namespace cryptonote
       *
       * @param target_blockchain_height the target height
       */
-     virtual uint64_t get_target_blockchain_height() const override;
+     uint64_t get_target_blockchain_height() const;
 
      /**
       * @brief returns the newest hardfork version known to the blockchain

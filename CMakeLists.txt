@@ -55,20 +55,6 @@ else()
 	message(STATUS "ccache deselected")
 endif()
 
-if (${CMAKE_VERSION} VERSION_GREATER "3.0.0" AND CMAKE_MAKE_PROGRAM MATCHES "ninja")
-  set(MONERO_PARALLEL_COMPILE_JOBS "" CACHE STRING "The maximum number of concurrent compilation jobs.")
-  if (MONERO_PARALLEL_COMPILE_JOBS)
-    set_property(GLOBAL APPEND PROPERTY JOB_POOLS compile_job_pool=${MONERO_PARALLEL_COMPILE_JOBS})
-    set(CMAKE_JOB_POOL_COMPILE compile_job_pool)
-  endif ()
-
-  set(MONERO_PARALLEL_LINK_JOBS "" CACHE STRING "The maximum number of concurrent link jobs.")
-  if (MONERO_PARALLEL_LINK_JOBS)
-    set_property(GLOBAL APPEND PROPERTY JOB_POOLS link_job_pool=${MONERO_PARALLEL_LINK_JOBS})
-    set(CMAKE_JOB_POOL_LINK link_job_pool)
-  endif ()
-endif()
-
 enable_language(C ASM)
 
 function (die msg)
@@ -123,24 +109,6 @@ function (add_definition_if_library_exists library function header var)
   if(${${supported}})
     add_definitions("-D${var}")
   endif()
-endfunction()
-
-option(RELINK_TARGETS "Relink targets, when just a dependant .so changed, but not its header?" OFF)
-function (monero_set_target_no_relink target)
-  if (RELINK_TARGETS MATCHES OFF)
-    # Will not relink the target, when just its dependant .so has changed, but not it's interface
-    set_target_properties("${target}" PROPERTIES LINK_DEPENDS_NO_SHARED true)
-  endif()
-endfunction()
-
-function (monero_add_minimal_executable name)
-  source_group("${name}"
-    FILES
-      ${ARGN})
-
-  add_executable("${name}"
-    ${ARGN})
-    monero_set_target_no_relink( ${name} )
 endfunction()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -426,7 +394,7 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND NOT MINGW)
   set(DEFAULT_STACK_TRACE ON)
   set(STACK_TRACE_LIB "easylogging++") # for diag output only
   set(LIBUNWIND_LIBRARIES "")
-elseif (ARM)
+elseif (ARM AND STATIC)
   set(DEFAULT_STACK_TRACE OFF)
   set(LIBUNWIND_LIBRARIES "")
 else()

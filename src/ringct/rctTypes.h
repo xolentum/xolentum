@@ -49,7 +49,7 @@ extern "C" {
 #include "hex.h"
 #include "span.h"
 #include "memwipe.h"
-#include "serialization/containers.h"
+#include "serialization/vector.h"
 #include "serialization/debug_archive.h"
 #include "serialization/binary_archive.h"
 #include "serialization/json_archive.h"
@@ -262,12 +262,6 @@ namespace rct {
     struct RCTConfig {
       RangeProofType range_proof_type;
       int bp_version;
-
-      BEGIN_SERIALIZE_OBJECT()
-        VERSION_FIELD(0)
-        VARINT_FIELD(range_proof_type)
-        VARINT_FIELD(bp_version)
-      END_SERIALIZE()
     };
     struct rctSigBase {
         uint8_t type;
@@ -346,16 +340,6 @@ namespace rct {
           ar.end_array();
           return ar.stream().good();
         }
-
-        BEGIN_SERIALIZE_OBJECT()
-          FIELD(type)
-          FIELD(message)
-          FIELD(mixRing)
-          FIELD(pseudoOuts)
-          FIELD(ecdhInfo)
-          FIELD(outPk)
-          VARINT_FIELD(txnFee)
-        END_SERIALIZE()
     };
     struct rctSigPrunable {
         std::vector<rangeSig> rangeSigs;
@@ -368,12 +352,6 @@ namespace rct {
         template<bool W, template <bool> class Archive>
         bool serialize_rctsig_prunable(Archive<W> &ar, uint8_t type, size_t inputs, size_t outputs, size_t mixin)
         {
-          if (inputs >= 0xffffffff)
-            return false;
-          if (outputs >= 0xffffffff)
-            return false;
-          if (mixin >= 0xffffffff)
-            return false;
           if (type == RCTTypeNull)
             return ar.stream().good();
           if (type != RCTTypeFull && type != RCTTypeSimple && type != RCTTypeBulletproof && type != RCTTypeBulletproof2 && type != RCTTypeCLSAG)
@@ -525,13 +503,6 @@ namespace rct {
           return ar.stream().good();
         }
 
-        BEGIN_SERIALIZE_OBJECT()
-          FIELD(rangeSigs)
-          FIELD(bulletproofs)
-          FIELD(MGs)
-          FIELD(CLSAGs)
-          FIELD(pseudoOuts)
-        END_SERIALIZE()
     };
     struct rctSig: public rctSigBase {
         rctSigPrunable p;
@@ -545,11 +516,6 @@ namespace rct {
         {
           return type == RCTTypeBulletproof || type == RCTTypeBulletproof2 || type == RCTTypeCLSAG ? p.pseudoOuts : pseudoOuts;
         }
-
-        BEGIN_SERIALIZE_OBJECT()
-          FIELDS((rctSigBase&)*this)
-          FIELD(p)
-        END_SERIALIZE()
     };
 
     //other basepoint H = toPoint(cn_fast_hash(G)), G the basepoint

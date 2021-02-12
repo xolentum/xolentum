@@ -120,7 +120,7 @@ threadpool::waiter::~waiter()
   catch (...) { /* ignore */ }
   try
   {
-    wait();
+    wait(NULL);
   }
   catch (const std::exception &e)
   {
@@ -128,12 +128,12 @@ threadpool::waiter::~waiter()
   }
 }
 
-bool threadpool::waiter::wait() {
-  pool.run(true);
+void threadpool::waiter::wait(threadpool *tpool) {
+  if (tpool)
+    tpool->run(true);
   boost::unique_lock<boost::mutex> lock(mt);
   while(num)
     cv.wait(lock);
-  return !error();
 }
 
 void threadpool::waiter::inc() {
@@ -166,8 +166,7 @@ void threadpool::run(bool flush) {
     lock.unlock();
     ++depth;
     is_leaf = e.leaf;
-    try { e.f(); }
-    catch (const std::exception &ex) { e.wo->set_error(); try { MERROR("Exception in threadpool job: " << ex.what()); } catch (...) {} }
+    e.f();
     --depth;
     is_leaf = false;
 

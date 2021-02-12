@@ -27,12 +27,14 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/archive/portable_binary_iarchive.hpp>
+#include <boost/archive/portable_binary_oarchive.hpp>
 #include "cryptonote_config.h"
 #include "include_base_utils.h"
 #include "string_tools.h"
 #include "file_io_utils.h"
 #include "int-util.h"
 #include "common/util.h"
+#include "serialization/crypto.h"
 #include "common/unordered_containers_boost_serialization.h"
 #include "cryptonote_basic/cryptonote_boost_serialization.h"
 #include "cryptonote_basic/cryptonote_format_utils.h"
@@ -237,8 +239,7 @@ namespace cryptonote
       const uint64_t seed_height = is_current ? info.seed_height : info.previous_seed_height;
       const crypto::hash &seed_hash = is_current ? info.seed_hash : info.previous_seed_hash;
       const uint64_t height = cryptonote::get_block_height(block);
-      try { crypto::rx_slow_hash(height, seed_height, seed_hash.data, hashing_blob.data(), hashing_blob.size(), hash.data, 0, 0); }
-      catch (const std::exception &e) { error_code = CORE_RPC_ERROR_CODE_INTERNAL_ERROR; error_message = "Hashing error"; return false; }
+      crypto::rx_slow_hash(height, seed_height, seed_hash.data, hashing_blob.data(), hashing_blob.size(), hash.data, 0, 0);
     }
     else
     {
@@ -293,28 +294,14 @@ namespace cryptonote
     data.open(state_file_path, std::ios_base::binary | std::ios_base::in);
     if (!data.fail())
     {
-      bool loaded = false;
       try
       {
-        binary_archive<false> ar(data);
-        if (::serialization::serialize(ar, *this))
-          if (::serialization::check_stream_state(ar))
-            loaded = true;
+        boost::archive::portable_binary_iarchive a(data);
+        a >> *this;
       }
-      catch (...) {}
-      if (!loaded)
+      catch (const std::exception &e)
       {
-        try
-        {
-          boost::archive::portable_binary_iarchive a(data);
-          a >> *this;
-          loaded = true;
-        }
-        catch (...) {}
-      }
-      if (!loaded)
-      {
-        MERROR("Failed to load RPC payments file");
+        MERROR("Failed to load RPC payments file: " << e.what());
         m_client_info.clear();
       }
     }
@@ -355,9 +342,8 @@ namespace cryptonote
       MWARNING("Failed to save RPC payments to file " << state_file_path);
       return false;
     };
-    binary_archive<true> ar(data);
-    if (!::serialization::serialize(ar, *const_cast<rpc_payment*>(this)))
-      return false;
+    boost::archive::portable_binary_oarchive a(data);
+    a << *this;
     return true;
     CATCH_ENTRY_L0("rpc_payment::store", false);
   }

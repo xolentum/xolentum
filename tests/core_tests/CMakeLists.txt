@@ -68,7 +68,7 @@ set(core_tests_headers
   rct2.h
   wallet_tools.h)
 
-monero_add_minimal_executable(core_tests
+add_executable(core_tests
   ${core_tests_sources}
   ${core_tests_headers})
 target_link_libraries(core_tests

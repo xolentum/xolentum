@@ -83,33 +83,44 @@ namespace hw {
     // Must be sorted in ascending order by the code
     #define LEDGER_STATUS(status) {status, #status}
     constexpr Status status_codes[] = {
-      LEDGER_STATUS(SW_OK),
+      LEDGER_STATUS(SW_BYTES_REMAINING_00),
+      LEDGER_STATUS(SW_WARNING_STATE_UNCHANGED),
+      LEDGER_STATUS(SW_STATE_TERMINATED),
+      LEDGER_STATUS(SW_MORE_DATA_AVAILABLE),
       LEDGER_STATUS(SW_WRONG_LENGTH),
-      LEDGER_STATUS(SW_SECURITY_PIN_LOCKED),
+      LEDGER_STATUS(SW_LOGICAL_CHANNEL_NOT_SUPPORTED),
+      LEDGER_STATUS(SW_SECURE_MESSAGING_NOT_SUPPORTED),
+      LEDGER_STATUS(SW_LAST_COMMAND_EXPECTED),
+      LEDGER_STATUS(SW_COMMAND_CHAINING_NOT_SUPPORTED),
       LEDGER_STATUS(SW_SECURITY_LOAD_KEY),
       LEDGER_STATUS(SW_SECURITY_COMMITMENT_CONTROL),
       LEDGER_STATUS(SW_SECURITY_AMOUNT_CHAIN_CONTROL),
       LEDGER_STATUS(SW_SECURITY_COMMITMENT_CHAIN_CONTROL),
       LEDGER_STATUS(SW_SECURITY_OUTKEYS_CHAIN_CONTROL),
       LEDGER_STATUS(SW_SECURITY_MAXOUTPUT_REACHED),
-      LEDGER_STATUS(SW_SECURITY_HMAC),
-      LEDGER_STATUS(SW_SECURITY_RANGE_VALUE),
-      LEDGER_STATUS(SW_SECURITY_INTERNAL),
-      LEDGER_STATUS(SW_SECURITY_MAX_SIGNATURE_REACHED),
-      LEDGER_STATUS(SW_SECURITY_PREFIX_HASH),
-      LEDGER_STATUS(SW_SECURITY_LOCKED),
-      LEDGER_STATUS(SW_COMMAND_NOT_ALLOWED),
-      LEDGER_STATUS(SW_SUBCOMMAND_NOT_ALLOWED),
-      LEDGER_STATUS(SW_DENY),
-      LEDGER_STATUS(SW_KEY_NOT_SET),
-      LEDGER_STATUS(SW_WRONG_DATA),
-      LEDGER_STATUS(SW_WRONG_DATA_RANGE),
-      LEDGER_STATUS(SW_IO_FULL),
+      LEDGER_STATUS(SW_SECURITY_TRUSTED_INPUT),
       LEDGER_STATUS(SW_CLIENT_NOT_SUPPORTED),
+      LEDGER_STATUS(SW_SECURITY_STATUS_NOT_SATISFIED),
+      LEDGER_STATUS(SW_FILE_INVALID),
+      LEDGER_STATUS(SW_PIN_BLOCKED),
+      LEDGER_STATUS(SW_DATA_INVALID),
+      LEDGER_STATUS(SW_CONDITIONS_NOT_SATISFIED),
+      LEDGER_STATUS(SW_COMMAND_NOT_ALLOWED),
+      LEDGER_STATUS(SW_APPLET_SELECT_FAILED),
+      LEDGER_STATUS(SW_WRONG_DATA),
+      LEDGER_STATUS(SW_FUNC_NOT_SUPPORTED),
+      LEDGER_STATUS(SW_FILE_NOT_FOUND),
+      LEDGER_STATUS(SW_RECORD_NOT_FOUND),
+      LEDGER_STATUS(SW_FILE_FULL),
+      LEDGER_STATUS(SW_INCORRECT_P1P2),
+      LEDGER_STATUS(SW_REFERENCED_DATA_NOT_FOUND),
       LEDGER_STATUS(SW_WRONG_P1P2),
+      LEDGER_STATUS(SW_CORRECT_LENGTH_00),
       LEDGER_STATUS(SW_INS_NOT_SUPPORTED),
-      LEDGER_STATUS(SW_PROTOCOL_NOT_SUPPORTED),
-      LEDGER_STATUS(SW_UNKNOWN)
+      LEDGER_STATUS(SW_CLA_NOT_SUPPORTED),
+      LEDGER_STATUS(SW_UNKNOWN),
+      LEDGER_STATUS(SW_OK),
+      LEDGER_STATUS(SW_ALGORITHM_UNSUPPORTED)
     };
 
       const char *Status::to_string(unsigned int code)
@@ -248,7 +259,7 @@ namespace hw {
 
     static int device_id = 0;
 
-    #define PROTOCOL_VERSION                    4
+    #define PROTOCOL_VERSION                    3
 
     #define INS_NONE                            0x00
     #define INS_RESET                           0x02
@@ -288,7 +299,6 @@ namespace hw {
     #define INS_VALIDATE                        0x7C
     #define INS_PREFIX_HASH                     0x7D
     #define INS_MLSAG                           0x7E
-    #define INS_CLSAG                           0x7F
     #define INS_CLOSE_TX                        0x80
 
     #define INS_GET_TX_PROOF                    0xA0
@@ -2109,159 +2119,6 @@ namespace hw {
 
         return true;
     }
-
-    bool device_ledger::clsag_prepare(const rct::key &p, const rct::key &z, rct::key &I, rct::key &D, const rct::key &H, rct::key &a, rct::key &aG, rct::key &aH) {
-        AUTO_LOCK_CMD();
-        #ifdef DEBUG_HWDEVICE
-        const rct::key p_x   = hw::ledger::decrypt(p);
-        const rct::key z_x   = z;
-        rct::key       I_x;
-        rct::key       D_x;
-        const rct::key H_x   = H;
-        rct::key       a_x;
-        rct::key       aG_x;
-        rct::key       aH_x;
-        this->controle_device->clsag_prepare(p_x, z_x, I_x, D_x, H_x, a_x, aG_x, aH_x);
-        #endif
-
-        /*
-        rct::skpkGen(a,aG); // aG = a*G
-        rct::scalarmultKey(aH,H,a); // aH = a*H
-        rct::scalarmultKey(I,H,p); // I = p*H
-        rct::scalarmultKey(D,H,z); // D = z*H
-        */
-        int offset = set_command_header_noopt(INS_CLSAG, 0x01);
-        //p
-        this->send_secret(p.bytes, offset);
-        //z
-        memmove(this->buffer_send+offset, z.bytes, 32);
-        offset += 32;
-        //H
-        memmove(this->buffer_send+offset, H.bytes, 32);
-        offset += 32;
-
-        this->buffer_send[4] = offset-5;
-        this->length_send = offset;
-        this->exchange();
-
-        offset = 0;
-        //a
-        this->receive_secret(a.bytes, offset);
-        //aG
-        memmove(aG.bytes, this->buffer_recv+offset, 32);
-        offset +=32;
-        //aH
-        memmove(aH.bytes, this->buffer_recv+offset, 32);
-        offset +=32;
-        //I = pH
-        memmove(I.bytes, this->buffer_recv+offset, 32);
-        offset +=32;
-        //D = zH
-        memmove(D.bytes, this->buffer_recv+offset, 32);
-        offset +=32;
-
-        #ifdef DEBUG_HWDEVICE
-        hw::ledger::check32("clsag_prepare", "I", (char*)I_x.bytes, (char*)I.bytes);
-        hw::ledger::check32("clsag_prepare", "D", (char*)D_x.bytes, (char*)D.bytes);
-        hw::ledger::check32("clsag_prepare", "a", (char*)a_x.bytes, (char*)a.bytes);
-        hw::ledger::check32("clsag_prepare", "aG", (char*)aG_x.bytes, (char*)aG.bytes);
-        hw::ledger::check32("clsag_prepare", "aH", (char*)aH_x.bytes, (char*)aH.bytes);
-        #endif
-
-        return true;
-    }
-
-    bool device_ledger::clsag_hash(const rct::keyV &data, rct::key &hash) {
-        AUTO_LOCK_CMD();
-
-        #ifdef DEBUG_HWDEVICE
-        const rct::keyV data_x  = data;
-        rct::key        hash_x;
-        this->controle_device->mlsag_hash(data_x, hash_x);
-        #endif
-
-        size_t cnt;
-        int offset;
-
-        cnt = data.size();
-        for (size_t i = 0; i<cnt; i++) {
-          offset = set_command_header(INS_CLSAG, 0x02, i+1);
-          //options
-          this->buffer_send[offset] = (i==(cnt-1))?0x00:0x80;  //last
-          offset += 1;
-          //msg part
-          memmove(this->buffer_send+offset, data[i].bytes, 32);
-          offset += 32;
-
-          this->buffer_send[4] = offset-5;
-          this->length_send = offset;
-          this->exchange();
-        }
-
-        //c/hash
-        memmove(hash.bytes, &this->buffer_recv[0], 32);
-
-        #ifdef DEBUG_HWDEVICE
-        hw::ledger::check32("mlsag_hash", "hash", (char*)hash_x.bytes, (char*)hash.bytes);
-        #endif
-        return true;
-    }
-
-    bool device_ledger::clsag_sign(const rct::key &c, const rct::key &a, const rct::key &p, const rct::key &z, const rct::key &mu_P, const rct::key &mu_C, rct::key &s) {
-        AUTO_LOCK_CMD();
-
-        #ifdef DEBUG_HWDEVICE
-        const rct::key c_x    = c;
-        const rct::key a_x    = hw::ledger::decrypt(a);
-        const rct::key p_x    = hw::ledger::decrypt(p);
-        const rct::key z_x    = z;
-        const rct::key mu_P_x = mu_P;
-        const rct::key mu_C_x = mu_C;
-        rct::key       s_x;
-        this->controle_device->clsag_sign(c_x, a_x, p_x, z_x, mu_P_x, mu_C_x, s_x);
-        #endif
-
-        /*
-        rct::key s0_p_mu_P;
-        sc_mul(s0_p_mu_P.bytes,mu_P.bytes,p.bytes);
-        rct::key s0_add_z_mu_C;
-        sc_muladd(s0_add_z_mu_C.bytes,mu_C.bytes,z.bytes,s0_p_mu_P.bytes);
-        sc_mulsub(s.bytes,c.bytes,s0_add_z_mu_C.bytes,a.bytes);
-        */
-
-        int offset = set_command_header_noopt(INS_CLSAG, 0x03);
-
-        //c
-        //discard, unse internal one
-        //a
-        this->send_secret(a.bytes, offset);
-        //p
-        this->send_secret(p.bytes, offset);
-        //z
-        memmove(this->buffer_send+offset, z.bytes, 32);
-        offset += 32;
-        //mu_P
-        memmove(this->buffer_send+offset, mu_P.bytes, 32);
-        offset += 32;
-        //mu_C
-        memmove(this->buffer_send+offset, mu_C.bytes, 32);
-        offset += 32;
-
-        this->buffer_send[4] = offset-5;
-        this->length_send = offset;
-        this->exchange();
-
-        offset = 0;
-        //s
-        memmove(s.bytes, this->buffer_recv+offset, 32);
-
-      #ifdef DEBUG_HWDEVICE
-        hw::ledger::check32("clsag_sign", "s", (char*)s_x.bytes, (char*)s.bytes);
-        #endif
-
-        return true;
-    }
-
 
     bool device_ledger::close_tx() {
         AUTO_LOCK_CMD();

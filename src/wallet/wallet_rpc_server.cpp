@@ -826,11 +826,10 @@ namespace tools
   static std::string ptx_to_string(const tools::wallet2::pending_tx &ptx)
   {
     std::ostringstream oss;
-    binary_archive<true> ar(oss);
+    boost::archive::portable_binary_oarchive ar(oss);
     try
     {
-      if (!::serialization::serialize(ar, const_cast<tools::wallet2::pending_tx&>(ptx)))
-        return "";
+      ar << ptx;
     }
     catch (...)
     {
@@ -1539,30 +1538,14 @@ namespace tools
       return false;
     }
 
-    bool loaded = false;
     tools::wallet2::pending_tx ptx;
     try
     {
       std::istringstream iss(blob);
-      binary_archive<false> ar(iss);
-      if (::serialization::serialize(ar, ptx))
-        loaded = true;
+      boost::archive::portable_binary_iarchive ar(iss);
+      ar >> ptx;
     }
-    catch(...) {}
-
-    if (!loaded && !m_restricted)
-    {
-      try
-      {
-        std::istringstream iss(blob);
-        boost::archive::portable_binary_iarchive ar(iss);
-        ar >> ptx;
-        loaded = true;
-      }
-      catch (...) {}
-    }
-
-    if (!loaded)
+    catch (...)
     {
       er.code = WALLET_RPC_ERROR_CODE_BAD_TX_METADATA;
       er.message = "Failed to parse tx metadata.";
@@ -1994,18 +1977,7 @@ namespace tools
       return false;
     }
 
-    tools::wallet2::message_signature_type_t signature_type = tools::wallet2::sign_with_spend_key;
-    if (req.signature_type == "spend" || req.signature_type == "")
-      signature_type = tools::wallet2::sign_with_spend_key;
-    else if (req.signature_type == "view")
-      signature_type = tools::wallet2::sign_with_view_key;
-    else
-    {
-      er.code = WALLET_RPC_ERROR_CODE_INVALID_SIGNATURE_TYPE;
-      er.message = "Invalid signature type requested";
-      return false;
-    }
-    res.signature = m_wallet->sign(req.data, signature_type, {req.account_index, req.address_index});
+    res.signature = m_wallet->sign(req.data, {req.account_index, req.address_index});
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
@@ -2040,16 +2012,7 @@ namespace tools
       return false;
     }
 
-    const auto result = m_wallet->verify(req.data, info.address, req.signature);
-    res.good = result.valid;
-    res.version = result.version;
-    res.old = result.old;
-    switch (result.type)
-    {
-      case tools::wallet2::sign_with_spend_key: res.signature_type = "spend"; break;
-      case tools::wallet2::sign_with_view_key: res.signature_type = "view"; break;
-      default: res.signature_type = "invalid"; break;
-    }
+    res.good = m_wallet->verify(req.data, info.address, req.signature);
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------

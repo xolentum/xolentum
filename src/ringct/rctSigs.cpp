@@ -173,7 +173,7 @@ namespace rct {
     //   P[l] == p*G
     //   C[l] == z*G
     //   C[i] == C_nonzero[i] - C_offset (for hashing purposes) for all i
-    clsag CLSAG_Gen(const key &message, const keyV & P, const key & p, const keyV & C, const key & z, const keyV & C_nonzero, const key & C_offset, const unsigned int l, const multisig_kLRki *kLRki, key *mscout, key *mspout, hw::device &hwdev) {
+    clsag CLSAG_Gen(const key &message, const keyV & P, const key & p, const keyV & C, const key & z, const keyV & C_nonzero, const key & C_offset, const unsigned int l, const multisig_kLRki *kLRki, key *mscout, key *mspout) {
         clsag sig;
         size_t n = P.size(); // ring size
         CHECK_AND_ASSERT_THROW_MES(n == C.size(), "Signing and commitment key vector sizes must match!");
@@ -189,21 +189,16 @@ namespace rct {
         ge_p3_tobytes(H.bytes,&H_p3);
 
         key D;
-
-        // Initial values
-        key a;
-        key aG;
-        key aH;
+        scalarmultKey(D,H,z);
 
         // Multisig
         if (kLRki)
         {
             sig.I = kLRki->ki;
-            scalarmultKey(D,H,z);
         }
         else
         {
-            hwdev.clsag_prepare(p,z,sig.I,D,H,a,aG,aH);
+            scalarmultKey(sig.I,H,p);
         }
 
         geDsmp I_precomp;
@@ -213,6 +208,13 @@ namespace rct {
 
         // Offset key image
         scalarmultKey(sig.D,D,INV_EIGHT);
+
+        // Initial values
+        key a;
+        key aG;
+        key aH;
+        skpkGen(a,aG);
+        scalarmultKey(aH,H,a);
 
         // Aggregation hashes
         keyV mu_P_to_hash(2*n+4); // domain, I, D, P, C, C_offset
@@ -264,7 +266,7 @@ namespace rct {
             c_to_hash[2*n+3] = aG;
             c_to_hash[2*n+4] = aH;
         }
-        hwdev.clsag_hash(c_to_hash,c);
+        c = hash_to_scalar(c_to_hash);
 
         size_t i;
         i = (l + 1) % n;
@@ -299,7 +301,7 @@ namespace rct {
             // Compute R
             hash_to_p3(Hi_p3,P[i]);
             ge_dsm_precomp(H_precomp.k, &Hi_p3);
-            hwdev.clsag_hash(c_to_hash,c_new);
+            addKeys_aAbBcC(R,sig.s[i],H_precomp.k,c_p,I_precomp.k,c_c,D_precomp.k);
 
             c_to_hash[2*n+3] = L;
             c_to_hash[2*n+4] = R;
@@ -312,8 +314,11 @@ namespace rct {
         }
 
         // Compute final scalar
-        hwdev.clsag_sign(c,a,p,z,mu_P,mu_C,sig.s[l]);
-        memwipe(&a, sizeof(key));
+        key s0_p_mu_P;
+        sc_mul(s0_p_mu_P.bytes,mu_P.bytes,p.bytes);
+        key s0_add_z_mu_C;
+        sc_muladd(s0_add_z_mu_C.bytes,mu_C.bytes,z.bytes,s0_p_mu_P.bytes);
+        sc_mulsub(sig.s[l].bytes,c.bytes,s0_add_z_mu_C.bytes,a.bytes);
 
         if (mscout)
           *mscout = c;
@@ -324,7 +329,7 @@ namespace rct {
     }
 
     clsag CLSAG_Gen(const key &message, const keyV & P, const key & p, const keyV & C, const key & z, const keyV & C_nonzero, const key & C_offset, const unsigned int l) {
-        return CLSAG_Gen(message, P, p, C, z, C_nonzero, C_offset, l, NULL, NULL, NULL, hw::get_device("default"));
+        return CLSAG_Gen(message, P, p, C, z, C_nonzero, C_offset, l, NULL, NULL, NULL);
     }
 
     // MLSAG signatures
@@ -713,7 +718,7 @@ namespace rct {
 
         sk[0] = copy(inSk.dest);
         sc_sub(sk[1].bytes, inSk.mask.bytes, a.bytes);
-        clsag result = CLSAG_Gen(message, P, sk[0], C, sk[1], C_nonzero, Cout, index, kLRki, mscout, mspout, hwdev);
+        clsag result = CLSAG_Gen(message, P, sk[0], C, sk[1], C_nonzero, Cout, index, kLRki, mscout, mspout);
         memwipe(&sk[0], sizeof(key));
         return result;
     }
@@ -1277,13 +1282,12 @@ namespace rct {
         {
           if (semantics) {
             tools::threadpool& tpool = tools::threadpool::getInstance();
-            tools::threadpool::waiter waiter(tpool);
+            tools::threadpool::waiter waiter;
             std::deque<bool> results(rv.outPk.size(), false);
             DP("range proofs verified?");
             for (size_t i = 0; i < rv.outPk.size(); i++)
               tpool.submit(&waiter, [&, i] { results[i] = verRange(rv.outPk[i].mask, rv.p.rangeSigs[i]); });
-            if (!waiter.wait())
-              return false;
+            waiter.wait(&tpool);
 
             for (size_t i = 0; i < results.size(); ++i) {
               if (!results[i]) {
@@ -1327,7 +1331,7 @@ namespace rct {
         PERF_TIMER(verRctSemanticsSimple);
 
         tools::threadpool& tpool = tools::threadpool::getInstance();
-        tools::threadpool::waiter waiter(tpool);
+        tools::threadpool::waiter waiter;
         std::deque<bool> results;
         std::vector<const Bulletproof*> proofs;
         size_t max_non_bp_proofs = 0, offset = 0;
@@ -1410,8 +1414,7 @@ namespace rct {
           return false;
         }
 
-        if (!waiter.wait())
-          return false;
+        waiter.wait(&tpool);
         for (size_t i = 0; i < results.size(); ++i) {
           if (!results[i]) {
             LOG_PRINT_L1("Range proof verified failed for proof " << i);
@@ -1459,7 +1462,7 @@ namespace rct {
 
         std::deque<bool> results(threads);
         tools::threadpool& tpool = tools::threadpool::getInstance();
-        tools::threadpool::waiter waiter(tpool);
+        tools::threadpool::waiter waiter;
 
         const keyV &pseudoOuts = bulletproof ? rv.p.pseudoOuts : rv.pseudoOuts;
 
@@ -1477,8 +1480,7 @@ namespace rct {
                 results[i] = verRctMGSimple(message, rv.p.MGs[i], rv.mixRing[i], pseudoOuts[i]);
           });
         }
-        if (!waiter.wait())
-          return false;
+        waiter.wait(&tpool);
 
         for (size_t i = 0; i < results.size(); ++i) {
           if (!results[i]) {
@@ -1601,7 +1603,7 @@ namespace rct {
     bool signMultisigCLSAG(rctSig &rv, const std::vector<unsigned int> &indices, const keyV &k, const multisig_out &msout, const key &secret_key) {
         CHECK_AND_ASSERT_MES(rv.type == RCTTypeCLSAG, false, "unsupported rct type");
         CHECK_AND_ASSERT_MES(indices.size() == k.size(), false, "Mismatched k/indices sizes");
-        CHECK_AND_ASSERT_MES(k.size() == rv.p.CLSAGs.size(), false, "Mismatched k/CLSAGs size");
+        CHECK_AND_ASSERT_MES(k.size() == rv.p.CLSAGs.size(), false, "Mismatched k/MGs size");
         CHECK_AND_ASSERT_MES(k.size() == msout.c.size(), false, "Mismatched k/msout.c size");
         CHECK_AND_ASSERT_MES(rv.p.MGs.empty(), false, "MGs not empty for CLSAGs");
         CHECK_AND_ASSERT_MES(msout.c.size() == msout.mu_p.size(), false, "Bad mu_p size");

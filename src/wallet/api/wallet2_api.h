@@ -182,11 +182,9 @@ struct TransactionInfo
     virtual int  direction() const = 0;
     virtual bool isPending() const = 0;
     virtual bool isFailed() const = 0;
-    virtual bool isCoinbase() const = 0;
     virtual uint64_t amount() const = 0;
     virtual uint64_t fee() const = 0;
     virtual uint64_t blockHeight() const = 0;
-    virtual std::string description() const = 0;
     virtual std::set<uint32_t> subaddrIndex() const = 0;
     virtual uint32_t subaddrAccount() const = 0;
     virtual std::string label() const = 0;
@@ -210,7 +208,6 @@ struct TransactionHistory
     virtual TransactionInfo * transaction(const std::string &id) const = 0;
     virtual std::vector<TransactionInfo*> getAll() const = 0;
     virtual void refresh() = 0;
-    virtual void setTxNote(const std::string &txid, const std::string &note) = 0;
 };
 
 /**
@@ -252,7 +249,6 @@ struct AddressBook
     virtual ~AddressBook() = 0;
     virtual std::vector<AddressBookRow*> getAll() const = 0;
     virtual bool addRow(const std::string &dst_addr , const std::string &payment_id, const std::string &description) = 0;
-    virtual bool setDescription(std::size_t index, const std::string &description) = 0;
     virtual bool deleteRow(std::size_t rowId) = 0;
     virtual void refresh() = 0;
     virtual std::string errorString() const = 0;
@@ -508,11 +504,6 @@ struct Wallet
      * \return                        - public multisignature signer key or empty string if wallet is not multisig
      */
     virtual std::string publicMultisigSignerKey() const = 0;
-
-    /*!
-     * \brief stop - interrupts wallet refresh() loop once (doesn't stop background refresh thread)
-     */
-    virtual void stop() = 0;
 
     /*!
      * \brief store - stores wallet to file.

@@ -587,8 +587,8 @@ namespace tools{
   bool wallet2::light_wallet_key_image_is_ours(const crypto::key_image& key_image, const crypto::public_key& tx_public_key, uint64_t out_index)
   {
     // Lookup key image from cache
-    serializable_map<uint64_t, crypto::key_image> index_keyimage_map;
-    serializable_unordered_map<crypto::public_key, serializable_map<uint64_t, crypto::key_image> >::const_iterator found_pub_key = m_key_image_cache.find(tx_public_key);
+    std::map<uint64_t, crypto::key_image> index_keyimage_map;
+    std::unordered_map<crypto::public_key, std::map<uint64_t, crypto::key_image> >::const_iterator found_pub_key = m_key_image_cache.find(tx_public_key);
     if(found_pub_key != m_key_image_cache.end()) {
       // pub key found. key image for index cached?
       index_keyimage_map = found_pub_key->second;

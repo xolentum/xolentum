@@ -909,11 +909,6 @@ std::string WalletImpl::path() const
     return m_wallet->path();
 }
 
-void WalletImpl::stop()
-{
-    m_wallet->stop();
-}
-
 bool WalletImpl::store(const std::string &path)
 {
     clearStatus();
@@ -2001,7 +1996,7 @@ bool WalletImpl::checkReserveProof(const std::string &address, const std::string
 
 std::string WalletImpl::signMessage(const std::string &message)
 {
-  return m_wallet->sign(message, tools::wallet2::sign_with_spend_key);
+  return m_wallet->sign(message);
 }
 
 bool WalletImpl::verifySignedMessage(const std::string &message, const std::string &address, const std::string &signature) const
@@ -2011,7 +2006,7 @@ bool WalletImpl::verifySignedMessage(const std::string &message, const std::stri
   if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), address))
     return false;
 
-  return m_wallet->verify(message, info.address, signature).valid;
+  return m_wallet->verify(message, info.address, signature);
 }
 
 std::string WalletImpl::signMultisigParticipant(const std::string &message) const
