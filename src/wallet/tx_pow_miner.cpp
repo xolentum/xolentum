@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The Xolentum Project
+// Copyright (c) 2020-2021, The Xolentum Project
 //
 // All rights reserved.
 //

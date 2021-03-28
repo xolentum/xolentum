@@ -52,7 +52,7 @@ If you would like to donate/support the project through any other means, please 
 
 [BSD 3-Clause License](https://github.com/xolentum/xolentum/blob/master/LICENSE)
 
-Copyright (c) 2020, The Xolentum Developers
+Copyright (c) 2020-2021, The Xolentum Developers
 
 Copyright (c) 2014-2020, The Monero Developers
 
