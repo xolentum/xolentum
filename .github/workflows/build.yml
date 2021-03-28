@@ -93,7 +93,7 @@ jobs:
           ./autogen.sh
           ./configure
           make -j3
-          make install
+          sudo make install
     - name: Install Xolentum dependencies
       run: sudo apt -y install libboost-all-dev miniupnpc libunbound-dev graphviz doxygen libunwind8-dev libssl-dev libsodium-dev libhidapi-dev libusb-1.0-0-dev libpgm-dev libprotobuf-dev protobuf-compiler ccache
     - name: Build
