@@ -87,6 +87,11 @@ jobs:
       with:
         repository: zeromq/libzmq
         path: ./libzmq
+    - uses: actions/cache@v2
+      with:
+        path: ./libzmq/.ccache
+        key: ccache-ubuntu-zmq-build-${{ github.sha }}
+        restore-keys: ccache-ubuntu-zmq-build-
     - name: Compile ZMQ
       working-directory: ./libzmq
       run: |
