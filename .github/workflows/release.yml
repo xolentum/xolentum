@@ -1,9 +1,9 @@
-name: release
+name: Release
 
-on: 
+on:
   push:
     branches:
-      - master
+      - release
 
 jobs:
   release-macos:

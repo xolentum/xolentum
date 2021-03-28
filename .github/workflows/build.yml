@@ -1,6 +1,12 @@
-name: ci
+name: Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - release
+  pull_request:
+    branches-ignore:
+      - release
 
 jobs:
   build-macos:
