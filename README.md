@@ -21,18 +21,18 @@ This is the core implementation of Xolentum. It is open-source and completely fr
 ## Branches
 
 <p align="center">
-  <b>Master</b> - <a href="https://github.com/xolentum/xolentum/tree/master" rel="nofollow"><img src="https://github.com/xolentum/xolentum/workflows/ci/badge.svg?branch=master" alt="build-master" style="max-width:100%;"></a>
-  <br>
-  <b>Development</b> - <a href="https://github.com/xolentum/xolentum/" rel="nofollow"><img src="https://github.com/xolentum/xolentum/workflows/ci/badge.svg?branch=development" alt="build-dev" style="max-width:100%;"></a>
+  <b>Main</b> - <a href="https://github.com/xolentum/xolentum/" rel="nofollow"><img src="https://github.com/xolentum/xolentum/workflows/Build/badge.svg?branch=main" alt="build-main" style="max-width:100%;"></a>
 </p>
 
-**NOTE:** The `master` branch contains the latest Xolentum release. All changes are made on the `development` branch, hence, please direct all pull requests there.
+**NOTE:** All development happens on the `main` branch, hence, please direct all pull requests there.
 
 ## Installing
 
-We offer compiled binaries of Xolentum for all the supported OS. **Click [here](https://github.com/xolentum/xolentum/releases/latest) to download.**
-
-You can also compile Xolentum from source. **Click [here](https://xolentum.org/resources/guides/compilation) for instructions.**
+| Option | Link |
+| --- | --- |
+| Use Binaries | [Click Here!](https://github.com/xolentum/xolentum/releases/latest) |
+| Compile from source | [Click Here!](https://xolentum.org/resources/guides/compilation) |
+| Docker images | [Click Here!](https://www.xolentum.org/resources/guides/compilation/#docker) |
 
 ## Contributing
 
