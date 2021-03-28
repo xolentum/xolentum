@@ -92,6 +92,7 @@ jobs:
       run: |
           ./autogen.sh
           ./configure
+          ccache --max-size=150M
           make -j3
           sudo make install
     - name: Install Xolentum dependencies
