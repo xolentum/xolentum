@@ -83,7 +83,7 @@ jobs:
       run: sudo apt update
     - name: Install ZMQ dependencies
       run: sudo apt -y install build-essential cmake libtool autoconf pkg-config m4 automake
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
         repository: zeromq/libzmq
         path: ./libzmq
