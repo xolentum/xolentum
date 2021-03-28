@@ -75,7 +75,7 @@ jobs:
           make -j3
           sudo make install
     - name: Install Xolentum dependencies
-      run: sudo apt -y install libboost-all-dev miniupnpc libunbound-dev graphviz doxygen libunwind8-dev libssl-dev libsodium-dev libhidapi-dev libusb-1.0-0-dev libpgm-dev libprotobuf-dev protobuf-compiler ccache
+      run: sudo apt -y install libboost-all-dev miniupnpc libunbound-dev graphviz doxygen libunwind8-dev libudev-dev libssl-dev libsodium-dev libhidapi-dev libusb-1.0-0-dev libpgm-dev libprotobuf-dev protobuf-compiler ccache
     - name: Build
       run: USE_SINGLE_DIR=1 make release-static-linux-x86_64 -j3
     - name: Upload Linux artifacts
