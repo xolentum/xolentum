@@ -499,6 +499,7 @@ namespace cryptonote
       res.database_size = round_up(res.database_size, 5ull* 1024 * 1024 * 1024);
     res.update_available = restricted ? false : m_core.is_update_available();
     res.version = MONERO_VERSION_FULL;
+    res.synchronized = check_core_ready();
 
     res.status = CORE_RPC_STATUS_OK;
     return true;
