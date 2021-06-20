@@ -140,6 +140,7 @@ namespace cryptonote
     {
       NOTIFY_REQUEST_CHAIN::request r = {};
       context.m_needed_objects.clear();
+      context.m_expect_height = m_core.get_current_blockchain_height();
       m_core.get_short_chain_history(r.block_ids);
       handler_request_blocks_history( r.block_ids ); // change the limit(?), sleep(?)
       r.prune = m_sync_pruned_blocks;
@@ -490,6 +491,7 @@ namespace cryptonote
       context.m_needed_objects.clear();
       context.m_state = cryptonote_connection_context::state_synchronizing;
       NOTIFY_REQUEST_CHAIN::request r = {};
+      context.m_expect_height = m_core.get_current_blockchain_height();
       m_core.get_short_chain_history(r.block_ids);
       r.prune = m_sync_pruned_blocks;
       handler_request_blocks_history( r.block_ids ); // change the limit(?), sleep(?)
@@ -770,6 +772,7 @@ namespace cryptonote
           context.m_needed_objects.clear();
           context.m_state = cryptonote_connection_context::state_synchronizing;
           NOTIFY_REQUEST_CHAIN::request r = {};
+          context.m_expect_height = m_core.get_current_blockchain_height();
           m_core.get_short_chain_history(r.block_ids);
           handler_request_blocks_history( r.block_ids ); // change the limit(?), sleep(?)
           r.prune = m_sync_pruned_blocks;
@@ -1165,7 +1168,16 @@ namespace cryptonote
         return 1;
       }
       if (start_height == std::numeric_limits<uint64_t>::max())
+      {
         start_height = boost::get<txin_gen>(b.miner_tx.vin[0]).height;
+        if (start_height > context.m_expect_height)
+        {
+          LOG_ERROR_CCONTEXT("sent block ahead of expected height, dropping connection");
+          drop_connection(context, false, false);
+          ++m_sync_bad_spans_downloaded;
+          return 1;
+        }
+      }
 
       auto req_it = context.m_requested_objects.find(block_hash);
       if(req_it == context.m_requested_objects.end())
@@ -1708,6 +1720,7 @@ skip:
             LOG_PRINT_CCONTEXT_L2("requesting callback");
             context.m_last_request_time = boost::date_time::not_a_date_time;
             context.m_expect_response = 0;
+            context.m_expect_height = 0;
             context.m_state = cryptonote_connection_context::state_standby; // we'll go back to adding, then (if we can't), download
             ++context.m_callback_request_count;
             m_p2p->request_callback(context);
@@ -1806,6 +1819,16 @@ skip:
     {
       LOG_ERROR_CCONTEXT("Failed to handle NOTIFY_REQUEST_CHAIN.");
       return 1;
+    }
+    if (r.m_block_ids.size() >= 2)
+    {
+      cryptonote::block b;
+      if (!m_core.get_block_by_hash(r.m_block_ids[1], b))
+      {
+        LOG_ERROR_CCONTEXT("Failed to handle NOTIFY_REQUEST_CHAIN: first block not found");
+        return 1;
+      }
+      r.first_block = cryptonote::block_to_blob(b);
     }
     MLOG_P2P_MESSAGE("-->>NOTIFY_RESPONSE_CHAIN_ENTRY: m_start_height=" << r.start_height << ", m_total_height=" << r.total_height << ", m_block_ids.size()=" << r.m_block_ids.size());
     post_notify<NOTIFY_RESPONSE_CHAIN_ENTRY>(r, context);
@@ -2255,6 +2278,7 @@ skip:
           }
         }
         context.m_last_request_time = boost::posix_time::microsec_clock::universal_time();
+        context.m_expect_height = span.first;
         context.m_expect_response = NOTIFY_RESPONSE_GET_OBJECTS::ID;
         MLOG_P2P_MESSAGE("-->>NOTIFY_REQUEST_GET_OBJECTS: blocks.size()=" << req.blocks.size()
             << "requested blocks count=" << count << " / " << count_limit << " from " << span.first << ", first hash " << req.blocks.front());
@@ -2327,6 +2351,7 @@ skip:
     {//we have to fetch more objects ids, request blockchain entry
 
       NOTIFY_REQUEST_CHAIN::request r = {};
+      context.m_expect_height = m_core.get_current_blockchain_height();
       m_core.get_short_chain_history(r.block_ids);
       CHECK_AND_ASSERT_MES(!r.block_ids.empty(), false, "Short chain history is empty");
 
@@ -2334,7 +2359,10 @@ skip:
       {
         // we'll want to start off from where we are on that peer, which may not be added yet
         if (context.m_last_known_hash != crypto::null_hash && r.block_ids.front() != context.m_last_known_hash)
+        {
+          context.m_expect_height = std::numeric_limits<uint64_t>::max();
           r.block_ids.push_front(context.m_last_known_hash);
+        }
       }
 
       handler_request_blocks_history( r.block_ids ); // change the limit(?), sleep(?)
@@ -2475,6 +2503,12 @@ skip:
       return 1;
     }
     context.m_expect_response = 0;
+    if (arg.start_height + 1 > context.m_expect_height) // we expect an overlapping block
+    {
+      LOG_ERROR_CCONTEXT("Got NOTIFY_RESPONSE_CHAIN_ENTRY past expected height, dropping connection");
+      drop_connection(context, true, false);
+      return 1;
+    }
 
     context.m_last_request_time = boost::date_time::not_a_date_time;
 
@@ -2486,7 +2520,7 @@ skip:
       drop_connection(context, true, false);
       return 1;
     }
-    if (arg.total_height < arg.m_block_ids.size() || arg.start_height > arg.total_height - arg.m_block_ids.size() || arg.start_height >= m_core.get_current_blockchain_height())
+    if (arg.total_height < arg.m_block_ids.size() || arg.start_height > arg.total_height - arg.m_block_ids.size())
     {
       LOG_ERROR_CCONTEXT("sent invalid start/nblocks/height, dropping connection");
       drop_connection(context, true, false);
@@ -2500,7 +2534,7 @@ skip:
     }
     MDEBUG(context << "first block hash " << arg.m_block_ids.front() << ", last " << arg.m_block_ids.back());
 
-    if (arg.total_height >= CRYPTONOTE_MAX_BLOCK_NUMBER || arg.m_block_ids.size() >= CRYPTONOTE_MAX_BLOCK_NUMBER)
+    if (arg.total_height >= CRYPTONOTE_MAX_BLOCK_NUMBER || arg.m_block_ids.size() > BLOCKS_IDS_SYNCHRONIZING_MAX_COUNT)
     {
       LOG_ERROR_CCONTEXT("sent wrong NOTIFY_RESPONSE_CHAIN_ENTRY, with total_height=" << arg.total_height << " and block_ids=" << arg.m_block_ids.size());
       drop_connection(context, false, false);
@@ -2522,8 +2556,19 @@ skip:
       return 1;
     }
 
+    std::unordered_set<crypto::hash> hashes;
+    for (const auto &h: arg.m_block_ids)
+    {
+      if (!hashes.insert(h).second)
+      {
+        LOG_ERROR_CCONTEXT("sent duplicate block, dropping connection");
+        drop_connection(context, true, false);
+        return 1;
+      }
+    }
+
     uint64_t n_use_blocks = m_core.prevalidate_block_hashes(arg.start_height, arg.m_block_ids, arg.m_block_weights);
-    if (n_use_blocks + HASH_OF_HASHES_STEP <= arg.m_block_ids.size())
+    if (n_use_blocks == 0 || n_use_blocks + HASH_OF_HASHES_STEP <= arg.m_block_ids.size())
     {
       LOG_ERROR_CCONTEXT("Most blocks are invalid, dropping connection");
       drop_connection(context, true, false);
