@@ -62,7 +62,7 @@ public:
   uint64_t seek_to_first_chunk(std::ifstream& import_file, uint8_t &major_version, uint8_t &minor_version, uint64_t &block_first, uint64_t &block_last);
 
   bool store_blockchain_raw(cryptonote::Blockchain* cs, cryptonote::tx_memory_pool* txp,
-      boost::filesystem::path& output_file, uint64_t use_block_height=0);
+    boost::filesystem::path& output_file, uint64_t start_block=0, uint64_t stop_block=0);
 
 protected:
 

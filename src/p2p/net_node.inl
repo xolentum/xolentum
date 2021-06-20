@@ -1440,9 +1440,6 @@ namespace nodetool
     for (const auto& pe: anchor_peerlist) {
       _note("Considering connecting (out) to anchor peer: " << peerid_to_string(pe.id) << " " << pe.adr.str());
 
-      if(zone.m_our_address == pe.adr)
-        continue;
-
       if(is_peer_used(pe)) {
         _note("Peer is used");
         continue;
@@ -1629,6 +1626,9 @@ namespace nodetool
       _note("Considering connecting (out) to " << (use_white_list ? "white" : "gray") << " list peer: " <<
           peerid_to_string(pe.id) << " " << pe.adr.str() << ", pruning seed " << epee::string_tools::to_string_hex(pe.pruning_seed) <<
           " (stripe " << next_needed_pruning_stripe << " needed)");
+
+      if(zone.m_our_address == pe.adr)
+        continue;
 
       if(is_peer_used(pe)) {
         _note("Peer is used");

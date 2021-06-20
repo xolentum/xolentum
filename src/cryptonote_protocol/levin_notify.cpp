@@ -283,9 +283,10 @@ namespace levin
           strand(io_service),
           map(),
           channels(),
-          flush_time(std::chrono::steady_clock::time_point::max()),
           connection_count(0),
+          flush_callbacks(0),
           nzone(zone),
+          is_public(is_public),
           pad_txs(pad_txs),
           fluffing(false)
       {
