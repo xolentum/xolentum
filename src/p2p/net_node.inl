@@ -2063,7 +2063,9 @@ namespace nodetool
 
     LOG_DEBUG_CC(context, "REMOTE PEERLIST: remote peerlist size=" << peerlist_.size());
     LOG_TRACE_CC(context, "REMOTE PEERLIST: " << ENDL << print_peerlist_to_string(peerlist_));
-    return m_network_zones.at(context.m_remote_address.get_zone()).m_peerlist.merge_peerlist(peerlist_, [this](const peerlist_entry &pe) { return !is_addr_recently_failed(pe.adr); });
+    return m_network_zones.at(context.m_remote_address.get_zone()).m_peerlist.merge_peerlist(peerlist_, [this](const peerlist_entry &pe) {
+        return !is_addr_recently_failed(pe.adr) && is_remote_host_allowed(pe.adr);
+    });
   }
   //-----------------------------------------------------------------------------------
   template<class t_payload_net_handler>
@@ -2809,8 +2811,8 @@ namespace nodetool
     const uint32_t index = stripe - 1;
     CRITICAL_REGION_LOCAL(m_used_stripe_peers_mutex);
     MINFO("adding stripe " << stripe << " peer: " << context.m_remote_address.str());
-    std::remove_if(m_used_stripe_peers[index].begin(), m_used_stripe_peers[index].end(),
-        [&context](const epee::net_utils::network_address &na){ return context.m_remote_address == na; });
+    m_used_stripe_peers[index].erase(std::remove_if(m_used_stripe_peers[index].begin(), m_used_stripe_peers[index].end(),
+        [&context](const epee::net_utils::network_address &na){ return context.m_remote_address == na; }), m_used_stripe_peers[index].end());
     m_used_stripe_peers[index].push_back(context.m_remote_address);
   }
 
@@ -2823,8 +2825,8 @@ namespace nodetool
     const uint32_t index = stripe - 1;
     CRITICAL_REGION_LOCAL(m_used_stripe_peers_mutex);
     MINFO("removing stripe " << stripe << " peer: " << context.m_remote_address.str());
-    std::remove_if(m_used_stripe_peers[index].begin(), m_used_stripe_peers[index].end(),
-        [&context](const epee::net_utils::network_address &na){ return context.m_remote_address == na; });
+    m_used_stripe_peers[index].erase(std::remove_if(m_used_stripe_peers[index].begin(), m_used_stripe_peers[index].end(),
+        [&context](const epee::net_utils::network_address &na){ return context.m_remote_address == na; }), m_used_stripe_peers[index].end());
   }
 
   template<class t_payload_net_handler>

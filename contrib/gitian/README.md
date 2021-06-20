@@ -187,6 +187,7 @@ gpg --detach-sign ${VERSION}-linux/${GH_USER}/xolentum-linux-*-build.assert
 gpg --detach-sign ${VERSION}-win/${GH_USER}/xolentum-win-*-build.assert
 gpg --detach-sign ${VERSION}-osx/${GH_USER}/xolentum-osx-*-build.assert
 gpg --detach-sign ${VERSION}-android/${GH_USER}/xolentum-android-*-build.assert
+gpg --detach-sign ${VERSION}-freebsd/${GH_USER}/xolentum-freebsd-*-build.assert
 ```
 
 This will create a `.sig` file for each `.assert` file above (2 files for each platform).
