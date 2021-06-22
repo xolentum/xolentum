@@ -176,6 +176,8 @@
 
 #define RPC_CREDITS_PER_HASH_SCALE              ((float)(1<<24))
 
+#define DNS_BLOCKLIST_LIFETIME (86400 * 8)
+
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        8
 
 #define RX_BLOCK_VERSION	                      2
