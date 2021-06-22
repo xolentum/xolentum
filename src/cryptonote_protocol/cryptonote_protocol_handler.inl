@@ -406,6 +406,7 @@ namespace cryptonote
     ++context.m_callback_request_count;
     m_p2p->request_callback(context);
     MLOG_PEER_STATE("requesting callback");
+    context.m_num_requested = 0;
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------
@@ -1984,7 +1985,7 @@ skip:
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
-  void t_cryptonote_protocol_handler<t_core>::skip_unneeded_hashes(cryptonote_connection_context& context, bool check_block_queue) const
+  size_t t_cryptonote_protocol_handler<t_core>::skip_unneeded_hashes(cryptonote_connection_context& context, bool check_block_queue) const
   {
     // take out blocks we already have
     size_t skip = 0;
@@ -2001,6 +2002,7 @@ skip:
       MDEBUG(context << "skipping " << skip << "/" << context.m_needed_objects.size() << " blocks");
       context.m_needed_objects = std::vector<std::pair<crypto::hash, uint64_t>>(context.m_needed_objects.begin() + skip, context.m_needed_objects.end());
     }
+    return skip;
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
@@ -2056,7 +2058,17 @@ skip:
         const size_t block_queue_size_threshold = m_block_download_max_size ? m_block_download_max_size : BLOCK_QUEUE_SIZE_THRESHOLD;
         bool queue_proceed = nspans < BLOCK_QUEUE_NSPANS_THRESHOLD || size < block_queue_size_threshold;
         // get rid of blocks we already requested, or already have
-        skip_unneeded_hashes(context, true);
+        if (skip_unneeded_hashes(context, true) && context.m_needed_objects.empty() && context.m_num_requested == 0)
+        {
+          if (context.m_remote_blockchain_height > m_block_queue.get_next_needed_height(bc_height))
+          {
+            MERROR(context << "Nothing we can request from this peer, and we did not request anything previously");
+            return false;
+          }
+          MDEBUG(context << "Nothing to get from this peer, and it's not ahead of us, all done");
+          context.m_state = cryptonote_connection_context::state_normal;
+          return true;
+        }
         uint64_t next_needed_height = m_block_queue.get_next_needed_height(bc_height);
         uint64_t next_block_height;
         if (context.m_needed_objects.empty())
@@ -2192,7 +2204,17 @@ skip:
           context.m_last_response_height = 0;
           goto skip;
         }
-        skip_unneeded_hashes(context, false);
+        if (skip_unneeded_hashes(context, false) && context.m_needed_objects.empty() && context.m_num_requested == 0)
+        {
+          if (context.m_remote_blockchain_height > m_block_queue.get_next_needed_height(m_core.get_current_blockchain_height()))
+          {
+            MERROR(context << "Nothing we can request from this peer, and we did not request anything previously");
+            return false;
+          }
+          MDEBUG(context << "Nothing to get from this peer, and it's not ahead of us, all done");
+          context.m_state = cryptonote_connection_context::state_normal;
+          return true;
+        }
 
         const uint64_t first_block_height = context.m_last_response_height - context.m_needed_objects.size() + 1;
         static const uint64_t bp_fork_height = m_core.get_earliest_ideal_height_for_version(8);
@@ -2289,21 +2311,36 @@ skip:
           << "/" << tools::get_pruning_stripe(span.first + span.second - 1, context.m_remote_blockchain_height, CRYPTONOTE_PRUNING_LOG_STRIPES)
           << ", ours " << tools::get_pruning_stripe(m_core.get_blockchain_pruning_seed()) << ", peer stripe " << tools::get_pruning_stripe(context.m_pruning_seed));
 
+        context.m_num_requested += req.blocks.size();
         post_notify<NOTIFY_REQUEST_GET_OBJECTS>(req, context);
         MLOG_PEER_STATE("requesting objects");
         return true;
       }
 
-      // we can do nothing, so drop this peer to make room for others unless we think we've downloaded all we need
-      const uint64_t blockchain_height = m_core.get_current_blockchain_height();
-      if (std::max(blockchain_height, m_block_queue.get_next_needed_height(blockchain_height)) >= m_core.get_target_blockchain_height())
+      // if we're still around, we might be at a point where the peer is pruned, so we could either
+      // drop it to make space for other peers, or ask for a span further down the line
+      const uint32_t next_stripe = get_next_needed_pruning_stripe().first;
+      const uint32_t peer_stripe = tools::get_pruning_stripe(context.m_pruning_seed);
+      const uint32_t local_stripe = tools::get_pruning_stripe(m_core.get_blockchain_pruning_seed());
+      if (!(m_sync_pruned_blocks && peer_stripe == local_stripe) && next_stripe && peer_stripe && next_stripe != peer_stripe)
       {
+        // at this point, we have to either close the connection, or start getting blocks past the
+        // current point, or become dormant
+        MDEBUG(context << "this peer is pruned at seed " << epee::string_tools::to_string_hex(context.m_pruning_seed) <<
+            ", next stripe needed is " << next_stripe);
+        if (!context.m_is_income)
+        {
+          if (should_drop_connection(context, next_stripe))
+          {
+            m_p2p->add_used_stripe_peer(context);
+            return false; // drop outgoing connections
+          }
+        }
+        // we'll get back stuck waiting for the go ahead
         context.m_state = cryptonote_connection_context::state_normal;
         MLOG_PEER_STATE("Nothing to do for now, switching to normal state");
         return true;
       }
-      MLOG_PEER_STATE("We can download nothing from this peer, dropping");
-      return false;
     }
 
 skip:
@@ -2543,8 +2580,6 @@ skip:
     }
 
     std::unordered_set<crypto::hash> hashes;
-    uint64_t height = arg.start_height;
-    const uint64_t blockchain_height = m_core.get_current_blockchain_height();
     for (const auto &h: arg.m_block_ids)
     {
       if (!hashes.insert(h).second)
@@ -2553,17 +2588,6 @@ skip:
         drop_connection(context, true, false);
         return 1;
       }
-      if (height < blockchain_height)
-      {
-        const crypto::hash block_in_chain = m_core.get_block_id_by_height(height);
-        if ((height < context.m_expect_height - 1 && block_in_chain == h) || (height == context.m_expect_height - 1 && block_in_chain != h))
-        {
-          LOG_ERROR_CCONTEXT("sent existing block " << h << " at height " << height << ", expected height was " << context.m_expect_height << ", dropping connection");
-          drop_connection(context, true, false);
-          return 1;
-        }
-      }
-      ++height;
     }
 
     uint64_t n_use_blocks = m_core.prevalidate_block_hashes(arg.start_height, arg.m_block_ids, arg.m_block_weights);
@@ -2602,6 +2626,7 @@ skip:
     if (arg.total_height > m_core.get_target_blockchain_height())
       m_core.set_target_blockchain_height(arg.total_height);
 
+    context.m_num_requested = 0;
     return 1;
   }
   //------------------------------------------------------------------------------------------------------------------------
