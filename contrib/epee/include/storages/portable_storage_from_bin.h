@@ -38,7 +38,6 @@
 #define EPEE_PORTABLE_STORAGE_RECURSION_LIMIT_INTERNAL 100
 #endif
 #define EPEE_PORTABLE_STORAGE_OBJECT_LIMIT_INTERNAL 65536
-#define EPEE_PORTABLE_STORAGE_ARRAY_ELEMENT_LIMIT_INTERNAL 65536
 
 namespace epee
 {
@@ -105,7 +104,6 @@ namespace epee
       size_t m_count;
       size_t m_recursion_count;
       size_t m_objects;
-      size_t m_array_elements;
     };
 
     inline throwable_buffer_reader::throwable_buffer_reader(const void* ptr, size_t sz)
@@ -118,7 +116,6 @@ namespace epee
       m_count = sz;
       m_recursion_count = 0;
       m_objects = 0;
-      m_array_elements = 0;
     }
     inline
     void throwable_buffer_reader::read(void* target, size_t count)
@@ -135,6 +132,7 @@ namespace epee
       RECURSION_LIMITATION();
       uint8_t name_len = 0;
       read(name_len);
+      CHECK_AND_ASSERT_THROW_MES(name_len > 0, "Section name is missing");
       sce_name.resize(name_len);
       read((void*)sce_name.data(), name_len);
     }
@@ -165,9 +163,12 @@ namespace epee
       //for pod types
       array_entry_t<type_name> sa;
       size_t size = read_varint();
-      CHECK_AND_ASSERT_THROW_MES(size < EPEE_PORTABLE_STORAGE_ARRAY_ELEMENT_LIMIT_INTERNAL - m_array_elements, "Too many array elements");
-      m_array_elements += size;
       CHECK_AND_ASSERT_THROW_MES(size <= m_count / ps_min_bytes<type_name>::strict, "Size sanity check failed");
+      if (std::is_same<type_name, section>())
+      {
+        CHECK_AND_ASSERT_THROW_MES(size <= EPEE_PORTABLE_STORAGE_OBJECT_LIMIT_INTERNAL - m_objects, "Too many objects");
+        m_objects += size;
+      }
 
       sa.reserve(size);
       //TODO: add some optimization here later
@@ -293,7 +294,7 @@ namespace epee
       RECURSION_LIMITATION();
       sec.m_entries.clear();
       size_t count = read_varint();
-      CHECK_AND_ASSERT_THROW_MES(count < EPEE_PORTABLE_STORAGE_OBJECT_LIMIT_INTERNAL - m_objects, "Too many objects");
+      CHECK_AND_ASSERT_THROW_MES(count <= EPEE_PORTABLE_STORAGE_OBJECT_LIMIT_INTERNAL - m_objects, "Too many objects");
       m_objects += count;
       while(count--)
       {

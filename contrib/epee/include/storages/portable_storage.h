@@ -252,6 +252,7 @@ namespace epee
     {
       TRY_ENTRY();
       CHECK_AND_ASSERT(psection, nullptr);
+      CHECK_AND_ASSERT(!pentry_name.empty(), nullptr);
       auto it = psection->m_entries.find(pentry_name);
       if(it == psection->m_entries.end())
         return nullptr;
