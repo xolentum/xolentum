@@ -65,6 +65,7 @@
 
 #define BLOCK_REWARD                                    ((uint64_t)50000000000000) //50 coins per block
 #define BLOCK_REWARD_V2                                 ((uint64_t)8000000000000) //8 coins per block
+#define BLOCK_REWARD_V3                                 ((uint64_t)5000000000000) //5 coins per block
 #define FEE_PER_KB                                      ((uint64_t)2000000000) // 2 * pow(10, 9)
 #define FEE_PER_BYTE                                    ((uint64_t)300000)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
@@ -159,8 +160,8 @@
 #define HF_VERSION_BLOCK_REWARD_2               3
 #define HF_VERSION_TX_POW_ENABLE                4
 #define HF_VERSION_TX_POW_MANDATORY             5
-/*TODO: determine correct fork height*/
-#define HF_VERSION_DETERMINISTIC_UNLOCK_TIME    6
+#define HF_VERSION_DETERMINISTIC_UNLOCK_TIME    5
+#define HF_VERSION_BLOCK_REWARD_3               5
 
 #define HASH_OF_HASHES_STEP                     512
 

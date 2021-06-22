@@ -77,11 +77,12 @@ namespace cryptonote {
   }
   //-----------------------------------------------------------------------------------------------
   bool get_block_reward(size_t median_weight, size_t current_block_weight, uint64_t already_generated_coins, uint64_t &reward, uint8_t version) {
-
-    if(version >= HF_VERSION_BLOCK_REWARD_2)
-    reward = BLOCK_REWARD_V2;
+    if(version >= HF_VERSION_BLOCK_REWARD_3)
+      reward = BLOCK_REWARD_V3;
+    else if(version >= HF_VERSION_BLOCK_REWARD_2)
+      reward = BLOCK_REWARD_V2;
     else
-    reward = BLOCK_REWARD;
+      reward = BLOCK_REWARD;
     return true;
   }
   //------------------------------------------------------------------------------------
