@@ -131,6 +131,7 @@ namespace nodetool
     command_line::add_arg(desc, arg_limit_rate_down);
     command_line::add_arg(desc, arg_limit_rate);
     command_line::add_arg(desc, arg_pad_transactions);
+    command_line::add_arg(desc, arg_max_connections_per_ip);
   }
   //-----------------------------------------------------------------------------------
   template<class t_payload_net_handler>
@@ -234,6 +235,7 @@ namespace nodetool
       return false;
 
     const time_t now = time(nullptr);
+    bool added = false;
 
     CRITICAL_REGION_LOCAL(m_blocked_hosts_lock);
     time_t limit;
@@ -244,7 +246,10 @@ namespace nodetool
     const std::string host_str = addr.host_str();
     auto it = m_blocked_hosts.find(host_str);
     if (it == m_blocked_hosts.end())
+    {
       m_blocked_hosts[host_str] = limit;
+      added = true;
+    }
     else if (it->second < limit || !add_only)
       it->second = limit;
 
@@ -275,7 +280,10 @@ namespace nodetool
       conns.clear();
     }
 
-    MCLOG_CYAN(el::Level::Info, "global", "Host " << host_str << " blocked.");
+    if (added)
+      MCLOG_CYAN(el::Level::Info, "global", "Host " << host_str << " blocked.");
+    else
+      MINFO("Host " << host_str << " block time updated.");
     return true;
   }
   //-----------------------------------------------------------------------------------
@@ -607,6 +615,8 @@ namespace nodetool
       if (!set_max_in_peers(zone, inbound.max_connections))
         return false;
     }
+
+    max_connections = command_line::get_arg(vm, arg_max_connections_per_ip);
 
     return true;
   }
@@ -2810,9 +2820,8 @@ namespace nodetool
     if (address.get_zone() != epee::net_utils::zone::public_)
       return false; // Unable to determine how many connections from host
 
-    const size_t max_connections = 1;
-    size_t count = 0;
-
+    uint32_t count = 0;
+    
     m_network_zones.at(epee::net_utils::zone::public_).m_net_server.get_config_object().foreach_connection([&](const p2p_connection_context& cntxt)
     {
       if (cntxt.m_is_income && cntxt.m_remote_address.is_same_host(address)) {
