@@ -2602,11 +2602,16 @@ skip:
       }
       int where;
       const bool have_block = m_core.have_block_unlocked(arg.m_block_ids[i], &where);
-      if (first && !have_block)
+      if (first)
       {
-        LOG_ERROR_CCONTEXT("First block hash is unknown, dropping connection");
-        drop_connection_with_score(context, 5, false);
-        return 1;
+        if (!have_block && !m_block_queue.requested(arg.m_block_ids[i]) && !m_block_queue.have(arg.m_block_ids[i]))
+        {
+          LOG_ERROR_CCONTEXT("First block hash is unknown, dropping connection");
+          drop_connection_with_score(context, 5, false);
+          return 1;
+        }
+        if (!have_block)
+          expect_unknown = true;
       }
       if (!first)
       {
@@ -2837,12 +2842,15 @@ skip:
         epee::string_tools::to_string_hex(context.m_pruning_seed) <<
         "), score " << score << ", flush_all_spans " << flush_all_spans);
 
-    if (score > 0)
-      m_p2p->add_host_fail(context.m_remote_address, score);
-
     m_block_queue.flush_spans(context.m_connection_id, flush_all_spans);
 
+    // copy since dropping the connection will invalidate the context, and thus the address
+    const auto remote_address = context.m_remote_address;
+
     m_p2p->drop_connection(context);
+
+    if (score > 0)
+      m_p2p->add_host_fail(remote_address, score);
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>

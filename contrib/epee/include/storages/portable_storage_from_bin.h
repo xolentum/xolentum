@@ -29,6 +29,7 @@
 #pragma once
 
 #include "misc_language.h"
+#include "misc_log_ex.h"
 #include "portable_storage_base.h"
 #include "portable_storage_bin_utils.h"
 
@@ -38,7 +39,8 @@
 #define EPEE_PORTABLE_STORAGE_RECURSION_LIMIT_INTERNAL 100
 #endif
 #define EPEE_PORTABLE_STORAGE_OBJECT_LIMIT_INTERNAL 65536
-#define EPEE_PORTABLE_STORAGE_OBJECT_FIELD_LIMIT_INTERNAL 262144
+#define EPEE_PORTABLE_STORAGE_OBJECT_FIELD_LIMIT_INTERNAL 65536
+#define EPEE_PORTABLE_STORAGE_STRING_LIMIT_INTERNAL 65536 // does not include field names
 
 namespace epee
 {
@@ -106,6 +108,7 @@ namespace epee
       size_t m_recursion_count;
       size_t m_objects;
       size_t m_fields;
+      size_t m_strings;
     };
 
     inline throwable_buffer_reader::throwable_buffer_reader(const void* ptr, size_t sz)
@@ -119,6 +122,7 @@ namespace epee
       m_recursion_count = 0;
       m_objects = 0;
       m_fields = 0;
+      m_strings = 0;
     }
     inline
     void throwable_buffer_reader::read(void* target, size_t count)
@@ -171,6 +175,11 @@ namespace epee
       {
         CHECK_AND_ASSERT_THROW_MES(size <= EPEE_PORTABLE_STORAGE_OBJECT_LIMIT_INTERNAL - m_objects, "Too many objects");
         m_objects += size;
+      }
+      else if (std::is_same<type_name, std::string>())
+      {
+        CHECK_AND_ASSERT_THROW_MES(size <= EPEE_PORTABLE_STORAGE_STRING_LIMIT_INTERNAL - m_strings, "Too many strings");
+        m_strings += size;
       }
 
       sa.reserve(size);
@@ -238,6 +247,8 @@ namespace epee
     inline storage_entry throwable_buffer_reader::read_se<std::string>()
     {
       RECURSION_LIMITATION();
+      CHECK_AND_ASSERT_THROW_MES(m_strings + 1 <= EPEE_PORTABLE_STORAGE_STRING_LIMIT_INTERNAL, "Too many strings");
+      m_strings += 1;
       return storage_entry(read<std::string>());
     }
 
@@ -306,7 +317,9 @@ namespace epee
         //read section name string
         std::string sec_name;
         read_sec_name(sec_name);
-        sec.m_entries.emplace(std::move(sec_name), load_storage_entry());
+        const auto insert_loc = sec.m_entries.lower_bound(sec_name);
+        CHECK_AND_ASSERT_THROW_MES(insert_loc == sec.m_entries.end() || insert_loc->first != sec_name, "duplicate key: " << sec_name);
+        sec.m_entries.emplace_hint(insert_loc, std::move(sec_name), load_storage_entry());
       }
     }
     inline
