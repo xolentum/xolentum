@@ -876,32 +876,6 @@ namespace nodetool
     for(const auto& p: m_command_line_peers)
       m_network_zones.at(p.adr.get_zone()).m_peerlist.append_with_peer_white(p);
 
-// all peers are now setup
-#ifdef CRYPTONOTE_PRUNING_DEBUG_SPOOF_SEED
-    for (auto& zone : m_network_zones)
-    {
-      std::list<peerlist_entry> plw;
-      while (zone.second.m_peerlist.get_white_peers_count())
-      {
-        plw.push_back(peerlist_entry());
-        zone.second.m_peerlist.get_white_peer_by_index(plw.back(), 0);
-        zone.second.m_peerlist.remove_from_peer_white(plw.back());
-      }
-      for (auto &e:plw)
-        zone.second.m_peerlist.append_with_peer_white(e);
-
-      std::list<peerlist_entry> plg;
-      while (zone.second.m_peerlist.get_gray_peers_count())
-      {
-        plg.push_back(peerlist_entry());
-        zone.second.m_peerlist.get_gray_peer_by_index(plg.back(), 0);
-        zone.second.m_peerlist.remove_from_peer_gray(plg.back());
-      }
-      for (auto &e:plg)
-        zone.second.m_peerlist.append_with_peer_gray(e);
-    }
-#endif
-
     //only in case if we really sure that we have external visible ip
     m_have_address = true;
 
@@ -1144,6 +1118,7 @@ namespace nodetool
         pi = context.peer_id = rsp.node_data.peer_id;
         context.m_rpc_port = rsp.node_data.rpc_port;
         context.m_rpc_credits_per_hash = rsp.node_data.rpc_credits_per_hash;
+        context.support_flags = rsp.node_data.support_flags;
         const auto azone = context.m_remote_address.get_zone();
         network_zone& zone = m_network_zones.at(azone);
         zone.m_peerlist.set_peer_just_seen(rsp.node_data.peer_id, context.m_remote_address, context.m_pruning_seed, context.m_rpc_port, context.m_rpc_credits_per_hash);
@@ -1177,10 +1152,11 @@ namespace nodetool
     }
     else if (!just_take_peerlist)
     {
-      try_get_support_flags(context_, [](p2p_connection_context& flags_context, const uint32_t& support_flags)
-      {
-        flags_context.support_flags = support_flags;
-      });
+      if (context_.support_flags == 0)
+        try_get_support_flags(context_, [](p2p_connection_context& flags_context, const uint32_t& support_flags)
+        {
+          flags_context.support_flags = support_flags;
+        });
     }
 
     return hsh_result;
@@ -1994,6 +1970,8 @@ namespace nodetool
       boost::split(ips, record, boost::is_any_of(";"));
       for (const auto &ip: ips)
       {
+        if (ip.empty())
+          continue;
         const expect<epee::net_utils::network_address> parsed_addr = net::get_network_address(ip, 0);
         if (!parsed_addr)
         {
@@ -2098,9 +2076,6 @@ namespace nodetool
       }
       local_peerlist[i].last_seen = 0;
 
-#ifdef CRYPTONOTE_PRUNING_DEBUG_SPOOF_SEED
-      be.pruning_seed = tools::make_pruning_seed(1 + (be.adr.as<epee::net_utils::ipv4_network_address>().ip()) % (1ul << CRYPTONOTE_PRUNING_LOG_STRIPES), CRYPTONOTE_PRUNING_LOG_STRIPES);
-#endif
     }
     return true;
   }
@@ -2146,6 +2121,7 @@ namespace nodetool
     node_data.rpc_port = zone.m_can_pingback ? m_rpc_port : 0;
     node_data.rpc_credits_per_hash = zone.m_can_pingback ? m_rpc_credits_per_hash : 0;
     node_data.network_id = m_network_id;
+    node_data.support_flags = zone.m_config.m_support_flags;
     return true;
   }
   //-----------------------------------------------------------------------------------
@@ -2518,6 +2494,7 @@ namespace nodetool
     context.m_in_timedsync = false;
     context.m_rpc_port = arg.node_data.rpc_port;
     context.m_rpc_credits_per_hash = arg.node_data.rpc_credits_per_hash;
+    context.support_flags = arg.node_data.support_flags;
 
     if(arg.node_data.my_port && zone.m_can_pingback)
     {
@@ -2551,11 +2528,11 @@ namespace nodetool
       });
     }
 
-    try_get_support_flags(context, [](p2p_connection_context& flags_context, const uint32_t& support_flags)
-    {
-      flags_context.support_flags = support_flags;
-    });
-
+    if (context.support_flags == 0)
+      try_get_support_flags(context, [](p2p_connection_context& flags_context, const uint32_t& support_flags)
+      {
+        flags_context.support_flags = support_flags;
+      });
     //fill response
     zone.m_peerlist.get_peerlist_head(rsp.local_peerlist_new, true);
     for (const auto &e: rsp.local_peerlist_new)
@@ -2821,7 +2798,7 @@ namespace nodetool
       return false; // Unable to determine how many connections from host
 
     uint32_t count = 0;
-    
+
     m_network_zones.at(epee::net_utils::zone::public_).m_net_server.get_config_object().foreach_connection([&](const p2p_connection_context& cntxt)
     {
       if (cntxt.m_is_income && cntxt.m_remote_address.is_same_host(address)) {
