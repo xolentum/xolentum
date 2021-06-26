@@ -105,7 +105,6 @@ namespace cryptonote
 
   uint64_t get_transaction_weight_clawback(const transaction &tx, size_t n_padded_outputs)
   {
-    const rct::rctSig &rv = tx.rct_signatures;
     const uint64_t bp_base = 368;
     const size_t n_outputs = tx.vout.size();
     if (n_padded_outputs <= 2)
@@ -1242,7 +1241,6 @@ namespace cryptonote
 
     if (b.miner_tx.vin.size() == 1 && b.miner_tx.vin[0].type() == typeid(cryptonote::txin_gen))
     {
-      const cryptonote::txin_gen &txin_gen = boost::get<cryptonote::txin_gen>(b.miner_tx.vin[0]);
         return true;
     }
 

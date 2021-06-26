@@ -1109,7 +1109,6 @@ namespace tools{
   {
     CHECK_AND_ASSERT_THROW_MES(n < m_transfers.size(), "Bad transfer index");
 
-    const transfer_details &td = m_transfers[n];
     rct::multisig_kLRki kLRki = get_multisig_kLRki(n, rct::skGen());
 
     // pick a L/R pair from every other participant but one

@@ -1,21 +1,21 @@
 // Copyright (c) 2017, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -372,7 +372,6 @@ std::shared_ptr<straus_cached_data> straus_init_cache(const std::vector<Multiexp
   if (N == 0)
     N = data.size();
   CHECK_AND_ASSERT_THROW_MES(N <= data.size(), "Bad cache base data");
-  ge_cached cached;
   ge_p1p1 p1;
   ge_p3 p3;
   std::shared_ptr<straus_cached_data> cache(new straus_cached_data());
@@ -454,7 +453,6 @@ rct::key straus(const std::vector<MultiexpData> &data, const std::shared_ptr<str
   std::shared_ptr<straus_cached_data> local_cache = cache == NULL ? straus_init_cache(data) : cache;
   ge_cached cached;
   ge_p1p1 p1;
-  ge_p3 p3;
 
 #ifdef TRACK_STRAUS_ZERO_IDENTITY
   MULTIEXP_PERF(PERF_TIMER_START_UNIT(skip, 1000000));
@@ -587,7 +585,6 @@ std::shared_ptr<pippenger_cached_data> pippenger_init_cache(const std::vector<Mu
   if (N == 0)
     N = data.size() - start_offset;
   CHECK_AND_ASSERT_THROW_MES(N <= data.size() - start_offset, "Bad cache base data");
-  ge_cached cached;
   std::shared_ptr<pippenger_cached_data> cache(new pippenger_cached_data());
 
   cache->size = N;

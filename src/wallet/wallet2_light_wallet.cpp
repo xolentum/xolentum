@@ -80,7 +80,6 @@ namespace tools{
 
     // Check if we got enough outputs for each amount
     for(auto& out: ores.amount_outs) {
-      const uint64_t out_amount = boost::lexical_cast<uint64_t>(out.amount);
       THROW_WALLET_EXCEPTION_IF(out.outputs.size() < light_wallet_requested_outputs_count , error::wallet_internal_error, "Not enough outputs for amount: " + boost::lexical_cast<std::string>(out.amount));
       MDEBUG(out.outputs.size() << " outputs for amount "+ boost::lexical_cast<std::string>(out.amount) + " received from light wallet node");
     }

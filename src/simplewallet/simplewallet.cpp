@@ -278,6 +278,7 @@ namespace
   const char* USAGE_VERSION("version");
   const char* USAGE_HELP("help [<command> | all]");
   const char* USAGE_APROPOS("apropos <keyword> [<keyword> ...]");
+  const char* USAGE_SCAN_TX("scan_tx <txid> [<txid> ...]");
 
   std::string input_line(const std::string& prompt, bool yesno = false)
   {
@@ -1356,7 +1357,7 @@ bool simple_wallet::import_multisig_main(const std::vector<std::string> &args, b
     size_t n_outputs = m_wallet->import_multisig(info);
     // Clear line "Height xxx of xxx"
     std::cout << "\r                                                                \r";
-    success_msg_writer() << tr("Multisig info imported");
+    success_msg_writer() << tr("Multisig info imported. Number of outputs updated: ") << n_outputs;
   }
   catch (const std::exception &e)
   {
@@ -3157,6 +3158,45 @@ bool simple_wallet::apropos(const std::vector<std::string> &args)
   return true;
 }
 
+bool simple_wallet::scan_tx(const std::vector<std::string> &args)
+{
+  if (args.empty())
+  {
+    PRINT_USAGE(USAGE_SCAN_TX);
+    return true;
+  }
+
+  // Parse and dedup args
+  std::unordered_set<crypto::hash> txids;
+  for (const auto &s : args) {
+    crypto::hash txid;
+    if (!epee::string_tools::hex_to_pod(s, txid)) {
+      fail_msg_writer() << tr("Invalid txid specified: ") << s;
+      return true;
+    }
+    txids.insert(txid);
+  }
+  std::vector<crypto::hash> txids_v(txids.begin(), txids.end());
+
+  if (!m_wallet->is_trusted_daemon()) {
+    message_writer(console_color_red, true) << tr("WARNING: this operation may reveal the txids to the remote node and affect your privacy");
+    if (!command_line::is_yes(input_line("Do you want to continue?", true))) {
+      message_writer() << tr("You have canceled the operation");
+      return true;
+    }
+  }
+
+  LOCK_IDLE_SCOPE();
+  m_in_manual_refresh.store(true);
+  try {
+    m_wallet->scan_tx(txids_v);
+  } catch (const std::exception &e) {
+    fail_msg_writer() << e.what();
+  }
+  m_in_manual_refresh.store(false);
+  return true;
+}
+
 simple_wallet::simple_wallet()
   : m_allow_mismatched_daemon_version(false)
   , m_refresh_progress_reporter(*this)
@@ -3707,6 +3747,10 @@ simple_wallet::simple_wallet()
                            boost::bind(&simple_wallet::on_command, this, &simple_wallet::apropos, _1),
                            tr(USAGE_APROPOS),
                            tr("Search all command descriptions for keyword(s)"));
+  m_cmd_binder.set_handler("scan_tx",
+                           boost::bind(&simple_wallet::on_command, this, &simple_wallet::scan_tx, _1),
+                           tr(USAGE_SCAN_TX),
+                           tr("Scan the transactions given by <txid>(s), processing them and looking for outputs"));
   m_cmd_binder.set_unknown_command_handler(boost::bind(&simple_wallet::on_command, this, &simple_wallet::on_unknown_command, _1));
   m_cmd_binder.set_empty_command_handler(boost::bind(&simple_wallet::on_empty_command, this));
   m_cmd_binder.set_cancel_handler(boost::bind(&simple_wallet::on_cancelled_command, this));
@@ -4462,7 +4506,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
       password = *r;
       welcome = true;
       // if no block_height is specified, assume its a new account and start it "now"
-      if(m_wallet->get_refresh_from_block_height() == 0) {
+      if (command_line::is_arg_defaulted(vm, arg_restore_height)) {
         {
           tools::scoped_message_writer wrt = tools::msg_writer();
           wrt << tr("No restore height is specified.") << " ";
@@ -5881,7 +5925,7 @@ bool simple_wallet::show_balance_unlocked(bool detailed)
   if (m_wallet->has_multisig_partial_key_images())
     extra = tr(" (Some owned outputs have partial key images - import_multisig_info needed)");
   else if (m_wallet->has_unknown_key_images())
-    extra += tr(" (Some owned outputs have missing key images - import_key_images needed)");
+    extra += tr(" (Some owned outputs have missing key images - export_outputs, import_outputs, export_key_images, and import_key_images needed)");
   success_msg_writer() << tr("Currently selected account: [") << m_current_subaddress_account << tr("] ") << m_wallet->get_subaddress_label({m_current_subaddress_account, 0});
   const std::string tag = m_wallet->get_account_tags().second[m_current_subaddress_account];
   success_msg_writer() << tr("Tag: ") << (tag.empty() ? std::string{tr("(No tag assigned)")} : tag);
@@ -6406,8 +6450,6 @@ void simple_wallet::check_for_inactivity_lock(bool user)
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::on_command(bool (simple_wallet::*cmd)(const std::vector<std::string>&), const std::vector<std::string> &args)
 {
-  const time_t now = time(NULL);
-  time_t dt = now - m_last_activity_time;
   m_last_activity_time = time(NULL);
 
   m_in_command = true;
@@ -7348,7 +7390,6 @@ bool simple_wallet::sweep_single(const std::vector<std::string> &args_)
   if (local_args.size() == 3)
   {
     crypto::hash payment_id;
-    crypto::hash8 payment_id8;
     std::string extra_nonce;
     if (tools::wallet2::parse_long_payment_id(local_args.back(), payment_id))
     {
@@ -8527,7 +8568,6 @@ bool simple_wallet::get_transfers(std::vector<std::string>& local_args, std::vec
       if (!unlocked)
       {
         locked_msg = "locked";
-        const uint64_t unlock_time = pd.m_unlock_time;
         if (pd.m_unlock_time < CRYPTONOTE_MAX_BLOCK_NUMBER)
         {
           uint64_t bh = std::max(pd.m_unlock_time, pd.m_block_height + CRYPTONOTE_DEFAULT_TX_SPENDABLE_AGE);
@@ -9391,7 +9431,7 @@ void simple_wallet::print_accounts()
 {
   const std::pair<std::map<std::string, std::string>, std::vector<std::string>>& account_tags = m_wallet->get_account_tags();
   size_t num_untagged_accounts = m_wallet->get_num_subaddress_accounts();
-  for (const std::pair<std::string, std::string>& p : account_tags.first)
+  for (const std::pair<const std::string, std::string>& p : account_tags.first)
   {
     const std::string& tag = p.first;
     print_accounts(tag);
@@ -11109,7 +11149,6 @@ void simple_wallet::mms_next(const std::vector<std::string> &args)
 
 void simple_wallet::mms_sync(const std::vector<std::string> &args)
 {
-  mms::message_store& ms = m_wallet->get_message_store();
   if (args.size() != 0)
   {
     fail_msg_writer() << tr("Usage: mms sync");
@@ -11207,7 +11246,6 @@ void simple_wallet::mms_export(const std::vector<std::string> &args)
     return;
   }
   LOCK_IDLE_SCOPE();
-  mms::message_store& ms = m_wallet->get_message_store();
   mms::message m;
   bool valid_id = get_message_from_arg(args[0], m);
   if (valid_id)
@@ -11276,7 +11314,6 @@ void simple_wallet::mms_show(const std::vector<std::string> &args)
     return;
   }
   LOCK_IDLE_SCOPE();
-  mms::message_store& ms = m_wallet->get_message_store();
   mms::message m;
   bool valid_id = get_message_from_arg(args[0], m);
   if (valid_id)
