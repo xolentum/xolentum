@@ -1,6 +1,6 @@
 // Copyright (c) 2006-2013, Andrey N. Sabelnikov, www.sabelnikov.net
 // All rights reserved.
-//
+// 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 // * Redistributions of source code must retain the above copyright
@@ -11,7 +11,7 @@
 // * Neither the name of the Andrey N. Sabelnikov nor the
 // names of its contributors may be used to endorse or promote products
 // derived from this software without specific prior written permission.
-//
+// 
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -22,40 +22,50 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
+// 
 
-
-#ifndef _TINY_INI_H_
-#define _TINY_INI_H_
-
+#include "net/http_base.h"
+#include "memwipe.h"
 #include "string_tools.h"
+
+#include <boost/regex.hpp>
+#include <string>
+#include <utility>
+
+#undef MONERO_DEFAULT_LOG_CATEGORY
+#define MONERO_DEFAULT_LOG_CATEGORY "net.http"
 
 namespace epee
 {
-namespace tiny_ini
+namespace net_utils
 {
+namespace http
+{
+    std::string get_value_from_fields_list(const std::string& param_name, const net_utils::http::fields_list& fields)
+    {
+        fields_list::const_iterator it = fields.begin();
+        for(; it != fields.end(); it++)
+            if(!string_tools::compare_no_case(param_name, it->first))
+                break;
 
-	bool get_param_value(const std::string& param_name, const std::string& ini_entry, std::string& res);
-	inline std::string get_param_value(const std::string& param_name, const std::string& ini_entry)
-	{
-		std::string buff;
-		get_param_value(param_name, ini_entry, buff);
-		return buff;
-	}
+        if(it==fields.end())
+            return std::string();
 
-	template<class T>
-		bool get_param_value_as_t(const std::string& param_name, const std::string& ini_entry, T& res)
-	{
-		std::string str_res = get_param_value(param_name, ini_entry);
+        return it->second;
+    }
 
-		string_tools::trim(str_res);
-		if(!str_res.size())
-			return false;
-
-		return string_tools::get_xtype_from_string(res, str_res);
-	}
-
+    std::string get_value_from_uri_line(const std::string& param_name, const std::string& uri)
+    {
+        std::string buff = "([\\?|&])";
+        buff += param_name + "=([^&]*)";
+        boost::regex match_param(buff.c_str(), boost::regex::icase | boost::regex::normal);
+        boost::smatch	result;
+        if(boost::regex_search(uri, result, match_param, boost::match_default) && result[0].matched) 
+        {
+            return result[2];
+        }
+        return std::string();
+    }
 }
 }
-
-#endif //_TINY_INI_H_
+}
