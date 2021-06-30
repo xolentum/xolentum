@@ -37,6 +37,8 @@
 
 #include <boost/format.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/filesystem.hpp>
 
 #include "mnemonics/electrum-words.h"
 

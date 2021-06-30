@@ -1013,6 +1013,12 @@ struct Wallet
     */
     virtual bool rescanSpent() = 0;
 
+   /*
+    * \brief setOffline - toggle set offline on/off
+    * \param offline - true/false
+    */
+    virtual void setOffline(bool offline) = 0;
+
     //! blackballs a set of outputs
     virtual bool blackballOutputs(const std::vector<std::string> &outputs, bool add) = 0;
 
