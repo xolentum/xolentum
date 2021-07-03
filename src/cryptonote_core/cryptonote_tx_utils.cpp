@@ -588,8 +588,10 @@ bool construct_miner_tx(size_t height, size_t median_weight, uint64_t already_ge
       if (need_additional_txkeys)
       {
         additional_tx_keys.clear();
-        for (const auto &d: destinations)
+        for (size_t i = 0; i < destinations.size(); ++i)
+        {
           additional_tx_keys.push_back(keypair::generate(sender_account_keys.get_device()).sec);
+        }
       }
 
       bool r = construct_tx_with_tx_key(sender_account_keys, subaddresses, sources, destinations, change_addr, extra, tx, unlock_time, tx_key, additional_tx_keys, rct, rct_config, msout,true,tx_pow);
