@@ -323,6 +323,7 @@ namespace cryptonote
     {
       uint32_t bind_ip;
       bool ok = epee::string_tools::get_ip_int32_from_string(bind_ip, bind_ip_str);
+      if (ok & !epee::net_utils::is_ip_loopback(bind_ip))
         MWARNING("The RPC server is accessible from the outside, but no RPC payment was setup. RPC access will be free for all.");
     }
 

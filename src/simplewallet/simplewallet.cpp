@@ -6510,8 +6510,6 @@ bool simple_wallet::transfer_main(int transfer_type, const std::vector<std::stri
 
   size_t fake_outs_count = DEFAULT_MIXIN;
 
-  uint64_t adjusted_fake_outs_count = DEFAULT_MIXIN;
-
   const size_t min_args = (transfer_type == TransferLocked) ? 2 : 1;
   if(local_args.size() < min_args)
   {
