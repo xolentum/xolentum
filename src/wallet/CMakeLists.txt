@@ -44,20 +44,7 @@ set(wallet_sources
   gamma_picker.cpp
 )
 
-set(wallet_private_headers
-  wallet2.h
-  wallet_args.h
-  wallet_errors.h
-  wallet_rpc_server.h
-  wallet_rpc_server_commands_defs.h
-  wallet_rpc_server_error_codes.h
-  ringdb.h
-  tx_pow_miner.h
-  node_rpc_proxy.h
-  message_store.h
-  message_transporter.h
-  wallet_rpc_helpers.h
-  gamma_picker.h)
+monero_find_all_headers(wallet_private_headers "${CMAKE_CURRENT_SOURCE_DIR}")
 
 monero_private_headers(wallet
   ${wallet_private_headers})

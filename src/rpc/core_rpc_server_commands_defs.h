@@ -350,6 +350,7 @@ namespace cryptonote
       bool in_pool;
       bool double_spend_seen;
       uint64_t block_height;
+      uint64_t confirmations;
       uint64_t block_timestamp;
       uint64_t received_timestamp;
       std::vector<uint64_t> output_indices;
@@ -367,6 +368,7 @@ namespace cryptonote
         if (!this_ref.in_pool)
         {
           KV_SERIALIZE(block_height)
+          KV_SERIALIZE(confirmations)
           KV_SERIALIZE(block_timestamp)
           KV_SERIALIZE(output_indices)
         }
