@@ -33,8 +33,8 @@
 #include "storages/portable_storage_base.h"
 #include "fuzzer.h"
 
-+BEGIN_INIT_SIMPLE_FUZZER()
-+END_INIT_SIMPLE_FUZZER()
+BEGIN_INIT_SIMPLE_FUZZER()
+END_INIT_SIMPLE_FUZZER()
 
 BEGIN_SIMPLE_FUZZER()
   epee::serialization::portable_storage ps;
