@@ -33,3 +33,8 @@
 
 BEGIN_INIT_SIMPLE_FUZZER()
 END_INIT_SIMPLE_FUZZER()
+
+BEGIN_SIMPLE_FUZZER()
+  epee::net_utils::http::url_content url;
+  epee::net_utils::parse_url(std::string((const char*)buf, len), url);
+END_SIMPLE_FUZZER()
