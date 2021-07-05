@@ -815,8 +815,7 @@ namespace tools{
     bool loaded = false;
     try
     {
-      std::istringstream iss(multisig_tx_st);
-      binary_archive<false> ar(iss);
+      binary_archive<false> ar{epee::strspan<std::uint8_t>(multisig_tx_st)};
       if (::serialization::serialize(ar, exported_txs))
         if (::serialization::check_stream_state(ar))
           loaded = true;
@@ -1268,8 +1267,7 @@ namespace tools{
       bool loaded = false;
       try
       {
-        std::istringstream iss(body);
-        binary_archive<false> ar(iss);
+        binary_archive<false> ar{epee::strspan<std::uint8_t>(body)};
         if (::serialization::serialize(ar, i))
           if (::serialization::check_stream_state(ar))
             loaded = true;
