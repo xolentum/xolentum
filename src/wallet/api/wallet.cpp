@@ -1490,12 +1490,6 @@ PendingTransaction *WalletImpl::createTransactionMultDest(const std::vector<stri
 
     cryptonote::address_parse_info info;
 
-    // indicates if dst_addr is integrated address (address + payment_id)
-    // TODO:  (https://bitcointalk.org/index.php?topic=753252.msg9985441#msg9985441)
-    size_t fake_outs_count = DEFAULT_MIXIN;
-
-    uint32_t adjusted_priority = m_wallet->adjust_priority(static_cast<uint32_t>(priority));
-
     PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
 
     do {
@@ -1559,6 +1553,9 @@ PendingTransaction *WalletImpl::createTransactionMultDest(const std::vector<stri
             break;
         }
         try {
+            size_t fake_outs_count = mixin_count > 0 ? mixin_count : m_wallet->default_mixin();
+            fake_outs_count = m_wallet->adjust_mixin(mixin_count);
+
             if (amount) {
                 transaction->m_pending_tx = m_wallet->create_transactions_2(dsts, fake_outs_count, 0 /* unlock_time */,
                                                                             adjusted_priority,
@@ -2061,9 +2058,24 @@ bool WalletImpl::checkReserveProof(const std::string &address, const std::string
     }
 }
 
-std::string WalletImpl::signMessage(const std::string &message)
+std::string WalletImpl::signMessage(const std::string &message, const std::string &address)
 {
-  return m_wallet->sign(message, tools::wallet2::sign_with_spend_key);
+    if (address.empty()) {
+        return m_wallet->sign(message, tools::wallet2::sign_with_spend_key);
+    }
+
+    cryptonote::address_parse_info info;
+    if (!cryptonote::get_account_address_from_str(info, m_wallet->nettype(), address)) {
+        setStatusError(tr("Failed to parse address"));
+        return "";
+    }
+    auto index = m_wallet->get_subaddress_index(info.address);
+    if (!index) {
+        setStatusError(tr("Address doesn't belong to the wallet"));
+        return "";
+    }
+
+    return m_wallet->sign(message, tools::wallet2::sign_with_spend_key, *index);
 }
 
 bool WalletImpl::verifySignedMessage(const std::string &message, const std::string &address, const std::string &signature) const
@@ -2574,6 +2586,21 @@ void WalletImpl::deviceShowAddress(uint32_t accountIndex, uint32_t addressIndex,
 
     m_wallet->device_show_address(accountIndex, addressIndex, payment_id_param);
 }
-} // namespace
 
-namespace Bitmonero = Xolentum;
+bool WalletImpl::reconnectDevice()
+{
+    clearStatus();
+
+    bool r;
+    try {
+        r = m_wallet->reconnect_device();
+    }
+    catch (const std::exception &e) {
+        LOG_ERROR(__FUNCTION__ << " error: " << e.what());
+        setStatusError(e.what());
+        return false;
+    }
+
+    return r;
+}
+} // namespace

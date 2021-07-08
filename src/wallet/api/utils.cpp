@@ -39,7 +39,7 @@ namespace Xolentum {
 namespace Utils {
 
 bool isAddressLocal(const std::string &address)
-{ 
+{
     try {
         return tools::is_local_address(address);
     } catch (const std::exception &e) {
@@ -60,5 +60,3 @@ void onStartup()
 
 
 } // namespace
-
-namespace Bitmonero = Xolentum;

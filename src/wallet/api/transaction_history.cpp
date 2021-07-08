@@ -265,5 +265,3 @@ void TransactionHistoryImpl::refresh()
 }
 
 } // namespace
-
-namespace Bitmonero = Xolentum;
