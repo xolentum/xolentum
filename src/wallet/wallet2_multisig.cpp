@@ -37,6 +37,8 @@
 
 #include <boost/format.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/filesystem.hpp>
 
 #include "mnemonics/electrum-words.h"
 
@@ -813,8 +815,7 @@ namespace tools{
     bool loaded = false;
     try
     {
-      std::istringstream iss(multisig_tx_st);
-      binary_archive<false> ar(iss);
+      binary_archive<false> ar{epee::strspan<std::uint8_t>(multisig_tx_st)};
       if (::serialization::serialize(ar, exported_txs))
         if (::serialization::check_stream_state(ar))
           loaded = true;
@@ -1109,7 +1110,6 @@ namespace tools{
   {
     CHECK_AND_ASSERT_THROW_MES(n < m_transfers.size(), "Bad transfer index");
 
-    const transfer_details &td = m_transfers[n];
     rct::multisig_kLRki kLRki = get_multisig_kLRki(n, rct::skGen());
 
     // pick a L/R pair from every other participant but one
@@ -1267,8 +1267,7 @@ namespace tools{
       bool loaded = false;
       try
       {
-        std::istringstream iss(body);
-        binary_archive<false> ar(iss);
+        binary_archive<false> ar{epee::strspan<std::uint8_t>(body)};
         if (::serialization::serialize(ar, i))
           if (::serialization::check_stream_state(ar))
             loaded = true;
@@ -1282,6 +1281,20 @@ namespace tools{
         loaded = true;
       }
       CHECK_AND_ASSERT_THROW_MES(loaded, "Failed to load output data");
+
+    for (const auto &e: i)
+    {
+      for (const auto &lr: e.m_LR)
+      {
+        CHECK_AND_ASSERT_THROW_MES(rct::isInMainSubgroup(lr.m_L), "Multisig value is not in the main subgroup");
+        CHECK_AND_ASSERT_THROW_MES(rct::isInMainSubgroup(lr.m_R), "Multisig value is not in the main subgroup");
+      }
+      for (const auto &ki: e.m_partial_key_images)
+      {
+        CHECK_AND_ASSERT_THROW_MES(rct::isInMainSubgroup(rct::ki2rct(ki)), "Multisig partial key image is not in the main subgroup");
+      }
+    }
+
       MINFO(boost::format("%u outputs found") % boost::lexical_cast<std::string>(i.size()));
       info.push_back(std::move(i));
     }

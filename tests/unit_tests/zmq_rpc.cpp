@@ -158,7 +158,6 @@ namespace
         continue;
 
       std::size_t actual_size = 0;
-      crypto::hash actual_id{};
 
       MASSERT(pub.second[i].IsObject());
       GET_FROM_JSON_OBJECT(pub.second[i], actual_id, id);

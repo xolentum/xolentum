@@ -57,6 +57,8 @@ using namespace epee;
 #include "hardforks/hardforks.h"
 #include "version.h"
 
+#include <boost/filesystem.hpp>
+
 #undef MONERO_DEFAULT_LOG_CATEGORY
 #define MONERO_DEFAULT_LOG_CATEGORY "cn"
 
@@ -425,9 +427,9 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------
-  bool core::get_transactions(const std::vector<crypto::hash>& txs_ids, std::vector<cryptonote::blobdata>& txs, std::vector<crypto::hash>& missed_txs) const
+  bool core::get_transactions(const std::vector<crypto::hash>& txs_ids, std::vector<cryptonote::blobdata>& txs, std::vector<crypto::hash>& missed_txs, bool pruned) const
   {
-    return m_blockchain_storage.get_transactions_blobs(txs_ids, txs, missed_txs);
+    return m_blockchain_storage.get_transactions_blobs(txs_ids, txs, missed_txs, pruned);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::get_split_transactions_blobs(const std::vector<crypto::hash>& txs_ids, std::vector<std::tuple<crypto::hash, cryptonote::blobdata, crypto::hash, cryptonote::blobdata>>& txs, std::vector<crypto::hash>& missed_txs) const
@@ -441,9 +443,9 @@ namespace cryptonote
     return true;
   }
   //-----------------------------------------------------------------------------------------------
-  bool core::get_transactions(const std::vector<crypto::hash>& txs_ids, std::vector<transaction>& txs, std::vector<crypto::hash>& missed_txs) const
+  bool core::get_transactions(const std::vector<crypto::hash>& txs_ids, std::vector<transaction>& txs, std::vector<crypto::hash>& missed_txs, bool pruned) const
   {
-    return m_blockchain_storage.get_transactions(txs_ids, txs, missed_txs);
+    return m_blockchain_storage.get_transactions(txs_ids, txs, missed_txs, pruned);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::get_alternative_blocks(std::vector<block>& blocks) const
@@ -628,7 +630,7 @@ namespace cryptonote
 
           void operator()(std::uint64_t, epee::span<const block> blocks) const
           {
-            for (const block bl : blocks)
+            for (const block& bl : blocks)
               cmdline.notify("%s", epee::string_tools::pod_to_hex(get_block_hash(bl)).c_str(), NULL);
           }
         };
@@ -825,7 +827,6 @@ namespace cryptonote
     }
     bad_semantics_txes_lock.unlock();
 
-    uint8_t version = m_blockchain_storage.get_current_hard_fork_version();
     const size_t max_tx_version = 2;
     if (tx.version == 0 || tx.version > max_tx_version)
     {
@@ -1215,7 +1216,7 @@ namespace cryptonote
       std::vector<transaction> txs;
       std::vector<crypto::hash> missed_txs;
       uint64_t coinbase_amount = get_outs_money_amount(b.miner_tx);
-      this->get_transactions(b.tx_hashes, txs, missed_txs);
+      this->get_transactions(b.tx_hashes, txs, missed_txs, true);
       uint64_t tx_fee_amount = 0;
       for(const auto& tx: txs)
       {
@@ -1385,9 +1386,9 @@ namespace cryptonote
     return m_blockchain_storage.find_blockchain_supplement(qblock_ids, clip_pruned, resp);
   }
   //-----------------------------------------------------------------------------------------------
-  bool core::find_blockchain_supplement(const uint64_t req_start_block, const std::list<crypto::hash>& qblock_ids, std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > >& blocks, uint64_t& total_height, uint64_t& start_height, bool pruned, bool get_miner_tx_hash, size_t max_count) const
+  bool core::find_blockchain_supplement(const uint64_t req_start_block, const std::list<crypto::hash>& qblock_ids, std::vector<std::pair<std::pair<cryptonote::blobdata, crypto::hash>, std::vector<std::pair<crypto::hash, cryptonote::blobdata> > > >& blocks, uint64_t& total_height, uint64_t& start_height, bool pruned, bool get_miner_tx_hash, size_t max_block_count, size_t max_tx_count) const
   {
-    return m_blockchain_storage.find_blockchain_supplement(req_start_block, qblock_ids, blocks, total_height, start_height, pruned, get_miner_tx_hash, max_count);
+    return m_blockchain_storage.find_blockchain_supplement(req_start_block, qblock_ids, blocks, total_height, start_height, pruned, get_miner_tx_hash, max_block_count, max_tx_count);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::get_outs(const COMMAND_RPC_GET_OUTPUTS_BIN::request& req, COMMAND_RPC_GET_OUTPUTS_BIN::response& res) const
@@ -1604,9 +1605,14 @@ namespace cryptonote
     return m_mempool.get_transactions_count(include_sensitive_txes);
   }
   //-----------------------------------------------------------------------------------------------
-  bool core::have_block(const crypto::hash& id) const
+  bool core::have_block_unlocked(const crypto::hash& id, int *where) const
   {
-    return m_blockchain_storage.have_block(id);
+    return m_blockchain_storage.have_block_unlocked(id, where);
+  }
+  //-----------------------------------------------------------------------------------------------
+  bool core::have_block(const crypto::hash& id, int *where) const
+  {
+    return m_blockchain_storage.have_block(id, where);
   }
   //-----------------------------------------------------------------------------------------------
   bool core::parse_tx_from_blob(transaction& tx, crypto::hash& tx_hash, const blobdata& blob) const

@@ -149,6 +149,7 @@ namespace nodetool
     const command_line::arg_descriptor<std::string> arg_ban_list = {"ban-list", "Specify ban list file, one IP address per line"};
     const command_line::arg_descriptor<bool> arg_p2p_hide_my_port   =    {"hide-my-port", "Do not announce yourself as peerlist candidate", false, true};
     const command_line::arg_descriptor<bool> arg_no_sync = {"no-sync", "Don't synchronize the blockchain with other peers", false};
+    const command_line::arg_descriptor<bool> arg_enable_dns_blocklist = {"enable-dns-blocklist", "Apply realtime blocklist from DNS", false};
 
     const command_line::arg_descriptor<bool>        arg_no_igd  = {"no-igd", "Disable UPnP port mapping"};
     const command_line::arg_descriptor<std::string> arg_igd = {"igd", "UPnP port mapping (disabled, enabled, delayed)", "delayed"};
@@ -165,6 +166,7 @@ namespace nodetool
     const command_line::arg_descriptor<bool> arg_pad_transactions = {
       "pad-transactions", "Pad relayed transactions to help defend against traffic volume analysis", false
     };
+    const command_line::arg_descriptor<uint32_t> arg_max_connections_per_ip = {"max-connections-per-ip", "Maximum number of connections allowed from the same IP address", 1};
 
     boost::optional<std::vector<proxy>> get_proxies(boost::program_options::variables_map const& vm)
     {

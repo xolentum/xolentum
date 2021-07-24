@@ -88,7 +88,7 @@ namespace cryptonote
 // advance which version they will stop working with
 // Don't go over 32767 for any of these
 #define CORE_RPC_VERSION_MAJOR 3
-#define CORE_RPC_VERSION_MINOR 3
+#define CORE_RPC_VERSION_MINOR 7
 #define MAKE_CORE_RPC_VERSION(major,minor) (((major)<<16)|(minor))
 #define CORE_RPC_VERSION MAKE_CORE_RPC_VERSION(CORE_RPC_VERSION_MAJOR, CORE_RPC_VERSION_MINOR)
 
@@ -350,6 +350,7 @@ namespace cryptonote
       bool in_pool;
       bool double_spend_seen;
       uint64_t block_height;
+      uint64_t confirmations;
       uint64_t block_timestamp;
       uint64_t received_timestamp;
       std::vector<uint64_t> output_indices;
@@ -367,6 +368,7 @@ namespace cryptonote
         if (!this_ref.in_pool)
         {
           KV_SERIALIZE(block_height)
+          KV_SERIALIZE(confirmations)
           KV_SERIALIZE(block_timestamp)
           KV_SERIALIZE(output_indices)
         }
@@ -688,6 +690,7 @@ namespace cryptonote
       uint64_t database_size;
       bool update_available;
       std::string version;
+      bool synchronized;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_access_response_base)
@@ -728,6 +731,7 @@ namespace cryptonote
         KV_SERIALIZE(database_size)
         KV_SERIALIZE(update_available)
         KV_SERIALIZE(version)
+        KV_SERIALIZE(synchronized)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
@@ -933,6 +937,52 @@ namespace cryptonote
         KV_SERIALIZE(blockhashing_blob)
         KV_SERIALIZE(seed_hash)
         KV_SERIALIZE(next_seed_hash)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_ADD_AUX_POW
+  {
+    struct aux_pow_t
+    {
+      std::string id;
+      std::string hash;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(id)
+        KV_SERIALIZE(hash)
+      END_KV_SERIALIZE_MAP()
+    };
+
+    struct request_t: public rpc_request_base
+    {
+      blobdata blocktemplate_blob;
+      std::vector<aux_pow_t> aux_pow;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE_PARENT(rpc_request_base)
+        KV_SERIALIZE(blocktemplate_blob)
+        KV_SERIALIZE(aux_pow)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t: public rpc_response_base
+    {
+      blobdata blocktemplate_blob;
+      blobdata blockhashing_blob;
+      std::string merkle_root;
+      uint32_t merkle_tree_depth;
+      std::vector<aux_pow_t> aux_pow;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE_PARENT(rpc_response_base)
+        KV_SERIALIZE(blocktemplate_blob)
+        KV_SERIALIZE(blockhashing_blob)
+        KV_SERIALIZE(merkle_root)
+        KV_SERIALIZE(merkle_tree_depth)
+        KV_SERIALIZE(aux_pow)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<response_t> response;
@@ -1164,10 +1214,12 @@ namespace cryptonote
     struct request_t: public rpc_request_base
     {
       bool public_only;
+      bool include_blocked;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_request_base)
         KV_SERIALIZE_OPT(public_only, true)
+        KV_SERIALIZE_OPT(include_blocked, false)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
@@ -1213,11 +1265,13 @@ namespace cryptonote
     {
       bool gray;
       bool white;
+      bool include_blocked;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE_PARENT(rpc_request_base)
         KV_SERIALIZE_OPT(gray, false)
         KV_SERIALIZE_OPT(white, true)
+        KV_SERIALIZE_OPT(include_blocked, false)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;
@@ -1578,11 +1632,13 @@ namespace cryptonote
       std::string address;
       std::string username;
       std::string password;
+      std::string proxy;
 
       BEGIN_KV_SERIALIZE_MAP()
         KV_SERIALIZE(address)
         KV_SERIALIZE(username)
         KV_SERIALIZE(password)
+        KV_SERIALIZE(proxy)
       END_KV_SERIALIZE_MAP()
     };
     typedef epee::misc_utils::struct_init<request_t> request;

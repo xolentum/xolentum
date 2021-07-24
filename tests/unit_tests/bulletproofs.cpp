@@ -249,7 +249,6 @@ TEST(bulletproof, weight_equal)
   ASSERT_TRUE(parse_and_validate_tx_from_blob(bd, tx, tx_hash, tx_prefix_hash));
   ASSERT_TRUE(tx.version == 2);
   ASSERT_TRUE(rct::is_rct_bulletproof(tx.rct_signatures.type));
-  const uint64_t tx_size = bd.size();
   const uint64_t tx_weight = cryptonote::get_transaction_weight(tx);
   ASSERT_TRUE(tx_weight == tx_size); // it has two outputs, <= 2 makes weight == size
 }

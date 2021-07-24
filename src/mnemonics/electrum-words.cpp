@@ -1,21 +1,21 @@
 // Copyright (c) 2014-2020, The Monero Project
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are
 // permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice, this list of
 //    conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list
 //    of conditions and the following disclaimer in the documentation and/or other
 //    materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors may be
 //    used to endorse or promote products derived from this software without specific
 //    prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -28,9 +28,9 @@
 
 /*!
  * \file electrum-words.cpp
- * 
+ *
  * \brief Mnemonic seed generation and wallet restoration from them.
- * 
+ *
  * This file and its header file are for translating Electrum-style word lists
  * into their equivalent byte representations for cross-compatibility with
  * that method of "backing up" one's wallet keys.
@@ -194,7 +194,6 @@ namespace
   {
     epee::wipeable_string trimmed_words = "", word;
 
-    const auto &word_map = language->get_word_map();
     const auto &trimmed_word_map = language->get_trimmed_word_map();
     const uint32_t unique_prefix_length = language->get_unique_prefix_length();
     for (std::vector<epee::wipeable_string>::const_iterator it = word_list.begin(); it != word_list.end(); it++)
@@ -241,14 +240,14 @@ namespace
 
 /*!
  * \namespace crypto
- * 
+ *
  * \brief crypto namespace.
  */
 namespace crypto
 {
   /*!
    * \namespace crypto::ElectrumWords
-   * 
+   *
    * \brief Mnemonic seed word generation and wallet restoration helper functions.
    */
   namespace ElectrumWords
@@ -492,6 +491,14 @@ namespace crypto
       return "<language not found>";
     }
 
+    bool is_valid_language(const std::string &language)
+    {
+      const std::vector<const Language::Base*> language_instances = get_language_list();
+      for (std::vector<const Language::Base*>::const_iterator it = language_instances.begin(); it != language_instances.end(); it++)
+        if ((*it)->get_english_language_name() == language || (*it)->get_language_name() == language)
+          return true;
+      return false;
+    }
   }
 
 }

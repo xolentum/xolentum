@@ -216,15 +216,8 @@ void BlockchainDB::add_transaction(const crypto::hash& blk_hash, const std::pair
     }
     else
     {
-      LOG_PRINT_L1("Unsupported input type, removing key images and aborting transaction addition");
-      for (const txin_v& tx_input : tx.vin)
-      {
-        if (tx_input.type() == typeid(txin_to_key))
-        {
-          remove_spent_key(boost::get<txin_to_key>(tx_input).k_image);
-        }
-      }
-      return;
+      LOG_PRINT_L1("Unsupported input type, aborting transaction addition");
+      throw std::runtime_error("Unexpected input type, aborting");
     }
   }
 
@@ -286,7 +279,7 @@ uint64_t BlockchainDB::add_block( const std::pair<block, blobdata>& blck
   num_rct_outs += blk.miner_tx.vout.size();
   int tx_i = 0;
   crypto::hash tx_hash = crypto::null_hash;
-  for (const std::pair<transaction, blobdata_ref>& tx : txs)
+  for (const std::pair<transaction, blobdata>& tx : txs)
   {
     tx_hash = blk.tx_hashes[tx_i];
     add_transaction(blk_hash, tx, &tx_hash);

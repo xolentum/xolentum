@@ -43,7 +43,7 @@ if (IOS)
     INCLUDE(CmakeLists_IOS.txt)
 endif()
 
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.5)
 message(STATUS "CMake version ${CMAKE_VERSION}")
 
 project(xolentum)
@@ -133,6 +133,15 @@ function (monero_set_target_no_relink target)
   endif()
 endfunction()
 
+option(STRIP_TARGETS "Strip symbols from targets?" OFF)
+function (monero_set_target_strip target)
+  if (STRIP_TARGETS)
+    set_target_properties("${target}" PROPERTIES LINK_FLAGS_RELEASE -s)
+    set_target_properties("${target}" PROPERTIES LINK_FLAGS_DEBUG -s)
+    # Stripping from Debug might make sense if you're low on disk space, but want to test if debug version builds properly.
+  endif()
+endfunction()
+
 function (monero_add_minimal_executable name)
   source_group("${name}"
     FILES
@@ -140,8 +149,23 @@ function (monero_add_minimal_executable name)
 
   add_executable("${name}"
     ${ARGN})
-    monero_set_target_no_relink( ${name} )
+    monero_set_target_no_relink("${name}")
+    monero_set_target_strip    ("${name}")
 endfunction()
+
+# Finds all headers in a directory and its subdirs, to be able to search for them and autosave in IDEs.
+#
+# Parameters:
+# - headers_found:    Output variable, which will hold the found headers
+# - module_root_dir:  The search path for the headers. Typically it will be the module's root dir, so "${CMAKE_CURRENT_SOURCE_DIR}" or a derivative of it.
+macro (monero_find_all_headers headers_found module_root_dir)
+  file(GLOB ${headers_found}
+           "${module_root_dir}/*.h*"    # h* will include hpps as well.
+           "${module_root_dir}/**/*.h*" # Any number of subdirs will be included.
+           "${module_root_dir}/*.inl"   # .inl is typically template code and is being treated as headers (it's being included).
+           "${module_root_dir}/**/*.inl"
+)
+endmacro()
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
@@ -462,7 +486,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "(SunOS|Solaris)")
 endif ()
 
 if (APPLE AND NOT IOS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64 -fvisibility=default -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default -std=c++11")
   if (NOT OPENSSL_ROOT_DIR)
       EXECUTE_PROCESS(COMMAND brew --prefix openssl
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
@@ -491,6 +515,31 @@ add_definitions(-DAUTO_INITIALIZE_EASYLOGGINGPP)
 set(MONERO_GENERATED_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated_include")
 include_directories(${MONERO_GENERATED_HEADERS_DIR})
 
+function (monero_add_library name)
+    monero_add_library_with_deps(NAME "${name}" SOURCES ${ARGN})
+endfunction()
+
+function (monero_add_library_with_deps)
+  cmake_parse_arguments(MONERO_ADD_LIBRARY "" "NAME" "DEPENDS;SOURCES" ${ARGN})
+  source_group("${MONERO_ADD_LIBRARY_NAME}" FILES ${MONERO_ADD_LIBRARY_SOURCES})
+
+  # Define a ("virtual") object library and an actual library that links those
+  # objects together. The virtual libraries can be arbitrarily combined to link
+  # any subset of objects into one library archive. This is used for releasing
+  # libwallet, which combines multiple components.
+  set(objlib obj_${MONERO_ADD_LIBRARY_NAME})
+  add_library(${objlib} OBJECT ${MONERO_ADD_LIBRARY_SOURCES})
+  add_library("${MONERO_ADD_LIBRARY_NAME}" $<TARGET_OBJECTS:${objlib}>)
+  monero_set_target_no_relink("${MONERO_ADD_LIBRARY_NAME}")
+  monero_set_target_strip    ("${MONERO_ADD_LIBRARY_NAME}")
+  if (MONERO_ADD_LIBRARY_DEPENDS)
+    add_dependencies(${objlib} ${MONERO_ADD_LIBRARY_DEPENDS})
+  endif()
+  set_property(TARGET "${MONERO_ADD_LIBRARY_NAME}" PROPERTY FOLDER "libs")
+  target_compile_definitions(${objlib}
+    PRIVATE $<TARGET_PROPERTY:${MONERO_ADD_LIBRARY_NAME},INTERFACE_COMPILE_DEFINITIONS>)
+endfunction ()
+
 # Generate header for embedded translations
 # Generate header for embedded translations, use target toolchain if depends, otherwise use the
 # lrelease and lupdate binaries from the host
@@ -500,7 +549,7 @@ ExternalProject_Add(generate_translations_header
   BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/translations"
   STAMP_DIR ${LRELEASE_PATH}
   CMAKE_ARGS -DLRELEASE_PATH=${LRELEASE_PATH}
-  INSTALL_COMMAND cmake -E echo "")
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/translations")
 add_subdirectory(external)
 
@@ -529,6 +578,17 @@ else (HIDAPI_FOUND)
   message(STATUS "Could not find HIDAPI")
 endif()
 
+# As of OpenBSD 6.8, -march=<anything> breaks the build
+function(set_default_arch)
+  if (OPENBSD)
+    set(ARCH default)
+  else()
+    set(ARCH native)
+  endif()
+
+  set(ARCH ${ARCH} CACHE STRING "CPU to build for: -march value or 'default' to not pass -march at all")
+endfunction()
+
 if(MSVC)
   add_definitions("/bigobj /MP /W3 /GS- /D_CRT_SECURE_NO_WARNINGS /wd4996 /wd4345 /D_WIN32_WINNT=0x0600 /DWIN32_LEAN_AND_MEAN /DGTEST_HAS_TR1_TUPLE=0 /FIinline_c.h /D__SSE4_1__")
   # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Dinline=__inline")
@@ -542,7 +602,7 @@ if(MSVC)
 else()
   include(TestCXXAcceptsFlag)
   if (NOT ARCH)
-    set(ARCH native CACHE STRING "CPU to build for: -march value or 'default' to not pass -march at all")
+    set_default_arch()
   endif()
   message(STATUS "Building on ${CMAKE_SYSTEM_PROCESSOR} for ${ARCH}")
   if(ARCH STREQUAL "default")
@@ -604,8 +664,8 @@ else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARCH_FLAG}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARCH_FLAG}")
 
-  set(WARNINGS "-Wall -Wextra -Wpointer-arith -Wundef -Wvla -Wwrite-strings -Wno-error=extra -Wno-error=deprecated-declarations -Wno-unused-parameter -Wno-unused-variable -Wno-error=unused-variable -Wno-error=undef -Wno-error=uninitialized")
-  if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+  set(WARNINGS "-Wall -Wextra -Wpointer-arith -Wundef -Wvla -Wwrite-strings -Wno-error=extra -Wno-error=deprecated-declarations -Wno-unused-parameter -Wno-error=unused-variable -Wno-error=undef -Wno-error=uninitialized")
+  if(CMAKE_C_COMPILER_ID MATCHES "Clang")
     if(ARM)
       set(WARNINGS "${WARNINGS} -Wno-error=inline-asm")
     endif()
@@ -689,10 +749,16 @@ else()
   endif()
 
   # linker
-  if (NOT SANITIZE AND NOT OSSFUZZ AND NOT (WIN32 AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_LESS 9.1)))
+  if (NOT SANITIZE AND NOT OSSFUZZ AND NOT (WIN32 AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" AND (CMAKE_C_COMPILER_VERSION VERSION_LESS 9.1 OR NOT STATIC))))
     # PIE executables randomly crash at startup with ASAN
     # Windows binaries die on startup with PIE when compiled with GCC <9.x
-    add_linker_flag_if_supported(-pie LD_SECURITY_FLAGS)
+    # Windows dynamically-linked binaries die on startup with PIE regardless of GCC version
+    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+      # Clang does not support -pie flag
+      add_linker_flag_if_supported("-Wl,-pie" LD_SECURITY_FLAGS)
+    else()
+      add_linker_flag_if_supported("-pie" LD_SECURITY_FLAGS)
+    endif()
   endif()
   add_linker_flag_if_supported(-Wl,-z,relro LD_SECURITY_FLAGS)
   add_linker_flag_if_supported(-Wl,-z,now LD_SECURITY_FLAGS)
@@ -717,6 +783,13 @@ else()
     add_linker_flag_if_supported(-Wl,--nxcompat LD_SECURITY_FLAGS)
     add_linker_flag_if_supported(-Wl,--high-entropy-va LD_SECURITY_FLAGS)
   endif()
+
+  # Warnings, that when ignored are so severe, that they can segfault or even UB any application.
+  # Treat them as errors.
+  add_c_flag_if_supported(  -Werror=switch      C_SECURITY_FLAGS)
+  add_cxx_flag_if_supported(-Werror=switch      CXX_SECURITY_FLAGS)
+  add_c_flag_if_supported(  -Werror=return-type C_SECURITY_FLAGS)
+  add_cxx_flag_if_supported(-Werror=return-type CXX_SECURITY_FLAGS)
 
   message(STATUS "Using C security hardening flags: ${C_SECURITY_FLAGS}")
   message(STATUS "Using C++ security hardening flags: ${CXX_SECURITY_FLAGS}")
@@ -840,7 +913,7 @@ else()
   endif()
   set(USE_LTO ${USE_LTO_DEFAULT} CACHE BOOL "Use Link-Time Optimization (Release mode only)")
 
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # There is a clang bug that does not allow to compile code that uses AES-NI intrinsics if -flto is enabled, so explicitly disable
     set(USE_LTO false)
   endif()
@@ -947,10 +1020,12 @@ list(APPEND EXTRA_LIBRARIES ${CMAKE_DL_LIBS})
 if (HIDAPI_FOUND OR LibUSB_COMPILE_TEST_PASSED)
   if (APPLE)
     if(DEPENDS)
-      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework IOKit")
+      list(APPEND EXTRA_LIBRARIES "-framework Foundation -framework AppKit -framework IOKit")
     else()
       find_library(COREFOUNDATION CoreFoundation)
+      find_library(APPKIT AppKit)
       find_library(IOKIT IOKit)
+      list(APPEND EXTRA_LIBRARIES ${APPKIT})
       list(APPEND EXTRA_LIBRARIES ${IOKIT})
       list(APPEND EXTRA_LIBRARIES ${COREFOUNDATION})
     endif()
@@ -985,7 +1060,7 @@ if(ANDROID)
   set(ATOMIC libatomic.a)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=user-defined-warnings")
 endif()
-if(CMAKE_C_COMPILER_ID STREQUAL "Clang" AND ARCH_WIDTH EQUAL "32" AND NOT IOS AND NOT FREEBSD)
+if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND ARCH_WIDTH EQUAL "32" AND NOT IOS AND NOT FREEBSD)
   find_library(ATOMIC atomic)
   if (ATOMIC_FOUND)
     list(APPEND EXTRA_LIBRARIES ${ATOMIC})

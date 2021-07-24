@@ -65,6 +65,7 @@
 
 #define BLOCK_REWARD                                    ((uint64_t)50000000000000) //50 coins per block
 #define BLOCK_REWARD_V2                                 ((uint64_t)8000000000000) //8 coins per block
+#define BLOCK_REWARD_V3                                 ((uint64_t)5000000000000) //5 coins per block
 #define FEE_PER_KB                                      ((uint64_t)2000000000) // 2 * pow(10, 9)
 #define FEE_PER_BYTE                                    ((uint64_t)300000)
 #define DYNAMIC_FEE_PER_KB_BASE_FEE                     ((uint64_t)2000000000) // 2 * pow(10,9)
@@ -83,6 +84,7 @@
 #define DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN             DIFFICULTY_TARGET //just alias; used by tests
 
 #define BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT          10000  //by default, blocks ids count in synchronizing
+#define BLOCKS_IDS_SYNCHRONIZING_MAX_COUNT              25000  //max blocks ids count in synchronizing
 #define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT              20     //by default, blocks count in blocks downloading
 #define BLOCKS_SYNCHRONIZING_MAX_COUNT                  2048   //must be a power of 2, greater than 128, equal to SEEDHASH_EPOCH_BLOCKS
 
@@ -90,11 +92,11 @@
 #define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800 //seconds, one week
 
 #define CRYPTONOTE_DANDELIONPP_STEMS              2 // number of outgoing stem connections per epoch
-#define CRYPTONOTE_DANDELIONPP_FLUFF_PROBABILITY 10 // out of 100
+#define CRYPTONOTE_DANDELIONPP_FLUFF_PROBABILITY 20 // out of 100
 #define CRYPTONOTE_DANDELIONPP_MIN_EPOCH         10 // minutes
 #define CRYPTONOTE_DANDELIONPP_EPOCH_RANGE       30 // seconds
 #define CRYPTONOTE_DANDELIONPP_FLUSH_AVERAGE      5 // seconds average for poisson distributed fluff flush
-#define CRYPTONOTE_DANDELIONPP_EMBARGO_AVERAGE  173 // seconds (see tx_pool.cpp for more info)
+#define CRYPTONOTE_DANDELIONPP_EMBARGO_AVERAGE   39 // seconds (see tx_pool.cpp for more info)
 
 // see src/cryptonote_protocol/levin_notify.cpp
 #define CRYPTONOTE_NOISE_MIN_EPOCH                      5      // minutes
@@ -111,7 +113,8 @@
 
 #define CRYPTONOTE_MAX_FRAGMENTS                        20 // ~20 * NOISE_BYTES max payload size for covert/noise send
 
-#define COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT           1000
+#define COMMAND_RPC_GET_BLOCKS_FAST_MAX_BLOCK_COUNT     1000
+#define COMMAND_RPC_GET_BLOCKS_FAST_MAX_TX_COUNT        20000
 
 #define P2P_LOCAL_WHITE_PEERLIST_LIMIT                  1000
 #define P2P_LOCAL_GRAY_PEERLIST_LIMIT                   5000
@@ -120,6 +123,7 @@
 #define P2P_DEFAULT_HANDSHAKE_INTERVAL                  60           //secondes
 #define P2P_DEFAULT_PACKET_MAX_SIZE                     50000000     //50000000 bytes maximum packet size
 #define P2P_DEFAULT_PEERS_IN_HANDSHAKE                  250
+#define P2P_MAX_PEERS_IN_HANDSHAKE                      250
 #define P2P_DEFAULT_CONNECTION_TIMEOUT                  5000       //5 seconds
 #define P2P_DEFAULT_SOCKS_CONNECT_TIMEOUT               45         // seconds
 #define P2P_DEFAULT_PING_CONNECTION_TIMEOUT             2000       //2 seconds
@@ -157,8 +161,8 @@
 #define HF_VERSION_BLOCK_REWARD_2               3
 #define HF_VERSION_TX_POW_ENABLE                4
 #define HF_VERSION_TX_POW_MANDATORY             5
-/*TODO: determine correct fork height*/
-#define HF_VERSION_DETERMINISTIC_UNLOCK_TIME    6
+#define HF_VERSION_DETERMINISTIC_UNLOCK_TIME    5
+#define HF_VERSION_BLOCK_REWARD_3               5
 
 #define HASH_OF_HASHES_STEP                     512
 
@@ -169,9 +173,10 @@
 #define CRYPTONOTE_PRUNING_STRIPE_SIZE          4096 // the smaller, the smoother the increase
 #define CRYPTONOTE_PRUNING_LOG_STRIPES          3 // the higher, the more space saved
 #define CRYPTONOTE_PRUNING_TIP_BLOCKS           5500 // the smaller, the more space saved
-//#define CRYPTONOTE_PRUNING_DEBUG_SPOOF_SEED
 
 #define RPC_CREDITS_PER_HASH_SCALE              ((float)(1<<24))
+
+#define DNS_BLOCKLIST_LIFETIME (86400 * 8)
 
 #define PER_KB_FEE_QUANTIZATION_DECIMALS        8
 
@@ -219,6 +224,7 @@ namespace config
   const unsigned char HASH_KEY_CLSAG_AGG_0[] = "CLSAG_agg_0";
   const unsigned char HASH_KEY_CLSAG_AGG_1[] = "CLSAG_agg_1";
   const char HASH_KEY_MESSAGE_SIGNING[] = "XolentumMessageSignature";
+  const unsigned char HASH_KEY_MM_SLOT = 'x';
 
   namespace testnet
   {

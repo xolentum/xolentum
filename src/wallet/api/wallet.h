@@ -81,7 +81,7 @@ public:
                            const std::string &device_name);
     Device getDeviceType() const override;
     bool close(bool store = true);
-    std::string seed() const override;
+    std::string seed(const std::string& seed_offset = "") const override;
     std::string getSeedLanguage() const override;
     void setSeedLanguage(const std::string &arg) override;
     // void setListener(Listener *) {}
@@ -129,6 +129,7 @@ public:
     void setRecoveringFromDevice(bool recoveringFromDevice) override;
     void setSubaddressLookahead(uint32_t major, uint32_t minor) override;
     bool watchOnly() const override;
+    bool isDeterministic() const override;
     bool rescanSpent() override;
     NetworkType nettype() const override {return static_cast<NetworkType>(m_wallet->nettype());}
     void hardForkInfo(uint8_t &version, uint64_t &earliest_height) const override;
@@ -164,8 +165,10 @@ public:
     virtual PendingTransaction * createSweepUnmixableTransaction() override;
     bool submitTransaction(const std::string &fileName) override;
     virtual UnsignedTransaction * loadUnsignedTx(const std::string &unsigned_filename) override;
-    bool exportKeyImages(const std::string &filename) override;
+    bool exportKeyImages(const std::string &filename, bool all = false) override;
     bool importKeyImages(const std::string &filename) override;
+    bool exportOutputs(const std::string &filename, bool all = false) override;
+    bool importOutputs(const std::string &filename) override;
 
     virtual void disposeTransaction(PendingTransaction * t) override;
     virtual uint64_t estimateTransactionFee(const std::vector<std::pair<std::string, uint64_t>> &destinations,
@@ -181,6 +184,8 @@ public:
     virtual bool setCacheAttribute(const std::string &key, const std::string &val) override;
     virtual std::string getCacheAttribute(const std::string &key) const override;
 
+    virtual void setOffline(bool offline) override;
+
     virtual bool setUserNote(const std::string &txid, const std::string &note) override;
     virtual std::string getUserNote(const std::string &txid) const override;
     virtual std::string getTxKey(const std::string &txid) const override;
@@ -191,7 +196,7 @@ public:
     virtual bool checkSpendProof(const std::string &txid, const std::string &message, const std::string &signature, bool &good) const override;
     virtual std::string getReserveProof(bool all, uint32_t account_index, uint64_t amount, const std::string &message) const override;
     virtual bool checkReserveProof(const std::string &address, const std::string &message, const std::string &signature, bool &good, uint64_t &total, uint64_t &spent) const override;
-    virtual std::string signMessage(const std::string &message) override;
+    virtual std::string signMessage(const std::string &message, const std::string &address) override;
     virtual bool verifySignedMessage(const std::string &message, const std::string &address, const std::string &signature) const override;
     virtual std::string signMultisigParticipant(const std::string &message) const override;
     virtual bool verifyMessageWithPublicKey(const std::string &message, const std::string &publicKey, const std::string &signature) const override;
@@ -215,6 +220,7 @@ public:
     virtual bool isKeysFileLocked() override;
     virtual uint64_t coldKeyImageSync(uint64_t &spent, uint64_t &unspent) override;
     virtual void deviceShowAddress(uint32_t accountIndex, uint32_t addressIndex, const std::string &paymentId) override;
+    virtual bool reconnectDevice() override;
 
 private:
     void clearStatus() const;
@@ -275,7 +281,5 @@ private:
 
 
 } // namespace
-
-namespace Bitmonero = Xolentum;
 
 #endif

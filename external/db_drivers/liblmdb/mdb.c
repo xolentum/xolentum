@@ -3461,9 +3461,9 @@ mdb_freelist_save(MDB_txn *txn)
 			} else {
 				x = mdb_mid2l_search(dl, mp->mp_pgno);
 				mdb_tassert(txn, dl[x].mid == mp->mp_pgno);
+        mdb_dpage_free(env, mp);
 			}
 			dl[x].mptr = NULL;
-			mdb_dpage_free(env, mp);
 		}
 		{
 			/* squash freed slots out of the dirty list */
@@ -4882,9 +4882,6 @@ mdb_env_open2(MDB_env *env, int prev)
 #endif
 	env->me_maxpg = env->me_mapsize / env->me_psize;
 
-	if (env->me_txns)
-		env->me_txns->mti_txnid = meta.mm_txnid;
-
 #if MDB_DEBUG
 	{
 		MDB_meta *meta = mdb_env_pick_meta(env);
@@ -4984,6 +4981,9 @@ static int ESECT
 mdb_env_share_locks(MDB_env *env, int *excl)
 {
 	int rc = 0;
+	MDB_meta *meta = mdb_env_pick_meta(env);
+
+	env->me_txns->mti_txnid = meta->mm_txnid;
 
 #ifdef _WIN32
 	{
@@ -7867,7 +7867,7 @@ put_sub:
 			xdata.mv_size = 0;
 			xdata.mv_data = "";
 			leaf = NODEPTR(mc->mc_pg[mc->mc_top], mc->mc_ki[mc->mc_top]);
-			if (flags == MDB_CURRENT) {
+      if ((flags & (MDB_CURRENT|MDB_APPENDDUP)) == MDB_CURRENT) {
 				xflags = MDB_CURRENT|MDB_NOSPILL;
 			} else {
 				mdb_xcursor_init1(mc, leaf);

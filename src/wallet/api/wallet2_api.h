@@ -445,7 +445,7 @@ struct Wallet
     };
 
     virtual ~Wallet() = 0;
-    virtual std::string seed() const = 0;
+    virtual std::string seed(const std::string& seed_offset = "") const = 0;
     virtual std::string getSeedLanguage() const = 0;
     virtual void setSeedLanguage(const std::string &arg) = 0;
     //! returns wallet status (Status_Ok | Status_Error)
@@ -624,6 +624,12 @@ struct Wallet
     * @return - true if watch only
     */
     virtual bool watchOnly() const = 0;
+
+    /**
+     * @brief isDeterministic - checks if wallet keys are deterministic
+     * @return - true if deterministic
+     */
+    virtual bool isDeterministic() const = 0;
 
     /**
      * @brief blockChainHeight - returns current blockchain height
@@ -899,9 +905,10 @@ struct Wallet
    /*!
     * \brief exportKeyImages - exports key images to file
     * \param filename
+    * \param all - export all key images or only those that have not yet been exported
     * \return                  - true on success
     */
-    virtual bool exportKeyImages(const std::string &filename) = 0;
+    virtual bool exportKeyImages(const std::string &filename, bool all = false) = 0;
 
    /*!
     * \brief importKeyImages - imports key images from file
@@ -910,6 +917,19 @@ struct Wallet
     */
     virtual bool importKeyImages(const std::string &filename) = 0;
 
+    /*!
+     * \brief importOutputs - exports outputs to file
+     * \param filename
+     * \return                  - true on success
+     */
+    virtual bool exportOutputs(const std::string &filename, bool all = false) = 0;
+
+    /*!
+     * \brief importOutputs - imports outputs from file
+     * \param filename
+     * \return                  - true on success
+     */
+    virtual bool importOutputs(const std::string &filename) = 0;
 
     virtual TransactionHistory * history() = 0;
     virtual AddressBook * addressBook() = 0;
@@ -971,7 +991,7 @@ struct Wallet
      * \param message - the message to sign (arbitrary byte data)
      * \return the signature
      */
-    virtual std::string signMessage(const std::string &message) = 0;
+    virtual std::string signMessage(const std::string &message, const std::string &address = "") = 0;
     /*!
      * \brief verifySignedMessage - verify a signature matches a given message
      * \param message - the message (arbitrary byte data)
@@ -1005,6 +1025,12 @@ struct Wallet
     * \return true on success
     */
     virtual bool rescanSpent() = 0;
+
+   /*
+    * \brief setOffline - toggle set offline on/off
+    * \param offline - true/false
+    */
+    virtual void setOffline(bool offline) = 0;
 
     //! blackballs a set of outputs
     virtual bool blackballOutputs(const std::vector<std::string> &outputs, bool add) = 0;
@@ -1056,6 +1082,9 @@ struct Wallet
 
     //! shows address on device display
     virtual void deviceShowAddress(uint32_t accountIndex, uint32_t addressIndex, const std::string &paymentId) = 0;
+
+    //! attempt to reconnect to hardware device
+    virtual bool reconnectDevice() = 0;
 };
 
 /**
@@ -1331,5 +1360,3 @@ struct WalletManagerFactory
 
 
 }
-
-namespace Bitmonero = Xolentum;

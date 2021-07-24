@@ -29,6 +29,8 @@
 #include <string.h>
 #include <thread>
 #include <boost/asio/ssl.hpp>
+#include <boost/cerrno.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <openssl/ssl.h>
 #include <openssl/pem.h>
@@ -473,6 +475,7 @@ bool ssl_options_t::has_fingerprint(boost::asio::ssl::verify_context &ctx) const
 bool ssl_options_t::handshake(
   boost::asio::ssl::stream<boost::asio::ip::tcp::socket> &socket,
   boost::asio::ssl::stream_base::handshake_type type,
+  boost::asio::const_buffer buffer,
   const std::string& host,
   std::chrono::milliseconds timeout) const
 {
@@ -530,7 +533,7 @@ bool ssl_options_t::handshake(
   });
 
   boost::system::error_code ec = boost::asio::error::would_block;
-  socket.async_handshake(type, boost::lambda::var(ec) = boost::lambda::_1);
+  socket.async_handshake(type, boost::asio::buffer(buffer), boost::lambda::var(ec) = boost::lambda::_1);
   if (io_service.stopped())
   {
     io_service.reset();
@@ -564,6 +567,51 @@ bool ssl_support_from_string(ssl_support_t &ssl, boost::string_ref s)
   else
     return false;
   return true;
+}
+
+boost::system::error_code store_ssl_keys(boost::asio::ssl::context& ssl, const boost::filesystem::path& base)
+{
+  EVP_PKEY* ssl_key = nullptr;
+  X509* ssl_cert = nullptr;
+  const auto ctx = ssl.native_handle();
+  CHECK_AND_ASSERT_MES(ctx, boost::system::error_code(EINVAL, boost::system::system_category()), "Context is null");
+  CHECK_AND_ASSERT_MES(base.has_filename(), boost::system::error_code(EINVAL, boost::system::system_category()), "Need filename");
+  if (!(ssl_key = SSL_CTX_get0_privatekey(ctx)) || !(ssl_cert = SSL_CTX_get0_certificate(ctx)))
+    return {EINVAL, boost::system::system_category()};
+
+  using file_closer = int(std::FILE*);
+  boost::system::error_code error{};
+  std::unique_ptr<std::FILE, file_closer*> file{nullptr, std::fclose};
+
+  // write key file unencrypted
+  {
+    const boost::filesystem::path key_file{base.string() + ".key"};
+    file.reset(std::fopen(key_file.string().c_str(), "wb"));
+    if (!file)
+      return {errno, boost::system::system_category()};
+    boost::filesystem::permissions(key_file, boost::filesystem::owner_read, error);
+    if (error)
+      return error;
+    if (!PEM_write_PrivateKey(file.get(), ssl_key, nullptr, nullptr, 0, nullptr, nullptr))
+      return boost::asio::error::ssl_errors(ERR_get_error());
+    if (std::fclose(file.release()) != 0)
+      return {errno, boost::system::system_category()};
+  }
+
+  // write certificate file in standard SSL X.509 unencrypted
+  const boost::filesystem::path cert_file{base.string() + ".crt"};
+  file.reset(std::fopen(cert_file.string().c_str(), "wb"));
+  if (!file)
+  return {errno, boost::system::system_category()};
+  const auto cert_perms = (boost::filesystem::owner_read | boost::filesystem::group_read | boost::filesystem::others_read);
+  boost::filesystem::permissions(cert_file, cert_perms, error);
+  if (error)
+    return error;
+  if (!PEM_write_X509(file.get(), ssl_cert))
+    return boost::asio::error::ssl_errors(ERR_get_error());
+  if (std::fclose(file.release()) != 0)
+    return {errno, boost::system::system_category()};
+  return error;
 }
 
 } // namespace

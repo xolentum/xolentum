@@ -27,6 +27,7 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include "common/command_line.h"
 #include "serialization/crypto.h"
 #include "cryptonote_core/tx_pool.h"
@@ -66,7 +67,6 @@ static std::map<uint64_t, uint64_t> load_outputs(const std::string &filename)
       s[len - 1] = 0;
     if (!s[0])
       continue;
-    std::pair<uint64_t, uint64_t> output;
     uint64_t offset, num_offsets;
     if (sscanf(s, "@%" PRIu64, &amount) == 1)
     {

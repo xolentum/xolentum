@@ -56,5 +56,3 @@ private:
 };
 
 }
-
-namespace Bitmonero = Xolentum;

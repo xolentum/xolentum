@@ -675,7 +675,7 @@ namespace tools
   {
     if (!m_wallet) return not_open(er);
     const std::pair<std::map<std::string, std::string>, std::vector<std::string>> account_tags = m_wallet->get_account_tags();
-    for (const std::pair<std::string, std::string>& p : account_tags.first)
+    for (const std::pair<const std::string, std::string>& p : account_tags.first)
     {
       res.account_tags.resize(res.account_tags.size() + 1);
       auto& info = res.account_tags.back();
@@ -750,6 +750,90 @@ namespace tools
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_freeze(const wallet_rpc::COMMAND_RPC_FREEZE::request& req, wallet_rpc::COMMAND_RPC_FREEZE::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+    if (!m_wallet) return not_open(er);
+    try
+    {
+      if (req.key_image.empty())
+      {
+        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+        er.message = std::string("Must specify key image to freeze");
+        return false;
+      }
+      crypto::key_image ki;
+      if (!epee::string_tools::hex_to_pod(req.key_image, ki))
+      {
+        er.code = WALLET_RPC_ERROR_CODE_WRONG_KEY_IMAGE;
+        er.message = "failed to parse key image";
+        return false;
+      }
+      m_wallet->freeze(ki);
+    }
+    catch (const std::exception& e)
+    {
+      handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+      return false;
+    }
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_thaw(const wallet_rpc::COMMAND_RPC_THAW::request& req, wallet_rpc::COMMAND_RPC_THAW::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+    if (!m_wallet) return not_open(er);
+    try
+    {
+      if (req.key_image.empty())
+      {
+        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+        er.message = std::string("Must specify key image to thaw");
+        return false;
+      }
+      crypto::key_image ki;
+      if (!epee::string_tools::hex_to_pod(req.key_image, ki))
+      {
+        er.code = WALLET_RPC_ERROR_CODE_WRONG_KEY_IMAGE;
+        er.message = "failed to parse key image";
+        return false;
+      }
+      m_wallet->thaw(ki);
+    }
+    catch (const std::exception& e)
+    {
+      handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+      return false;
+    }
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_frozen(const wallet_rpc::COMMAND_RPC_FROZEN::request& req, wallet_rpc::COMMAND_RPC_FROZEN::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+    if (!m_wallet) return not_open(er);
+    try
+    {
+      if (req.key_image.empty())
+      {
+        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+        er.message = std::string("Must specify key image to check if frozen");
+        return false;
+      }
+      crypto::key_image ki;
+      if (!epee::string_tools::hex_to_pod(req.key_image, ki))
+      {
+        er.code = WALLET_RPC_ERROR_CODE_WRONG_KEY_IMAGE;
+        er.message = "failed to parse key image";
+        return false;
+      }
+      res.frozen = m_wallet->frozen(ki);
+    }
+    catch (const std::exception& e)
+    {
+      handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+      return false;
+    }
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::validate_transfer(const std::list<wallet_rpc::transfer_destination>& destinations, const std::string& payment_id, std::vector<cryptonote::tx_destination_entry>& dsts, std::vector<uint8_t>& extra, bool at_least_one_destination, epee::json_rpc::error& er)
   {
     crypto::hash8 integrated_payment_id = crypto::null_hash8;
@@ -810,7 +894,7 @@ namespace tools
     if (at_least_one_destination && dsts.empty())
     {
       er.code = WALLET_RPC_ERROR_CODE_ZERO_DESTINATION;
-      er.message = "No destinations for this transfer";
+      er.message = "Transaction has no destination";
       return false;
     }
 
@@ -865,10 +949,10 @@ namespace tools
     return amount;
   }
   //------------------------------------------------------------------------------------------------------------------------------
-  template<typename Ts, typename Tu>
+  template<typename Ts, typename Tu, typename Tk>
   bool wallet_rpc_server::fill_response(std::vector<tools::wallet2::pending_tx> &ptx_vector,
       bool get_tx_key, Ts& tx_key, Tu &amount, Tu &fee, Tu &weight, std::string &multisig_txset, std::string &unsigned_txset, bool do_not_relay,
-      Ts &tx_hash, bool get_tx_hex, Ts &tx_blob, bool get_tx_metadata, Ts &tx_metadata, epee::json_rpc::error &er)
+      Ts &tx_hash, bool get_tx_hex, Ts &tx_blob, bool get_tx_metadata, Ts &tx_metadata, Tk &spent_key_images, epee::json_rpc::error &er)
   {
     for (const auto & ptx : ptx_vector)
     {
@@ -883,6 +967,17 @@ namespace tools
       fill(amount, total_amount(ptx));
       fill(fee, ptx.fee);
       fill(weight, cryptonote::get_transaction_weight(ptx.tx));
+
+      // add spent key images
+      tools::wallet_rpc::key_image_list key_image_list;
+      bool all_are_txin_to_key = std::all_of(ptx.tx.vin.begin(), ptx.tx.vin.end(), [&](const cryptonote::txin_v& s_e) -> bool
+      {
+        CHECKED_GET_SPECIFIC_VARIANT(s_e, const cryptonote::txin_to_key, in, false);
+        key_image_list.key_images.push_back(epee::string_tools::pod_to_hex(in.k_image));
+        return true;
+      });
+      THROW_WALLET_EXCEPTION_IF(!all_are_txin_to_key, error::unexpected_txin_type, ptx.tx);
+      fill(spent_key_images, key_image_list);
     }
 
     if (m_wallet->multisig())
@@ -969,7 +1064,7 @@ namespace tools
       }
 
       return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.amount, res.fee, res.weight, res.multisig_txset, res.unsigned_txset, req.do_not_relay,
-          res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata, res.tx_metadata, er);
+          res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata, res.tx_metadata, res.spent_key_images, er);
     }
     catch (const std::exception& e)
     {
@@ -1015,7 +1110,7 @@ namespace tools
       }
 
       return fill_response(ptx_vector, req.get_tx_keys, res.tx_key_list, res.amount_list, res.fee_list, res.weight_list, res.multisig_txset, res.unsigned_txset, req.do_not_relay,
-          res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, er);
+          res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, res.spent_key_images_list, er);
     }
     catch (const std::exception& e)
     {
@@ -1270,7 +1365,6 @@ namespace tools
             dests.erase(cd.change_dts.addr);
         }
 
-        size_t n_dummy_outputs = 0;
         for (auto i = dests.begin(); i != dests.end(); )
         {
           if (i->second.second > 0)
@@ -1378,7 +1472,7 @@ namespace tools
       std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_unmixable_sweep_transactions();
 
       return fill_response(ptx_vector, req.get_tx_keys, res.tx_key_list, res.amount_list, res.fee_list, res.weight_list, res.multisig_txset, res.unsigned_txset, req.do_not_relay,
-          res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, er);
+          res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, res.spent_key_images_list, er);
     }
     catch (const std::exception& e)
     {
@@ -1436,7 +1530,7 @@ namespace tools
       std::vector<wallet2::pending_tx> ptx_vector = m_wallet->create_transactions_all(req.below_amount, dsts[0].addr, dsts[0].is_subaddress, req.outputs, mixin, req.unlock_time, priority, extra, req.account_index, subaddr_indices);
 
       return fill_response(ptx_vector, req.get_tx_keys, res.tx_key_list, res.amount_list, res.fee_list, res.weight_list, res.multisig_txset, res.unsigned_txset, req.do_not_relay,
-          res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, er);
+          res.tx_hash_list, req.get_tx_hex, res.tx_blob_list, req.get_tx_metadata, res.tx_metadata_list, res.spent_key_images_list, er);
     }
     catch (const std::exception& e)
     {
@@ -1511,7 +1605,7 @@ namespace tools
       }
 
       return fill_response(ptx_vector, req.get_tx_key, res.tx_key, res.amount, res.fee, res.weight, res.multisig_txset, res.unsigned_txset, req.do_not_relay,
-          res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata, res.tx_metadata, er);
+          res.tx_hash, req.get_tx_hex, res.tx_blob, req.get_tx_metadata, res.tx_metadata, res.spent_key_images, er);
     }
     catch (const std::exception& e)
     {
@@ -1543,8 +1637,7 @@ namespace tools
     tools::wallet2::pending_tx ptx;
     try
     {
-      std::istringstream iss(blob);
-      binary_archive<false> ar(iss);
+      binary_archive<false> ar{epee::strspan<std::uint8_t>(blob)};
       if (::serialization::serialize(ar, ptx))
         loaded = true;
     }
@@ -1875,6 +1968,7 @@ namespace tools
         rpc_transfers.tx_hash      = epee::string_tools::pod_to_hex(td.m_txid);
         rpc_transfers.subaddr_index = {td.m_subaddr_index.major, td.m_subaddr_index.minor};
         rpc_transfers.key_image    = td.m_key_image_known ? epee::string_tools::pod_to_hex(td.m_key_image) : "";
+        rpc_transfers.pubkey       = epee::string_tools::pod_to_hex(td.get_public_key());
         rpc_transfers.block_height = td.m_block_height;
         rpc_transfers.frozen       = td.m_frozen;
         rpc_transfers.unlocked     = m_wallet->is_transfer_unlocked(td);
@@ -2689,7 +2783,7 @@ namespace tools
     if (!m_wallet) return not_open(er);
     try
     {
-      std::pair<size_t, std::vector<std::pair<crypto::key_image, crypto::signature>>> ski = m_wallet->export_key_images(req.all);
+      std::pair<uint64_t, std::vector<std::pair<crypto::key_image, crypto::signature>>> ski = m_wallet->export_key_images(req.all);
       res.offset = ski.first;
       res.signed_key_images.resize(ski.second.size());
       for (size_t n = 0; n < ski.second.size(); ++n)
@@ -3001,6 +3095,41 @@ namespace tools
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool wallet_rpc_server::on_scan_tx(const wallet_rpc::COMMAND_RPC_SCAN_TX::request& req, wallet_rpc::COMMAND_RPC_SCAN_TX::response& res, epee::json_rpc::error& er, const connection_context *ctx)
+  {
+      if (!m_wallet) return not_open(er);
+      if (m_restricted)
+      {
+          er.code = WALLET_RPC_ERROR_CODE_DENIED;
+          er.message = "Command unavailable in restricted mode.";
+          return false;
+      }
+
+      std::vector<crypto::hash> txids;
+      std::list<std::string>::const_iterator i = req.txids.begin();
+      while (i != req.txids.end())
+      {
+          cryptonote::blobdata txid_blob;
+          if(!epee::string_tools::parse_hexstr_to_binbuff(*i++, txid_blob) || txid_blob.size() != sizeof(crypto::hash))
+          {
+              er.code = WALLET_RPC_ERROR_CODE_WRONG_TXID;
+              er.message = "TX ID has invalid format";
+              return false;
+          }
+
+          crypto::hash txid = *reinterpret_cast<const crypto::hash*>(txid_blob.data());
+          txids.push_back(txid);
+      }
+
+      try {
+          m_wallet->scan_tx(txids);
+      } catch (const std::exception &e) {
+          handle_rpc_exception(std::current_exception(), er, WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR);
+          return false;
+      }
+      return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
   bool wallet_rpc_server::on_rescan_spent(const wallet_rpc::COMMAND_RPC_RESCAN_SPENT::request& req, wallet_rpc::COMMAND_RPC_RESCAN_SPENT::response& res, epee::json_rpc::error& er, const connection_context *ctx)
   {
     if (!m_wallet) return not_open(er);
@@ -3106,17 +3235,7 @@ namespace tools
     }
     std::string wallet_file = req.filename.empty() ? "" : (m_wallet_dir + "/" + req.filename);
     {
-      std::vector<std::string> languages;
-      crypto::ElectrumWords::get_language_list(languages, false);
-      std::vector<std::string>::iterator it;
-
-      it = std::find(languages.begin(), languages.end(), req.language);
-      if (it == languages.end())
-      {
-        crypto::ElectrumWords::get_language_list(languages, true);
-        it = std::find(languages.begin(), languages.end(), req.language);
-      }
-      if (it == languages.end())
+      if (!crypto::ElectrumWords::is_valid_language(req.language))
       {
         er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
         er.message = "Unknown language: " + req.language;
@@ -3319,6 +3438,11 @@ namespace tools
     catch (const tools::error::daemon_busy& e)
     {
       er.code = WALLET_RPC_ERROR_CODE_DAEMON_IS_BUSY;
+      er.message = e.what();
+    }
+    catch (const tools::error::zero_amount& e)
+    {
+      er.code = WALLET_RPC_ERROR_CODE_ZERO_AMOUNT;
       er.message = e.what();
     }
     catch (const tools::error::zero_destination& e)
@@ -3534,6 +3658,17 @@ namespace tools
       return false;
     }
 
+    if (!req.language.empty())
+    {
+      if (!crypto::ElectrumWords::is_valid_language(req.language))
+      {
+        er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
+        er.message = "The specified seed language is invalid.";
+        return false;
+      }
+      wal->set_seed_language(req.language);
+    }
+
     // set blockheight if given
     try
     {
@@ -3677,12 +3812,7 @@ namespace tools
         er.message = "Wallet was using the old seed language. You need to specify a new seed language.";
         return false;
       }
-      std::vector<std::string> language_list;
-      std::vector<std::string> language_list_en;
-      crypto::ElectrumWords::get_language_list(language_list);
-      crypto::ElectrumWords::get_language_list(language_list_en, true);
-      if (std::find(language_list.begin(), language_list.end(), req.language) == language_list.end() &&
-          std::find(language_list_en.begin(), language_list_en.end(), req.language) == language_list_en.end())
+      if (!crypto::ElectrumWords::is_valid_language(req.language))
       {
         er.code = WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR;
         er.message = "Wallet was using the old seed language, and the specified new seed language is invalid.";
@@ -4409,7 +4539,7 @@ public:
       {
         LOG_ERROR(tools::wallet_rpc_server::tr("Initial refresh failed: ") << e.what());
       }
-      
+
       // if we ^C during potentially length load/refresh, there's no server loop yet
       if (quit)
       {

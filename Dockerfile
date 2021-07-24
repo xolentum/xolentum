@@ -51,7 +51,7 @@ ARG BOOST_VERSION=1_70_0
 ARG BOOST_VERSION_DOT=1.70.0
 ARG BOOST_HASH=430ae8354789de4fd19ee52f3b1f739e1fba576f0aded0897c3c2bc00fb38778
 RUN set -ex \
-    && curl -s -L -o  boost_${BOOST_VERSION}.tar.bz2 https://dl.bintray.com/boostorg/release/${BOOST_VERSION_DOT}/source/boost_${BOOST_VERSION}.tar.bz2 \
+    && curl -s -L -o  boost_${BOOST_VERSION}.tar.bz2 https://downloads.sourceforge.net/project/boost/boost/${BOOST_VERSION_DOT}/boost_${BOOST_VERSION}.tar.bz2 \
     && echo "${BOOST_HASH}  boost_${BOOST_VERSION}.tar.bz2" | sha256sum -c \
     && tar -xvf boost_${BOOST_VERSION}.tar.bz2 \
     && cd boost_${BOOST_VERSION} \
@@ -59,12 +59,12 @@ RUN set -ex \
     && if [ -z "$NPROC" ] ; \
     then ./b2 --build-type=minimal link=static runtime-link=static --with-chrono --with-date_time --with-filesystem --with-program_options --with-regex --with-serialization --with-system --with-thread --with-locale threading=multi threadapi=pthread cflags="$CFLAGS" cxxflags="$CXXFLAGS" stage -j$(nproc) ; \
     else ./b2 --build-type=minimal link=static runtime-link=static --with-chrono --with-date_time --with-filesystem --with-program_options --with-regex --with-serialization --with-system --with-thread --with-locale threading=multi threadapi=pthread cflags="$CFLAGS" cxxflags="$CXXFLAGS" stage -j$NPROC ; \
-    fi 
+    fi
 ENV BOOST_ROOT /usr/local/boost_${BOOST_VERSION}
 
 # OpenSSL
-ARG OPENSSL_VERSION=1.1.1k
-ARG OPENSSL_HASH=892a0875b9872acd04a9fde79b1f943075d5ea162415de3047c327df33fbaee5
+ARG OPENSSL_VERSION=1.1.1i
+ARG OPENSSL_HASH=e8be6a35fe41d10603c3cc635e93289ed00bf34b79671a3a4de64fcee00d5242
 RUN set -ex \
     && curl -s -O https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz \
     && echo "${OPENSSL_HASH}  openssl-${OPENSSL_VERSION}.tar.gz" | sha256sum -c \
@@ -221,5 +221,5 @@ RUN set -ex && \
     apt-get --no-install-recommends --yes install ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt
-    
+
 COPY --from=builder /src/build/release/bin /usr/local/bin/

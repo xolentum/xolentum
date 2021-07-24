@@ -30,7 +30,6 @@
 #include <ctype.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/regex.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/utility/string_ref.hpp>
 //#include <mbstring.h>
@@ -46,6 +45,7 @@
 #endif
 
 #include "string_tools.h"
+#include "string_tools_lexical.h"
 #include "reg_exp_definer.h"
 #include "abstract_http_client.h"
 #include "http_base.h"
@@ -233,7 +233,7 @@ namespace net_utils
 			}
 
 			//---------------------------------------------------------------------------
-			inline bool invoke(const boost::string_ref uri, const boost::string_ref method, const std::string& body, std::chrono::milliseconds timeout, const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list()) override
+			inline bool invoke(const boost::string_ref uri, const boost::string_ref method, const boost::string_ref body, std::chrono::milliseconds timeout, const http_response_info** ppresponse_info = NULL, const fields_list& additional_params = fields_list()) override
 			{
 				CRITICAL_REGION_LOCAL(m_lock);
 				if(!is_connected())
