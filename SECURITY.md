@@ -6,6 +6,7 @@ As of October 2021, we have 6 available versions out of which 3 have regular sup
 
 Please consider using the latest release at all times; many of the issues in previous releases are already addressed in latest ones.
 
+
 | Version | Supported          | Name               |
 | ------- | ------------------ | ------------------ |
 | 0.0.0.0 | :x:                | Pre-Release Testnet|
